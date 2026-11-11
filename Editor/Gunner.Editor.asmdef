@@ -1,0 +1,21 @@
+{
+    "name": "Gunner.Editor",
+    "rootNamespace": "Mecaota.Gunner.EditorTools",
+    "references": [
+        "Gunner",
+        "UdonSharp.Runtime",
+        "UdonSharp.Editor",
+        "VRC.Udon"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

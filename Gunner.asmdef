@@ -1,0 +1,17 @@
+{
+    "name": "Gunner",
+    "rootNamespace": "Mecaota.Gunner",
+    "references": [
+        "VRC.Udon",
+        "UdonSharp.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

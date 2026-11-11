@@ -1,0 +1,16 @@
+# Unity package (embedded). .meta files are tracked.
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+*.swp
+*~
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.suo

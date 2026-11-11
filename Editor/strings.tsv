@@ -1,0 +1,158 @@
+key	ja	en
+gunner.language	言語	Language
+gunner.test.hello	こんにちは、Gunner です。	Hello from Gunner.
+gunner.test.missing_en	日本語だけの項目	
+gunner.language.auto	エディタに合わせる	Follow the editor
+button.fix	直す	Fix
+button.recheck	再点検	Recheck
+button.add_emitter	射出口を足す	Add emitter
+button.place_hand	球を置く	Place hand ball
+button.add_splash	しぶきの受け手を足す	Add hit splash
+check.all_ok	問題は見つかりませんでした。	No problems found.
+check.l10n.missing	文字列の抜け: {0}	Missing text: {0}
+check.rig.no_emitter	射出口がありません	No emitter
+check.rig.too_many_emitters	射出口が多すぎます(最大 {0})	Too many emitters (max {0})
+check.rig.null_emitter	射出口の欄に空きがあります	An emitter slot is empty
+check.rig.no_particle	射出口 {0} に粒子がありません(当たりは記録されます)	Emitter {0} has no particles (hits are still recorded)
+check.rig.trails_off	射出口 {0} の粒子にトレイルがなく、連射が線になりません	Emitter {0}: particle trails are off, so the stream will not join into a line
+check.rig.no_stream	連射モードですが GunnerStream がありません	Stream mode, but no GunnerStream
+check.rig.hits_zero	記録数が 0 です	Hit records is 0
+check.rig.many_hits	記録数が {0} を超えています({0} 件までしか使われません)	More than {0} hit records (only {0} are used)
+check.rig.object_sync	VRC Object Sync と同じ GameObject には置けません(子へ移してください)	Cannot share a GameObject with VRC Object Sync (move it to a child)
+check.rig.null_mover	動く物の欄に空きがあります	A moving object slot is empty
+check.rig.null_receiver	受け手の欄に空きがあります	A receiver slot is empty
+check.rig.projectile_unlisted	発射物が受け手の一覧にありません(着弾が届きません)	The projectile is not in the receivers list (it will not hear hits)
+check.rig.receiver_unlisted	受け手の登録漏れ: {0}	Receiver not registered: {0}
+check.particle.not_world	粒子 {0} が World simulation space ではありません	Particles {0} are not in World simulation space
+check.particle.autoplay	粒子 {0} が自動で再生されます(Play On Awake / Looping)	Particles {0} play by themselves (Play On Awake / Looping)
+check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
+check.hand.no_input	GunnerPickupInput が未設定です	No GunnerPickupInput set
+check.hand.input_unwired	入力の Controller がこの球を指していません	The input's Controller is not this ball
+check.hand.no_aim	スティックで狙えません(GunnerStickAim が未設定)	No stick aim (GunnerStickAim not set)
+check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
+check.hand.window_single	「離してから」は単発では効きません	"After release" has no effect on single shots
+check.hand.mask_hits_ball	弾が球に当たります(レイヤー {0} が当たり判定に入っています)	Shots can hit the ball (layer {0} is in the hit mask)
+check.input.no_controller	Controller が未設定です	No Controller set
+check.input.no_pickup	同じ GameObject に VRC Pickup がありません	No VRC Pickup on this GameObject
+check.input.pickup_elsewhere	Pickup の欄が別の物を指しています	The Pickup field points elsewhere
+check.input.autohold	AutoHold が Yes でないため、トリガーが届きません	AutoHold is not Yes, so the trigger never arrives
+check.input.no_object_sync	VRC Object Sync がなく、ほかの人には球が動いて見えません	No VRC Object Sync: others will not see the ball move
+check.splash.no_particle	しぶきの粒子が未設定です	No splash particles set
+check.receiver.no_rig	どの GunnerRig にも登録されていません	Not registered on any GunnerRig
+check.stream.unused	どの GunnerRig からも使われていません	Not used by any GunnerRig
+GunnerRig.section.emitters	射出口	Emitters
+GunnerRig.section.receivers	受け手	Receivers
+GunnerRig.section.shot	射撃	Shooting
+GunnerRig.section.stream	連射	Stream
+GunnerRig.section.bone	ボーン連動	Bone link
+GunnerRig.showHandles	シーンで編集	Edit in scene
+GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
+GunnerRig.emitters	射出口	Emitters
+GunnerRig.emitters.tip	+Z が撃つ向き。最大16	+Z is the shooting direction. Up to 16
+GunnerRig.shotParticles	粒子	Particles
+GunnerRig.shotParticles.tip	射出口と同じ番号。World simulation space にする	Same index as the emitters. Use World simulation space
+GunnerRig.mounts	追従先	Mounts
+GunnerRig.mounts.tip	任意。射出口が毎フレームこの姿勢になる	Optional. The emitter takes this pose every frame
+GunnerRig.linkBones	連動ボーン	Linked bones
+GunnerRig.linkBones.tip	任意。狙いで回すボーン。空なら射出口の親	Optional. The bone the aim turns. Empty = the emitter's parent
+GunnerRig.movers	動く物	Moving objects
+GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
+GunnerRig.projectile	発射物	Projectile
+GunnerRig.projectile.tip	着弾ごとの値(payload)を書き足せる受け手1つ	The one receiver that may rewrite each hit's payload
+GunnerRig.receivers	受け手	Receivers
+GunnerRig.receivers.tip	着弾を知らせる相手	Notified of every hit
+GunnerRig.stream	連射	Stream
+GunnerRig.stream.tip	連射モードで使う GunnerStream	The GunnerStream used in stream mode
+GunnerRig.fireMode	撃ち方	Fire mode
+GunnerRig.fireMode.opt	単発|連射	Single|Stream
+GunnerRig.maxHits	記録数	Hit records
+GunnerRig.maxHits.tip	この端末で使う着弾の数(1〜16)。同期は常に16件なので、Android で減らしても PC と食い違わない	Hits this device uses (1-16). The sync always holds 16, so a lower value on Android stays compatible with PC
+GunnerRig.shotSpeed	弾の速さ	Shot speed
+GunnerRig.shotSpeed.tip	メートル毎秒	Metres per second
+GunnerRig.maxRange	射程	Range
+GunnerRig.maxRange.tip	メートル	Metres
+GunnerRig.castRadius	弾の半径	Shot radius
+GunnerRig.castRadius.tip	当たり判定の太さ(メートル)	Hit test thickness (metres)
+GunnerRig.hitMask	当たるレイヤー	Hit layers
+GunnerRig.hitMask.tip	プレイヤーのレイヤーはここでは見ない。人は「人に当たる」で決める	Player layers are ignored here; "Hit players" decides
+GunnerRig.hitPlayers	人に当たる	Hit players
+GunnerRig.excludeOwner	自分には当てない	Skip own body
+GunnerRig.excludeOwner.tip	この端末の本人には当たらない(撃つ人が自分の弾に当たらない)。罠の場合は、rig を持っている人にも当たらない	The player on this device is never hit (shooters don't hit themselves). For a trap, its rig's owner is not hit either
+GunnerRig.playerRadius	体の太さ	Body radius
+GunnerRig.playerRadius.tip	目の高さに対する割合	Share of the eye height
+GunnerRig.aimMaxAngle	可動域	Aim limit
+GunnerRig.aimMaxAngle.tip	撃つ向きの初期値から振れる角度(度)	Degrees from the rest direction
+GunnerRig.streamRate	連射の量	Stream rate
+GunnerRig.streamRate.tip	射出口ごとの毎秒の粒の数	Particles per second per emitter
+GunnerRig.streamWidth	線の太さ	Line width
+GunnerRig.streamTaper	線の太さの変化	Line taper
+GunnerRig.streamTaper.tip	空なら一定	Empty = flat
+GunnerRig.streamJoin	連射の見た目	Stream look
+GunnerRig.streamJoin.opt	粒のまま|線につなぐ	Particles|Joined line
+GunnerRig.streamHitMode	連射の当たり方	Stream hits
+GunnerRig.streamHitMode.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
+GunnerRig.streamHitInterval	当たりの間隔	Hit interval
+GunnerRig.streamHitInterval.tip	当たり続ける時の、射出口ごとの記録の間隔(秒)	Keep hitting: seconds between records per emitter
+GunnerRig.streamCollide	連射の当たり判定	Stream collision
+GunnerRig.streamCollide.tip	開始時の値。球などが実行中に切り替える	Initial value; a controller may switch it at runtime
+GunnerRig.boneFollow	ボーン連動	Bone link
+GunnerRig.boneFollow.tip	狙いに合わせてボーンを回す	Turn the bone with the aim
+GunnerRig.boneStrength	連動の割合	Link share
+GunnerRig.boneYawMax	左右の上限	Yaw limit
+GunnerRig.bonePitchUpMax	上の上限	Pitch up limit
+GunnerRig.bonePitchDownMax	下の上限	Pitch down limit
+GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
+GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか	Per second, share of the remaining angle closed
+GunnerRig.boneMinSpeed	最低の速さ	Minimum speed
+GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
+GunnerHandController.rig	GunnerRig	GunnerRig
+GunnerHandController.input	入力	Input
+GunnerHandController.aim	スティックの狙い	Stick aim
+GunnerHandController.hold	移動ロック	Move hold
+GunnerHandController.emitter	射出口の番号	Emitter index
+GunnerHandController.emitter.tip	単発で使う射出口。-1 ならすべて	Emitter for single shots. -1 = all
+GunnerHandController.payload	payload	Payload
+GunnerHandController.payload.tip	rig へそのまま渡す整数。意味は発射物が決める	Integer passed to the rig as is; the projectile decides what it means
+GunnerHandController.collideMode	当たるとき	When it hits
+GunnerHandController.collideMode.opt	いつも|離してから	Always|After release
+GunnerHandController.collideMode.tip	離してから: 押している間は素通りし、離した後に最初に触れた所へ1回だけ当たる	After release: passes through while held, then hits the first thing touched once
+GunnerHandController.releaseWindow	離した後の時間	Release window
+GunnerHandController.releaseWindow.tip	離してから当たれる最大の秒数	Seconds the released stream may still hit
+GunnerHandController.followBone	ボーン連動を入れる	Turn bone link on
+GunnerHandController.followBone.tip	持っている間だけ rig のボーン連動を入れる	Bone link on while held
+GunnerHandController.resetAimOnEnd	終わったら狙いを戻す	Reset aim on end
+GunnerPickupInput.controller	Controller	Controller
+GunnerPickupInput.pickup	Pickup	Pickup
+GunnerPickupInput.pickup.tip	空ならこの GameObject の VRC Pickup	Empty = the VRC Pickup on this GameObject
+GunnerPickupInput.hand	撃てる手	Shooting hand
+GunnerPickupInput.hand.opt	左手|右手|どちらでも	Left|Right|Either
+GunnerPickupInput.hand.tip	VR だけ。デスクトップは持つだけで撃てる	VR only. On desktop holding is enough
+GunnerPickupInput.desktopStick	デスクトップの狙い	Desktop aim keys
+GunnerPickupInput.desktopStick.opt	WASD|矢印キー	WASD|Arrow keys
+GunnerPickupInput.invertVertical	上下を逆にする	Invert vertical
+GunnerStickAim.mode	狙い方	Aim mode
+GunnerStickAim.mode.opt	倒した分だけ回る|倒した位置が角度	Rate|Position
+GunnerStickAim.turnSpeed	回る速さ	Turn speed
+GunnerStickAim.turnSpeed.tip	いっぱいに倒したときの度毎秒	Degrees per second at full tilt
+GunnerStickAim.range	範囲	Range
+GunnerStickAim.range.tip	左右・上下それぞれの角度(度)	Degrees each way
+GunnerStickAim.deadZone	遊び	Dead zone
+GunnerStickAim.positionEase	追いつく速さ	Ease
+GunnerStickAim.positionEase.tip	位置が角度のとき。0 ですぐ	Position mode. 0 = at once
+GunnerMoveHold.holdWhileActive	撃つ間は動けなくする	Hold still while shooting
+GunnerMoveHold.releaseBlocked	解除を止める	Block release
+GunnerMoveHold.releaseBlocked.tip	真の間は解除しない(座席や罠が押さえているとき)	While true, never releases (a seat or trap holds the player)
+GunnerHitSplash.targetRig	GunnerRig	GunnerRig
+GunnerHitSplash.targetRig.tip	開始時にこの rig へ自分を登録する	Registers itself on this rig at start
+GunnerHitSplash.splash	しぶきの粒子	Splash particles
+GunnerHitSplash.splash.tip	World simulation space。+Z がしぶきの向き	World simulation space. +Z = splash direction
+GunnerHitSplash.burst	粒の数	Burst
+GunnerHitSplash.onWorld	壁や床	World
+GunnerHitSplash.onMoving	動く物	Moving objects
+GunnerHitSplash.onPlayers	人	Players
+GunnerHitSplash.onStream	連射の着弾	Stream hits
+GunnerHitSplash.sound	音	Sound
+GunnerHitSplash.surfaceOffset	面からの浮き	Surface offset
+GunnerHitSplash.surfaceOffset.tip	メートル	Metres
+GunnerHitReceiver.wantsLateStep	毎フレーム呼ぶ	Late step
+GunnerHitReceiver.wantsLateStep.tip	着弾の端点を毎フレーム受け取る	Receive hit end points every frame

@@ -23,6 +23,7 @@ namespace Mecaota.Gunner.EditorTools
                 case GunnerHandController hand: Hand(hand, into); break;
                 case GunnerPickupInput input: PickupInput(input, into); break;
                 case GunnerHitSplash splash: Splash(splash, into); break;
+                case GunnerSounds sounds: Sounds(sounds, into); break;
                 case GunnerStream stream: Stream(stream, into); break;
             }
         }
@@ -111,6 +112,7 @@ namespace Mecaota.Gunner.EditorTools
             {
                 if (System.Array.IndexOf(listed, r) >= 0 || r == rig.projectile) continue;
                 if (r is GunnerHitSplash s && s.targetRig == rig) continue; // registers itself on Start
+                if (r is GunnerSounds snd && snd.rigs != null && System.Array.IndexOf(snd.rigs, rig) >= 0) continue; // 開始時に自分で登録する
                 var receiver = r;
                 into.Add(new GunnerCheck(E.Warning, "check.rig.receiver_unlisted", r, () => AddReceiver(rig, receiver), r.name));
             }
@@ -229,6 +231,79 @@ namespace Mecaota.Gunner.EditorTools
             foreach (var rig in GunnerEditorUtil.FindInScenes<GunnerRig>())
                 if (rig.receivers != null && System.Array.IndexOf(rig.receivers, r) >= 0) return true;
             return false;
+        }
+
+        // クリップ未設定は点検に出さない(無音のまま使う構成もある)。インスペクタで知らせるだけにする。
+        static void Sounds(GunnerSounds sounds, List<GunnerCheck> into)
+        {
+            var rigs = GunnerAudio.RigsOf(sounds);
+            if (rigs.Count == 0)
+            {
+                var parent = GunnerSetup.RigFor(sounds.gameObject);
+                System.Action fix = null;
+                if (parent != null) fix = () => GunnerEditorUtil.Edit(sounds, so => GunnerEditorUtil.Append(so.FindProperty("rigs"), parent));
+                into.Add(new GunnerCheck(E.Warning, "check.receiver.no_rig", sounds, fix));
+            }
+            if (sounds.rigs != null && System.Array.IndexOf(sounds.rigs, null) >= 0)
+                into.Add(new GunnerCheck(E.Warning, "check.sounds.null_rig", sounds,
+                    () => GunnerEditorUtil.Edit(sounds, so => GunnerEditorUtil.RemoveNulls(so, "rigs"))));
+
+            Voices(sounds, sounds.fireVoices, sounds.fireClip, "fireVoices", into);
+            Voices(sounds, sounds.impactVoices, sounds.impactClip, "impactVoices", into);
+
+            // 同じ rig を2つで受け持つと、発射音も着弾音も二重に鳴る。
+            foreach (var other in GunnerEditorUtil.FindInScenes<GunnerSounds>())
+            {
+                if (other == sounds) continue;
+                foreach (var r in GunnerAudio.RigsOf(other))
+                {
+                    if (!rigs.Contains(r)) continue;
+                    into.Add(new GunnerCheck(E.Warning, "check.sounds.double", sounds, null, r.name));
+                    break;
+                }
+            }
+
+            // しぶきの見本にも音の欄があり、両方にあると着弾で二重に鳴る。
+            if (sounds.impactClip == null) return;
+            foreach (var splash in GunnerEditorUtil.FindInScenes<GunnerHitSplash>())
+            {
+                if (splash.sound == null) continue;
+                bool shared = false;
+                foreach (var r in GunnerAudio.RigsOf(splash)) if (rigs.Contains(r)) shared = true;
+                if (!shared) continue;
+                var s = splash;
+                into.Add(new GunnerCheck(E.Warning, "check.sounds.splash_sound", splash,
+                    () => GunnerEditorUtil.Edit(s, so => so.FindProperty("sound").objectReferenceValue = null), splash.name));
+            }
+        }
+
+        static void Voices(GunnerSounds sounds, AudioSource[] voices, AudioClip clip, string field, List<GunnerCheck> into)
+        {
+            string label = GunnerL10n.Tr("GunnerSounds." + field);
+            float reach = GunnerAudio.ReachOf(sounds);
+            if (voices == null || voices.Length == 0)
+            {
+                if (clip != null)
+                    into.Add(new GunnerCheck(E.Warning, "check.sounds.no_voices", sounds, () => GunnerAudio.SetUpVoices(sounds, reach), label));
+                return;
+            }
+            if (System.Array.IndexOf(voices, null) >= 0)
+                into.Add(new GunnerCheck(E.Warning, "check.sounds.null_voice", sounds,
+                    () => GunnerEditorUtil.Edit(sounds, so => GunnerEditorUtil.RemoveNulls(so, field)), label));
+            foreach (var v in voices)
+            {
+                if (v == null) continue;
+                var voice = v;
+                var spatial = v.GetComponent<VRCSpatialAudioSource>();
+                if (spatial == null)
+                    into.Add(new GunnerCheck(E.Warning, "check.sounds.no_spatial", v, () => GunnerAudio.ConfigureVoice(voice, reach), v.name));
+                // 実行時は maxDistance を届く距離として遠い音を間引くので、Far と食い違うと間引きが効かない。
+                else if (Mathf.Abs(v.maxDistance - spatial.Far) > 0.01f)
+                {
+                    float far = spatial.Far > 0f ? spatial.Far : reach;
+                    into.Add(new GunnerCheck(E.Warning, "check.sounds.reach_mismatch", v, () => GunnerAudio.ConfigureVoice(voice, far), v.name));
+                }
+            }
         }
 
         static void Stream(GunnerStream stream, List<GunnerCheck> into)

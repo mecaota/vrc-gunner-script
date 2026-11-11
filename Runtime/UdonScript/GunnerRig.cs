@@ -139,6 +139,12 @@ namespace Mecaota.Gunner
         // or Vector3.zero when this client never saw one.
         [System.NonSerialized] public bool hitResolved;
 
+        // ---------------- 受け手が読む(_OnFire の中身) ----------------
+
+        [System.NonSerialized] public int fireEmitter = -1;    // 連射の開始は -1(全部の射出口)
+        [System.NonSerialized] public bool fireStream;         // 連射の開始なら真
+        [System.NonSerialized] public bool fireReplay;         // 入室時に既に続いていた連射なら真。今撃たれたのではないので音は鳴らさない
+
         // Per slot, filled before _OnGunnerLateStep (only when a receiver wants it). Never reallocated after Init.
         [System.NonSerialized] public Vector3[] hitStart;
         [System.NonSerialized] public Vector3[] hitWorld;
@@ -459,6 +465,16 @@ namespace Mecaota.Gunner
             for (int i = 0; i < list.Length; i++) if (list[i] != null) list[i]._OnHitGone(this);
         }
 
+        // 粒子の有無に関係なく、各端末で発射の瞬間に1回ずつ呼ぶ(粒子の無い rig でも音を出せるように)。
+        private void NotifyFire(int e, bool isStream, bool replay)
+        {
+            fireEmitter = e;
+            fireStream = isStream;
+            fireReplay = replay;
+            GunnerHitReceiver[] list = receivers;
+            for (int i = 0; i < list.Length; i++) if (list[i] != null) list[i]._OnFire(this);
+        }
+
         // ================= Public operations =================
 
         public void Fire() { _FireWith(-1, 0); }
@@ -490,6 +506,7 @@ namespace Mecaota.Gunner
                 streamOn = true;
                 streamWas = true;
                 stream._Begin(Time.time);
+                NotifyFire(-1, true, false);
             }
             aimSyncMode = (byte)aimMode;
             aimSync = aimVector;
@@ -762,6 +779,7 @@ namespace Mecaota.Gunner
                 mDir[e] = dir;
                 seenMiss[e] = mSeq[e];
                 Fly(e, -1, dir, maxRange);
+                NotifyFire(e, false, false);
                 return true;
             }
             KeepCast();
@@ -1173,6 +1191,7 @@ namespace Mecaota.Gunner
             int e = MetaEmitter(kMeta[s]);
             arrived[s] = false;
             slotReplay[s] = false;
+            if (ValidEmitter(e)) NotifyFire(e, false, false);
             if (!ValidEmitter(e) || !Resolve(kMeta[s], kLocal[s]))
             {
                 arriveAt[s] = Time.time;
@@ -1278,9 +1297,13 @@ namespace Mecaota.Gunner
                 // A smaller count is a rolled-back write of this client's own: match it without a flight.
                 bool newer = !first && mSeq[i] > seenMiss[i];
                 seenMiss[i] = mSeq[i];
-                if (newer && ValidEmitter(i)) Fly(i, -1, mDir[i], maxRange);
+                if (newer && ValidEmitter(i))
+                {
+                    Fly(i, -1, mDir[i], maxRange);
+                    NotifyFire(i, false, false);
+                }
             }
-            ApplyStreamState();
+            ApplyStreamState(first);
         }
 
         private bool SameAsHeld(int s)
@@ -1297,9 +1320,14 @@ namespace Mecaota.Gunner
             return hSeq - back;
         }
 
-        private void ApplyStreamState()
+        // first = 入室後の最初の受信。その時に続いていた連射は、今始まったのではないので再生の印を付ける。
+        private void ApplyStreamState(bool first)
         {
-            if (streamOn && !streamWas && stream != null) stream._Begin(Time.time);
+            if (streamOn && !streamWas && stream != null)
+            {
+                stream._Begin(Time.time);
+                NotifyFire(-1, true, first);
+            }
             streamWas = streamOn;
         }
 

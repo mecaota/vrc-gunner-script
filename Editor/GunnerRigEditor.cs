@@ -60,6 +60,11 @@ namespace Mecaota.Gunner.EditorTools
                         GunnerSetup.AddSplash(rig);
                         GUIUtility.ExitGUI();
                     }
+                    if (GUILayout.Button(T("button.add_sounds")))
+                    {
+                        Selection.activeObject = GunnerSetup.AddSounds(rig).gameObject;
+                        GUIUtility.ExitGUI();
+                    }
                 }
             }
 

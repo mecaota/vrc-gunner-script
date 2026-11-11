@@ -95,6 +95,23 @@ namespace Mecaota.Gunner.EditorTools
         [MenuItem(Root + "Add Hit Splash", true)]
         static bool CanAddSplash() => RigFor(Selection.activeGameObject) != null;
 
+        [MenuItem(Root + "Add Gunner Sounds", false, Priority + 22)]
+        static void MenuAddSounds(MenuCommand command)
+        {
+            var rig = RigFor(Target(command));
+            if (rig == null) return;
+            Selection.activeObject = AddSounds(rig).gameObject;
+        }
+
+        [MenuItem(Root + "Add Gunner Sounds", true)]
+        static bool CanAddSounds() => RigFor(Selection.activeGameObject) != null;
+
+        [MenuItem("Tools/Gunner/Add Gunner Sounds", false, 1)]
+        static void MenuToolsAddSounds() => MenuAddSounds(null);
+
+        [MenuItem("Tools/Gunner/Add Gunner Sounds", true)]
+        static bool CanToolsAddSounds() => CanAddSounds();
+
         [MenuItem("Tools/Gunner/Check Window", false, 0)]
         static void MenuCheckWindow() => GunnerCheckWindow.Open();
 
@@ -246,6 +263,27 @@ namespace Mecaota.Gunner.EditorTools
                 so.FindProperty("burst").intValue = 30;
             });
             return splash;
+        }
+
+        /// <summary>
+        /// 発射音と着弾音の受け手を rig の Parts の下に作り、音源の子(発射3・着弾4)を配線する。クリップは空のまま。
+        /// その rig を既に受け持つ GunnerSounds があれば、それを返す(二重に鳴らさないため)。
+        /// </summary>
+        public static GunnerSounds AddSounds(GunnerRig rig)
+        {
+            var existing = GunnerAudio.SoundsFor(rig);
+            if (existing != null) return existing;
+            var parts = Parts(rig);
+            var go = GunnerEditorUtil.CreateChild(parts, GunnerEditorUtil.UniqueChildName(parts, "Sounds"));
+            var sounds = GunnerEditorUtil.AddUdon<GunnerSounds>(go);
+            GunnerEditorUtil.Edit(sounds, so =>
+            {
+                var rigs = so.FindProperty("rigs");
+                rigs.arraySize = 0;
+                GunnerEditorUtil.Append(rigs, rig);
+            });
+            GunnerAudio.SetUpVoices(sounds, GunnerAudio.DefaultReach);
+            return sounds;
         }
 
         public static void ExcludeLayer(GunnerRig rig, int layer)

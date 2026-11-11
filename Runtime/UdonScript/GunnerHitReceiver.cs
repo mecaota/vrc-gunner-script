@@ -21,6 +21,10 @@ namespace Mecaota.Gunner
         // Every client: a hit that had arrived was retired, cleared or overwritten.
         public virtual void _OnHitGone(GunnerRig rig) { }
 
+        // 全員: 単発が射出口を出た時と、連射が始まった時。中身は rig.fireEmitter / fireStream / fireReplay で読む。
+        // 発射の途中で呼ばれるので、ここから撃ち直したり記録を消したりしない。
+        public virtual void _OnFire(GunnerRig rig) { }
+
         // Every client, once per frame, at the end of the rig's PostLateUpdate (wantsLateStep only).
         public virtual void _OnGunnerLateStep(GunnerRig rig) { }
 

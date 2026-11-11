@@ -142,7 +142,7 @@ namespace Mecaota.Gunner.EditorTools
             main.duration = 0.1f;
             main.startLifetime = 1f;      // the rig sets the lifetime per shot from the distance
             main.startSpeed = 25f;        // the rig sets the speed from shotSpeed
-            main.startSize = 0.04f;
+            main.startSize = 0.1f;
             main.gravityModifier = 0f;
             main.maxParticles = 64;
 
@@ -155,9 +155,10 @@ namespace Mecaota.Gunner.EditorTools
 
             var trails = ps.trails;
             trails.enabled = true;
-            trails.lifetime = 0.15f;
+            trails.lifetime = 0.3f;
             trails.minVertexDistance = 0.02f;
-            trails.widthOverTrail = 0.02f;
+            trails.sizeAffectsWidth = false;
+            trails.widthOverTrail = 0.08f;   // metres: a clearly visible line
 
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             var mat = DefaultParticleMaterial();

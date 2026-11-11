@@ -222,10 +222,11 @@ namespace Mecaota.Gunner.EditorTools
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.playOnAwake = false;
             main.loop = false;
-            main.startLifetime = 0.4f;
-            main.startSpeed = 2f;
-            main.startSize = 0.03f;
-            main.gravityModifier = 1f;
+            // Debug-friendly defaults: big, bright, long-lived, so the burst shows even in a far screenshot.
+            main.startLifetime = 1.5f;
+            main.startSpeed = 3f;
+            main.startSize = 0.2f;
+            main.gravityModifier = 0.5f;
             var emission = ps.emission;
             emission.rateOverTime = 0f;
             var shape = ps.shape;
@@ -233,7 +234,8 @@ namespace Mecaota.Gunner.EditorTools
             shape.angle = 35f;
             shape.radius = 0.01f;
             var renderer = psGo.GetComponent<ParticleSystemRenderer>();
-            var mat = GunnerEditorUtil.DefaultParticleMaterial();
+            var mat = AssetDatabase.LoadAssetAtPath<Material>("Packages/com.mecaota.gunner/Material/GunnerSampleSplashDebug.mat");
+            if (mat == null) mat = GunnerEditorUtil.DefaultParticleMaterial();
             if (renderer != null && mat != null) renderer.sharedMaterial = mat;
 
             var splash = GunnerEditorUtil.AddUdon<GunnerHitSplash>(go);
@@ -241,6 +243,7 @@ namespace Mecaota.Gunner.EditorTools
             {
                 so.FindProperty("targetRig").objectReferenceValue = rig;
                 so.FindProperty("splash").objectReferenceValue = ps;
+                so.FindProperty("burst").intValue = 30;
             });
             return splash;
         }

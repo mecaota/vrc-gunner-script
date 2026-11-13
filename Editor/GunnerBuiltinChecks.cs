@@ -84,6 +84,7 @@ namespace Mecaota.Gunner.EditorTools
                 into.Add(new GunnerCheck(E.Error, "check.rig.object_sync", rig));
 
             Receivers(rig, into);
+            ExtraBones(rig, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -115,6 +116,71 @@ namespace Mecaota.Gunner.EditorTools
                 if (r is GunnerSounds snd && snd.rigs != null && System.Array.IndexOf(snd.rigs, rig) >= 0) continue; // 開始時に自分で登録する
                 var receiver = r;
                 into.Add(new GunnerCheck(E.Warning, "check.rig.receiver_unlisted", r, () => AddReceiver(rig, receiver), r.name));
+            }
+        }
+
+        // 追加の連動ボーン。実行時は、赤の骨を無視して残りで鎖を作る。
+        const int LongChain = 6;
+
+        static void ExtraBones(GunnerRig rig, List<GunnerCheck> into)
+        {
+            var bones = rig.linkExtraBones;
+            if (bones == null || bones.Length == 0) return;
+            var owners = rig.linkExtraEmitter ?? new int[0];
+            int emitterCount = rig.emitters != null ? rig.emitters.Length : 0;
+            var leads = new HashSet<Transform>();
+            for (int e = 0; e < emitterCount; e++)
+            {
+                var lead = GunnerRigEditor.LeadBone(rig, e);
+                if (lead != null) leads.Add(lead);
+            }
+            var chainOf = new Dictionary<Transform, Transform>(); // 追加の骨 → その鎖の先頭の骨
+            var counts = new Dictionary<Transform, int>();
+            bool hasNull = false;
+            for (int k = 0; k < bones.Length; k++)
+            {
+                var bone = bones[k];
+                if (bone == null)
+                {
+                    hasNull = true;
+                    continue;
+                }
+                int index = k;
+                System.Action remove = () => GunnerEditorUtil.Edit(rig, so => GunnerRigEditor.RemoveExtraAt(so, index));
+                string label = k + " (" + bone.name + ")";
+                int emitter = k < owners.Length ? owners[k] : -1;
+                var lead = GunnerRigEditor.LeadBone(rig, emitter);
+                if (lead == null)
+                {
+                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_no_link", rig, remove, label));
+                    continue;
+                }
+                if (bone == lead || !lead.IsChildOf(bone))
+                {
+                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_not_ancestor", rig, remove, label));
+                    continue;
+                }
+                if (leads.Contains(bone))
+                {
+                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_shared", rig, remove, label));
+                    continue;
+                }
+                if (chainOf.TryGetValue(bone, out var other))
+                {
+                    into.Add(new GunnerCheck(E.Error, other == lead ? "check.rig.extra_duplicate" : "check.rig.extra_shared", rig, remove, label));
+                    continue;
+                }
+                chainOf[bone] = lead;
+                counts[lead] = (counts.TryGetValue(lead, out int c) ? c : 0) + 1;
+            }
+            if (hasNull)
+                into.Add(new GunnerCheck(E.Warning, "check.rig.extra_null", rig,
+                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "linkExtraBones", "linkExtraEmitter"))));
+            foreach (var pair in counts)
+            {
+                int total = pair.Value + 1; // 先頭の骨を含む
+                if (total > LongChain)
+                    into.Add(new GunnerCheck(E.Warning, "check.rig.chain_long", rig, null, pair.Key.name + " (" + total + ")"));
             }
         }
 

@@ -106,6 +106,10 @@ namespace Mecaota.Gunner
 
         private void Activate()
         {
+            // 骨の連動を使う球は、拾った時に rig のオーナーを取る(狙いを拾った時点から全員へ送るため)。
+            // rig の骨の連動が最初から入の時は下の _SetBoneFollow が呼ばれずオーナーを取らないので、ここで取る。
+            // followBone が偽の球は今までどおり、最初に撃つ時にオーナーを取る。
+            if (followBone) rig._TakeOwnership();
             active = true;
             triggerDown = false;
             aimSent = false;

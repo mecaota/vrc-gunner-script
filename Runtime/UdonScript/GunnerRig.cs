@@ -70,6 +70,10 @@ namespace Mecaota.Gunner
         public ParticleSystem[] shotParticles;    // emitters と同じ番号。World シミュレーション空間
         public Transform[] mounts;                // 射出口ごとに任意: 射出口が毎フレームこの姿勢を取る(+Z = 休み)
         public Transform[] linkBones;             // 射出口ごとに任意: 狙いで回すもの。空 = rig の中での射出口の親
+        // 任意: 連動に加える追加の骨(先頭の骨の祖先に限る)。linkExtraEmitter の同じ番号が、その骨の加わる射出口。
+        // 鎖 = 追加の骨(上から順)+先頭の骨。狙いの回転を骨の数で等分し、鎖の全部の骨に同じ回転を書く。空 = 今までどおり先頭の骨だけ。
+        public Transform[] linkExtraBones;
+        public int[] linkExtraEmitter;
         public Transform[] movers;                // 動くオブジェクト: これ(または子)への着弾はそれに付いていく
         public GunnerStream stream;               // 任意: 連射
         public GunnerHitReceiver projectile;      // payload を聞く唯一の受け手(_OnOwnerHit / _OnOwnerCommit)
@@ -102,6 +106,10 @@ namespace Mecaota.Gunner
         public float boneYawMax = 30f;
         public float bonePitchUpMax = 30f;
         public float bonePitchDownMax = 15f;
+        // 鎖全体で曲がる合計の上限(度)。0 = 骨1本あたりの上限 × 骨の数。0 より大きい時は、小さいほうが効く。
+        public float chainYawLimit;
+        public float chainPitchUpLimit;
+        public float chainPitchDownLimit;
         public float boneSmooth = 10f;            // 1秒あたり: 残りの角度を詰める割合
         public float boneMinSpeed = 30f;          // 最低でも1秒あたりこの角度
 
@@ -114,6 +122,7 @@ namespace Mecaota.Gunner
         [UdonSynced] private int[] hWriter = new int[0];       // 書いた人と書いた時刻(上の hWriter の並び)
         [UdonSynced] private int[] mSeq = new int[0];          // 射出口ごと: 外れた弾の数
         [UdonSynced] private Vector3[] mDir = new Vector3[0];  // 射出口ごと: 最後に外れた弾の向き
+        [UdonSynced] private int mPayload;                     // 最後に外れた弾の payload(全射出口で1つ)
         [UdonSynced] private int stopSeq;
         [UdonSynced] private bool streamOn;
         [UdonSynced] private int streamPayload;
@@ -144,6 +153,20 @@ namespace Mecaota.Gunner
         [System.NonSerialized] public int fireEmitter = -1;    // 連射の開始は -1(全部の射出口)
         [System.NonSerialized] public bool fireStream;         // 連射の開始なら真
         [System.NonSerialized] public bool fireReplay;         // 入室時に既に続いていた連射なら真。今撃たれたのではないので音は鳴らさない
+        // その弾の payload。当たった弾は記録の値(発射物が書き換えた後)、外れた弾は撃った時の値、連射は連射の値。
+        // 外れた弾の値は rig に1つしか同期しないので、送る前に別の値で撃ち直すと、ほかの端末では後の値になる。
+        [System.NonSerialized] public int firePayload;
+
+        // ---------------- 撃つ側が書く(実行中だけ。同期しない) ----------------
+        // 書いた値は残り、同じ rig を撃つほかの経路(Fire()、手に持つ球)にも効く。撃った後に fireMask = -1、aimOffsets = null へ戻す。
+
+        // 一斉射(_FireWith(-1, …)・Fire)で使う射出口の組。ビット i = 射出口 i。-1 = 全部(今までどおり)。
+        // 射出口を指定した発射と連射には効かない。
+        [System.NonSerialized] public int fireMask = -1;
+        // 射出口ごとの狙いのずらし(度。x = 左右で右が +、y = 上下で上が +)。狙った向きにこの角度を足して撃つ。
+        // null・短い・(0, 0) の射出口はずらさない。持ち主の端末で撃つ時だけ使う(着弾の点と外れた向きは同期で伝わる)。
+        // 単発すべて(射出口を指定した発射も)に効き、連射には効かない。
+        [System.NonSerialized] public Vector2[] aimOffsets;
 
         // 枠ごと。_OnGunnerLateStep の前に埋める(受け手が欲しがる時だけ)。Init の後は作り直さない。
         [System.NonSerialized] public Vector3[] hitStart;
@@ -203,11 +226,22 @@ namespace Mecaota.Gunner
         private Quaternion[] restLocal; // Init で1回だけ取る。狙った後の姿勢からは取らない
         private Vector3[] restPos;
         private int[] linkOf;           // 射出口ごと: 連動の番号。-1 = なし
-        private Transform[] links;
+        private Transform[] links;      // 連動ごと: 先頭の骨
         private int[] linkLead;
-        private Quaternion[] linkBase;
-        private Quaternion[] linkWritten;
         private bool[] linkHeld;
+        // 連動ごとの鎖(追加の骨を上から順に、最後が先頭の骨)。chain* は全部の連動の鎖を続けて並べた配列。
+        private int[] linkChainStart;
+        private int[] linkChainCount;
+        private Transform[] chainBone;
+        private Quaternion[] chainBase;     // 骨の休みのローカル回転(Animator が書いたら取り直す)
+        private Quaternion[] chainWritten;
+        private Quaternion[] chainRel;      // 骨から見た、先頭の射出口の休みの座標系(起動時に1回)。先頭の骨は restRel と同じ
+        // 連動ごとの、鎖のいちばん上の骨から先頭の骨までの道(間の動かない骨も含む)。休みの座標系を作るのに使う。
+        private int[] linkPathStart;
+        private int[] linkPathCount;
+        private Transform[] pathBone;
+        private int[] pathChain;            // chain* の番号。-1 = 鎖に入っていない間の骨
+        private const int MaxAncestors = 64;
         private float[] followYaw;
         private float[] followPitch;
         private float[] turnYaw;
@@ -364,8 +398,6 @@ namespace Mecaota.Gunner
             }
             links = new Transform[count];
             linkLead = new int[count];
-            linkBase = new Quaternion[count];
-            linkWritten = new Quaternion[count];
             linkHeld = new bool[count];
             followYaw = new float[count];
             followPitch = new float[count];
@@ -375,9 +407,132 @@ namespace Mecaota.Gunner
             {
                 links[b] = found[b];
                 linkLead[b] = lead[b];
-                linkBase[b] = found[b].localRotation;
-                linkWritten[b] = linkBase[b];
             }
+            BuildChains(count);
+        }
+
+        // 連動ごとの鎖と道を作る。追加の骨は先頭の骨の祖先だけを使い、祖先でない骨・別の連動が使っている骨・
+        // 別の連動の先頭の骨は無視する(点検が赤で知らせる)。追加の骨が無ければ、鎖も道も先頭の骨1本だけ。
+        private void BuildChains(int count)
+        {
+            int extraCount = linkExtraBones != null ? linkExtraBones.Length : 0;
+            linkChainStart = new int[count];
+            linkChainCount = new int[count];
+            linkPathStart = new int[count];
+            linkPathCount = new int[count];
+            int[] top = new int[count];
+            Transform[] claimed = new Transform[count + extraCount];
+            int[] claimedBy = new int[count + extraCount];
+            int claimedCount = 0;
+            for (int b = 0; b < count; b++)
+            {
+                claimed[claimedCount] = links[b];
+                claimedBy[claimedCount] = -1; // 先頭の骨はどの鎖の追加にもならない
+                claimedCount++;
+            }
+            Transform[] anc = new Transform[MaxAncestors];
+            int chainTotal = 0;
+            int pathTotal = 0;
+            // 1回目: 祖先を下からたどり、この連動の追加の骨を取る。いちばん上に取れた骨までが道になる。
+            for (int b = 0; b < count; b++)
+            {
+                int depth = Ancestors(links[b], anc);
+                int t = -1;
+                for (int a = 0; a < depth; a++)
+                {
+                    Transform up = anc[a];
+                    if (!IsExtraOf(up, b)) continue;
+                    if (ClaimIndex(up, claimed, claimedCount) >= 0) continue;
+                    claimed[claimedCount] = up;
+                    claimedBy[claimedCount] = b;
+                    claimedCount++;
+                    t = a;
+                    chainTotal++;
+                }
+                top[b] = t;
+                chainTotal++;
+                pathTotal += t + 2;
+            }
+            chainBone = new Transform[chainTotal];
+            chainBase = new Quaternion[chainTotal];
+            chainWritten = new Quaternion[chainTotal];
+            chainRel = new Quaternion[chainTotal];
+            pathBone = new Transform[pathTotal];
+            pathChain = new int[pathTotal];
+            int ci = 0;
+            int pi = 0;
+            // 2回目: 上から順に並べる。
+            for (int b = 0; b < count; b++)
+            {
+                Ancestors(links[b], anc);
+                int lead = linkLead[b];
+                Transform em = emitters[lead];
+                Quaternion restFrame = (em.parent != null ? em.parent.rotation : Quaternion.identity) * restLocal[lead];
+                linkChainStart[b] = ci;
+                linkPathStart[b] = pi;
+                for (int a = top[b]; a >= 0; a--)
+                {
+                    Transform up = anc[a];
+                    int at = ClaimIndex(up, claimed, claimedCount);
+                    pathBone[pi] = up;
+                    if (at >= 0 && claimedBy[at] == b)
+                    {
+                        chainBone[ci] = up;
+                        chainBase[ci] = up.localRotation;
+                        chainWritten[ci] = chainBase[ci];
+                        chainRel[ci] = Quaternion.Inverse(up.rotation) * restFrame;
+                        pathChain[pi] = ci;
+                        ci++;
+                    }
+                    else pathChain[pi] = -1;
+                    pi++;
+                }
+                Transform bone = links[b];
+                chainBone[ci] = bone;
+                chainBase[ci] = bone.localRotation;
+                chainWritten[ci] = chainBase[ci];
+                chainRel[ci] = restRel[lead];
+                pathBone[pi] = bone;
+                pathChain[pi] = ci;
+                ci++;
+                pi++;
+                linkChainCount[b] = ci - linkChainStart[b];
+                linkPathCount[b] = pi - linkPathStart[b];
+            }
+        }
+
+        // t の親から上へ、祖先を into に入れる(下から順)。数を返す。
+        private int Ancestors(Transform t, Transform[] into)
+        {
+            int n = 0;
+            Transform p = t != null ? t.parent : null;
+            while (p != null && n < into.Length)
+            {
+                into[n] = p;
+                n++;
+                p = p.parent;
+            }
+            return n;
+        }
+
+        // t が、連動 b に属する射出口の追加の骨として指定されているか。
+        private bool IsExtraOf(Transform t, int b)
+        {
+            if (linkExtraBones == null || linkExtraEmitter == null) return false;
+            int n = Mathf.Min(linkExtraBones.Length, linkExtraEmitter.Length);
+            for (int k = 0; k < n; k++)
+            {
+                if (linkExtraBones[k] != t) continue;
+                int e = linkExtraEmitter[k];
+                if (e >= 0 && e < emitterCount && linkOf[e] == b) return true;
+            }
+            return false;
+        }
+
+        private int ClaimIndex(Transform t, Transform[] claimed, int count)
+        {
+            for (int i = 0; i < count; i++) if (claimed[i] == t) return i;
+            return -1;
         }
 
         private void OnDisable()
@@ -397,8 +552,16 @@ namespace Mecaota.Gunner
                 turnPitch[b] = 0f;
                 if (!linkHeld[b]) continue;
                 linkHeld[b] = false;
-                if (links[b] != null) links[b].localRotation = linkBase[b];
+                RestoreChain(b);
             }
+        }
+
+        // 鎖の全部の骨を休みのローカル回転へ戻す。
+        private void RestoreChain(int b)
+        {
+            int start = linkChainStart[b];
+            int end = start + linkChainCount[b];
+            for (int j = start; j < end; j++) if (chainBone[j] != null) chainBone[j].localRotation = chainBase[j];
         }
 
         // ================= 受け手 =================
@@ -466,11 +629,12 @@ namespace Mecaota.Gunner
         }
 
         // 粒子の有無に関係なく、各端末で発射の瞬間に1回ずつ呼ぶ(粒子の無い rig でも音を出せるように)。
-        private void NotifyFire(int e, bool isStream, bool replay)
+        private void NotifyFire(int e, bool isStream, bool replay, int payload)
         {
             fireEmitter = e;
             fireStream = isStream;
             fireReplay = replay;
+            firePayload = payload;
             GunnerHitReceiver[] list = receivers;
             for (int i = 0; i < list.Length; i++) if (list[i] != null) list[i]._OnFire(this);
         }
@@ -481,7 +645,7 @@ namespace Mecaota.Gunner
 
         public void _FireFrom(int emitter) { _FireWith(emitter, 0); }
 
-        // emitter < 0 = 全部の射出口。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
+        // emitter < 0 = fireMask の立っている射出口(既定は全部)。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
         public void _FireWith(int emitter, int payload)
         {
             Init();
@@ -489,7 +653,15 @@ namespace Mecaota.Gunner
             if (!TakeOwnership()) return;
             bool any = false;
             if (emitter >= 0) any = Shoot(emitter, payload);
-            else for (int i = 0; i < emitterCount; i++) if (Shoot(i, payload)) any = true;
+            else
+            {
+                int mask = fireMask;
+                for (int i = 0; i < emitterCount; i++)
+                {
+                    if ((mask & (1 << i)) == 0) continue;
+                    if (Shoot(i, payload)) any = true;
+                }
+            }
             if (any) _Commit();
         }
 
@@ -506,7 +678,7 @@ namespace Mecaota.Gunner
                 streamOn = true;
                 streamWas = true;
                 stream._Begin(Time.time);
-                NotifyFire(-1, true, false);
+                NotifyFire(-1, true, false, streamPayload);
             }
             aimSyncMode = (byte)aimMode;
             aimSync = aimVector;
@@ -773,13 +945,21 @@ namespace Mecaota.Gunner
             AimEmitter(e, aimMode, aimVector);
             Vector3 origin = emitters[e].position;
             Vector3 dir = emitters[e].forward;
+            if (aimOffsets != null && e < aimOffsets.Length)
+            {
+                Vector2 off = aimOffsets[e];
+                if (off.x != 0f || off.y != 0f) dir = emitters[e].rotation * (Quaternion.Euler(-off.y, off.x, 0f) * Vector3.forward);
+            }
             if (!Cast(origin, dir, maxRange))
             {
                 mSeq[e] = mSeq[e] + 1;
                 mDir[e] = dir;
+                mPayload = payload;
                 seenMiss[e] = mSeq[e];
+                // 受け手が粒子の発射より前に firePayload を読めるように、通知を先にする(粒子を戻すのはさらに前)。
+                PrepareFly(e);
+                NotifyFire(e, false, false, payload);
                 Fly(e, -1, dir, maxRange);
-                NotifyFire(e, false, false);
                 return true;
             }
             KeepCast();
@@ -1197,27 +1377,40 @@ namespace Mecaota.Gunner
             int e = MetaEmitter(kMeta[s]);
             arrived[s] = false;
             slotReplay[s] = false;
-            if (ValidEmitter(e)) NotifyFire(e, false, false);
-            if (!ValidEmitter(e) || !Resolve(kMeta[s], kLocal[s]))
+            bool valid = ValidEmitter(e);
+            bool resolved = valid && Resolve(kMeta[s], kLocal[s]);
+            Vector3 point = wish;
+            // 粒子を単発の設定へ戻すのは通知より前(受け手が _OnFire で整えた見た目を消さないため)。
+            bool flies = resolved && (point - emitters[e].position).magnitude > 0.0001f;
+            if (flies) PrepareFly(e);
+            if (valid) NotifyFire(e, false, false, kPayload[s]);
+            if (!resolved)
             {
                 arriveAt[s] = Time.time;
                 return;
             }
-            kWorld[s] = wish;
-            Vector3 to = wish - emitters[e].position;
+            kWorld[s] = point;
+            Vector3 to = point - emitters[e].position;
             float dist = to.magnitude;
             arriveAt[s] = Time.time + dist / Speed();
-            if (dist > 0.0001f) Fly(e, s, to / dist, dist);
+            if (flies && dist > 0.0001f) Fly(e, s, to / dist, dist);
         }
 
+        // 同じ粒子を連射でも使う: 作ったときの単発の設定へ戻す(連射の粒子も消える)。Fly の前、_OnFire の通知より前に呼ぶ。
+        private void PrepareFly(int e)
+        {
+            ParticleSystem ps = Particles(e);
+            if (ps == null || !ValidEmitter(e)) return;
+            if (stream != null) stream._Restore(e);
+            else ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
+        // 呼ぶ前に PrepareFly を済ませておく。
         private void Fly(int e, int slot, Vector3 dir, float dist)
         {
             ParticleSystem ps = Particles(e);
             if (ps == null || !ValidEmitter(e)) return;
             if (dir.sqrMagnitude < 0.000001f) dir = emitters[e].forward;
-            // 同じ粒子を連射でも使う: 作ったときの単発の設定へ戻す(連射の粒子も消える)。
-            if (stream != null) stream._Restore(e);
-            else ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.transform.SetPositionAndRotation(emitters[e].position, Quaternion.LookRotation(dir));
             ParticleSystem.MainModule main = ps.main;
             main.startSpeedMultiplier = Speed();
@@ -1305,8 +1498,9 @@ namespace Mecaota.Gunner
                 seenMiss[i] = mSeq[i];
                 if (newer && ValidEmitter(i))
                 {
+                    PrepareFly(i);
+                    NotifyFire(i, false, false, mPayload);
                     Fly(i, -1, mDir[i], maxRange);
-                    NotifyFire(i, false, false);
                 }
             }
             ApplyStreamState(first);
@@ -1332,7 +1526,7 @@ namespace Mecaota.Gunner
             if (streamOn && !streamWas && stream != null)
             {
                 stream._Begin(Time.time);
-                NotifyFire(-1, true, first);
+                NotifyFire(-1, true, first, streamPayload);
             }
             streamWas = streamOn;
         }
@@ -1547,9 +1741,21 @@ namespace Mecaota.Gunner
             if (r == null) return restRel[i];
             int b = linkOf[i];
             if (b < 0 || !linkHeld[b]) return r.rotation * restRel[i];
-            Transform up = r.parent;
-            Quaternion upRot = up != null ? up.rotation : Quaternion.identity;
-            return upRot * linkBase[b] * restRel[i];
+            // 鎖のいちばん上の骨の親から、道の骨のローカル回転を順に掛ける(鎖の骨は休みの値、間の骨は今の値)。
+            // 鎖の骨を曲げると先頭の骨の親も回るので、親の今の回転は使わない。骨が1本なら今までと同じ式になる。
+            int start = linkPathStart[b];
+            int end = start + linkPathCount[b];
+            Transform topBone = pathBone[start];
+            if (topBone == null) return r.rotation * restRel[i];
+            Transform up = topBone.parent;
+            Quaternion rot = up != null ? up.rotation : Quaternion.identity;
+            for (int k = start; k < end; k++)
+            {
+                int j = pathChain[k];
+                if (j >= 0) rot = rot * chainBase[j];
+                else if (pathBone[k] != null) rot = rot * pathBone[k].localRotation;
+            }
+            return rot * restRel[i];
         }
 
         // 全員。追従の角度は狙いへ少しずつ寄り、骨はそのうち上限付きの割合を受け持つ。入力は狙いと
@@ -1562,16 +1768,28 @@ namespace Mecaota.Gunner
                 Transform bone = links[b];
                 if (bone == null) continue;
                 int lead = linkLead[b];
-                Quaternion local = bone.localRotation;
+                int cs = linkChainStart[b];
+                int cn = linkChainCount[b];
+                int ce = cs + cn;
                 if (!linkHeld[b])
                 {
                     if (!on || mode == AimNone) continue;
-                    linkBase[b] = local;
+                    for (int j = cs; j < ce; j++) if (chainBone[j] != null) chainBase[j] = chainBone[j].localRotation;
                     linkHeld[b] = true;
                     followYaw[b] = 0f;
                     followPitch[b] = 0f;
                 }
-                else if (local != linkWritten[b]) linkBase[b] = local; // Animator が書いた: それを新しい基準にする
+                else
+                {
+                    // Animator が書いた骨は、それを新しい基準にする(骨ごと)。
+                    for (int j = cs; j < ce; j++)
+                    {
+                        Transform cb = chainBone[j];
+                        if (cb == null) continue;
+                        Quaternion local = cb.localRotation;
+                        if (local != chainWritten[j]) chainBase[j] = local;
+                    }
+                }
                 float ty = 0f;
                 float tp = 0f;
                 bool aimed = on && mode != AimNone && ValidEmitter(lead) && Wish(mode, vec, lead);
@@ -1597,20 +1815,38 @@ namespace Mecaota.Gunner
                 }
                 if (!aimed && followYaw[b] == 0f && followPitch[b] == 0f)
                 {
-                    bone.localRotation = linkBase[b];
+                    RestoreChain(b);
                     linkHeld[b] = false;
                     turnYaw[b] = 0f;
                     turnPitch[b] = 0f;
                     continue;
                 }
                 float k = Mathf.Clamp01(boneStrength);
-                turnYaw[b] = Mathf.Clamp(followYaw[b] * k, -boneYawMax, boneYawMax);
-                turnPitch[b] = Mathf.Clamp(followPitch[b] * k, -bonePitchDownMax, bonePitchUpMax);
-                // 回転を先頭の射出口の休みの座標系で表し、骨のローカル空間へ移す。
-                Quaternion rel = restRel[lead];
-                bone.localRotation = linkBase[b] * rel * Quaternion.Euler(-turnPitch[b], turnYaw[b], 0f) * Quaternion.Inverse(rel);
-                linkWritten[b] = bone.localRotation;
+                float yawLim = ChainLimit(boneYawMax, chainYawLimit, cn);
+                turnYaw[b] = Mathf.Clamp(followYaw[b] * k, -yawLim, yawLim);
+                turnPitch[b] = Mathf.Clamp(followPitch[b] * k, -ChainLimit(bonePitchDownMax, chainPitchDownLimit, cn),
+                    ChainLimit(bonePitchUpMax, chainPitchUpLimit, cn));
+                // 鎖全体の回転を n 等分する(同じ軸で角度だけ 1/n)。n 回重ねると全体の回転になる。
+                Quaternion q = Quaternion.Euler(-turnPitch[b], turnYaw[b], 0f);
+                if (cn > 1) q = Quaternion.Slerp(Quaternion.identity, q, 1f / cn);
+                // 回転を先頭の射出口の休みの座標系で表し、各骨のローカル空間へ移す。どの骨も同じ軸・同じ角度で曲がる。
+                for (int j = cs; j < ce; j++)
+                {
+                    Transform cb = chainBone[j];
+                    if (cb == null) continue;
+                    Quaternion rel = chainRel[j];
+                    cb.localRotation = chainBase[j] * rel * q * Quaternion.Inverse(rel);
+                    chainWritten[j] = cb.localRotation;
+                }
             }
+        }
+
+        // 鎖全体の上限: 骨1本あたり × 本数。chain が 0 より大きく、それより小さければ chain。
+        private float ChainLimit(float perBone, float chain, int n)
+        {
+            float t = perBone * n;
+            if (chain > 0f && chain < t) t = chain;
+            return t;
         }
 
         private void ApplyAimAll(int mode, Vector3 vec)

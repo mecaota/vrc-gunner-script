@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -22,6 +23,7 @@ namespace Mecaota.Gunner.EditorTools
                 Field("shotParticles");
                 Field("mounts");
                 Field("linkBones");
+                DrawExtraBones(rig);
                 Field("movers");
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -100,9 +102,144 @@ namespace Mecaota.Gunner.EditorTools
                 Field("boneYawMax");
                 Field("bonePitchUpMax");
                 Field("bonePitchDownMax");
+                Field("chainYawLimit");
+                Field("chainPitchUpLimit");
+                Field("chainPitchDownLimit");
                 Field("boneSmooth");
                 Field("boneMinSpeed");
             }
+        }
+
+        // ---------------- 追加の連動ボーン ----------------
+
+        int addParentCount = 1;
+
+        // 射出口ごとに「追加の骨」の一覧を出す。中身は linkExtraBones と linkExtraEmitter(同じ番号が組)。
+        void DrawExtraBones(GunnerRig rig)
+        {
+            if (targets.Length != 1)
+            {
+                Field("linkExtraBones");
+                Field("linkExtraEmitter");
+                return;
+            }
+            var emitters = rig.emitters ?? new Transform[0];
+            var bones = rig.linkExtraBones ?? new Transform[0];
+            var owners = rig.linkExtraEmitter ?? new int[0];
+            EditorGUILayout.LabelField(Label("GunnerRig.linkExtraBones"));
+            EditorGUI.indentLevel++;
+            var shown = new bool[bones.Length];
+            for (int e = 0; e < emitters.Length; e++)
+            {
+                Transform lead = LeadBone(rig, e);
+                if (lead == null) continue;
+                EditorGUILayout.LabelField(T("GunnerRig.extra.emitter").Replace("{0}", e.ToString()).Replace("{1}", lead.name));
+                EditorGUI.indentLevel++;
+                for (int k = 0; k < bones.Length; k++)
+                {
+                    if (k >= owners.Length || owners[k] != e) continue;
+                    shown[k] = true;
+                    ExtraRow(rig, k);
+                }
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    addParentCount = Mathf.Clamp(EditorGUILayout.IntField(addParentCount, GUILayout.Width(80)), 1, 16);
+                    if (GUILayout.Button(T("button.add_parent_bones").Replace("{0}", addParentCount.ToString())))
+                    {
+                        int emitter = e;
+                        int n = addParentCount;
+                        GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, emitter, n));
+                        GUIUtility.ExitGUI();
+                    }
+                }
+                EditorGUI.indentLevel--;
+            }
+            // 連動の無い射出口を指している骨(点検が赤を出す)。消せるように並べる。
+            bool orphanLabel = false;
+            for (int k = 0; k < bones.Length; k++)
+            {
+                if (shown[k]) continue;
+                if (!orphanLabel)
+                {
+                    EditorGUILayout.LabelField(T("GunnerRig.extra.orphan"));
+                    orphanLabel = true;
+                }
+                EditorGUI.indentLevel++;
+                ExtraRow(rig, k);
+                EditorGUI.indentLevel--;
+            }
+            EditorGUI.indentLevel--;
+        }
+
+        void ExtraRow(GunnerRig rig, int k)
+        {
+            var bones = serializedObject.FindProperty("linkExtraBones");
+            if (bones == null || k >= bones.arraySize) return;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.PropertyField(bones.GetArrayElementAtIndex(k), GUIContent.none);
+                if (GUILayout.Button("-", GUILayout.Width(24)))
+                {
+                    int index = k;
+                    GunnerEditorUtil.Edit(rig, so => RemoveExtraAt(so, index));
+                    GUIUtility.ExitGUI();
+                }
+            }
+        }
+
+        /// <summary>射出口 i の先頭の骨(実行時と同じ決め方)。付け替えた射出口・連動しない射出口は null。</summary>
+        internal static Transform LeadBone(GunnerRig rig, int i)
+        {
+            if (rig == null || rig.emitters == null || i < 0 || i >= rig.emitters.Length) return null;
+            var em = rig.emitters[i];
+            if (em == null) return null;
+            if (rig.mounts != null && i < rig.mounts.Length && rig.mounts[i] != null) return null;
+            Transform bone = rig.linkBones != null && i < rig.linkBones.Length ? rig.linkBones[i] : null;
+            Transform parent = em.parent;
+            Transform self = rig.transform;
+            if (bone == null && parent != null && parent != self && parent.IsChildOf(self)) bone = parent;
+            if (bone == null || !em.IsChildOf(bone)) return null;
+            return bone;
+        }
+
+        /// <summary>射出口の鎖のいちばん上(先頭の骨か、登録済みの追加の骨のうち最も上)から、親を n 個足す。</summary>
+        internal static void AddParentBones(GunnerRig rig, SerializedObject so, int emitter, int n)
+        {
+            Transform lead = LeadBone(rig, emitter);
+            if (lead == null) return;
+            var bones = so.FindProperty("linkExtraBones");
+            var owners = so.FindProperty("linkExtraEmitter");
+            // 同じ先頭の骨を持つ射出口は1つの鎖になるので、そのどれかに登録済みの骨をすべて数える(重複を作らない)。
+            var mine = new HashSet<Transform>();
+            for (int k = 0; k < bones.arraySize && k < owners.arraySize; k++)
+                if (LeadBone(rig, owners.GetArrayElementAtIndex(k).intValue) == lead)
+                    mine.Add(bones.GetArrayElementAtIndex(k).objectReferenceValue as Transform);
+            Transform top = lead;
+            for (var p = lead.parent; p != null; p = p.parent) if (mine.Contains(p)) top = p;
+            for (int c = 0; c < n; c++)
+            {
+                Transform next = top.parent;
+                if (next == null) break;
+                int i = bones.arraySize;
+                bones.arraySize = i + 1;
+                bones.GetArrayElementAtIndex(i).objectReferenceValue = next;
+                owners.arraySize = i + 1;
+                owners.GetArrayElementAtIndex(i).intValue = emitter;
+                top = next;
+            }
+        }
+
+        /// <summary>追加の骨を1つ除く(組の射出口番号も一緒に)。</summary>
+        internal static void RemoveExtraAt(SerializedObject so, int k)
+        {
+            var bones = so.FindProperty("linkExtraBones");
+            var owners = so.FindProperty("linkExtraEmitter");
+            if (bones != null && k < bones.arraySize)
+            {
+                bones.GetArrayElementAtIndex(k).objectReferenceValue = null;
+                bones.DeleteArrayElementAtIndex(k);
+            }
+            if (owners != null && k < owners.arraySize) owners.DeleteArrayElementAtIndex(k);
         }
 
         // ---------------- シーンビュー ----------------

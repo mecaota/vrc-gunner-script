@@ -6,7 +6,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Synced hit records (world, moving objects, players) delivered to hit receivers
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 
-Status: early (0.3.0). APIs will change.
+Status: early (0.4.0). APIs will change.
 
 Requires VRChat Worlds SDK 3.8.1 or later.
 

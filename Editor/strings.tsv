@@ -25,6 +25,12 @@ check.rig.null_mover	動く物の欄に空きがあります	A moving object slo
 check.rig.null_receiver	受け手の欄に空きがあります	A receiver slot is empty
 check.rig.projectile_unlisted	発射物が受け手の一覧にありません(着弾が届きません)	The projectile is not in the receivers list (it will not hear hits)
 check.rig.receiver_unlisted	受け手の登録漏れ: {0}	Receiver not registered: {0}
+check.rig.extra_null	追加の連動ボーンの欄に空きがあります	An extra linked bone slot is empty
+check.rig.extra_no_link	追加の連動ボーン {0} の射出口に連動ボーンがありません(付け替え中、または番号の誤り)	Extra linked bone {0}: its emitter has no linked bone (mounted, or a wrong index)
+check.rig.extra_not_ancestor	追加の連動ボーン {0} が連動ボーンの祖先ではありません(使われません)	Extra linked bone {0} is not an ancestor of the linked bone (ignored)
+check.rig.extra_duplicate	追加の連動ボーン {0} が重複しています	Extra linked bone {0} is listed twice
+check.rig.extra_shared	追加の連動ボーン {0} が別の連動にも使われています(回転が二重に書かれます)	Extra linked bone {0} is also used by another link (it would be turned twice)
+check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
 check.particle.not_world	粒子 {0} が World simulation space ではありません	Particles {0} are not in World simulation space
 check.particle.autoplay	粒子 {0} が自動で再生されます(Play On Awake / Looping)	Particles {0} play by themselves (Play On Awake / Looping)
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
@@ -64,6 +70,13 @@ GunnerRig.mounts	追従先	Mounts
 GunnerRig.mounts.tip	任意。射出口が毎フレームこの姿勢になる	Optional. The emitter takes this pose every frame
 GunnerRig.linkBones	連動ボーン	Linked bones
 GunnerRig.linkBones.tip	任意。狙いで回すボーン。空なら射出口の親	Optional. The bone the aim turns. Empty = the emitter's parent
+GunnerRig.linkExtraBones	追加の連動ボーン	Extra linked bones
+GunnerRig.linkExtraBones.tip	任意。連動ボーンの親や祖先を足すと、狙いの角度を骨の数で等分し、全部の骨を同じ角度だけ曲げる	Optional. Add parents or ancestors of the linked bone; the aim angle is split evenly and every bone turns by the same amount
+GunnerRig.linkExtraEmitter	追加ボーンの射出口	Extra bone emitters
+GunnerRig.linkExtraEmitter.tip	追加の連動ボーンと同じ番号。その骨が加わる射出口の番号	Same index as the extra linked bones. The emitter each bone joins
+GunnerRig.extra.emitter	射出口 {0}(連動ボーン: {1})	Emitter {0} (linked bone: {1})
+GunnerRig.extra.orphan	連動の無い射出口を指す骨	Bones pointing at an emitter with no link
+button.add_parent_bones	親の骨を {0} 個足す	Add {0} parent bone(s)
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
 GunnerRig.projectile	発射物	Projectile
@@ -90,7 +103,7 @@ GunnerRig.excludeOwner.tip	この端末の本人には当たらない(撃つ人�
 GunnerRig.playerRadius	体の太さ	Body radius
 GunnerRig.playerRadius.tip	目の高さに対する割合	Share of the eye height
 GunnerRig.aimMaxAngle	可動域	Aim limit
-GunnerRig.aimMaxAngle.tip	撃つ向きの初期値から振れる角度(度)	Degrees from the rest direction
+GunnerRig.aimMaxAngle.tip	射出口が狙える角度の上限(度)。撃つ向きの初期値から測る。ボーン連動の上限より大きいと、骨が止まった先は射出口だけが向く	Limit of the emitter's aim (degrees), measured from the rest direction. If it is larger than the bone link limits, only the emitter turns past where the bones stop
 GunnerRig.streamRate	連射の量	Stream rate
 GunnerRig.streamRate.tip	射出口ごとの毎秒の粒の数	Particles per second per emitter
 GunnerRig.streamWidth	線の太さ	Line width
@@ -108,8 +121,17 @@ GunnerRig.boneFollow	ボーン連動	Bone link
 GunnerRig.boneFollow.tip	狙いに合わせてボーンを回す	Turn the bone with the aim
 GunnerRig.boneStrength	連動の割合	Link share
 GunnerRig.boneYawMax	左右の上限	Yaw limit
+GunnerRig.boneYawMax.tip	骨1本あたりの左右の曲がりの上限(度)。追加の骨があると、鎖全体ではこの値 × 骨の数まで曲がる	Yaw limit per bone (degrees). With extra bones, the whole chain turns up to this value × the number of bones
 GunnerRig.bonePitchUpMax	上の上限	Pitch up limit
+GunnerRig.bonePitchUpMax.tip	骨1本あたりの上向きの曲がりの上限(度)。鎖全体ではこの値 × 骨の数まで	Pitch-up limit per bone (degrees). The whole chain goes up to this value × the number of bones
 GunnerRig.bonePitchDownMax	下の上限	Pitch down limit
+GunnerRig.bonePitchDownMax.tip	骨1本あたりの下向きの曲がりの上限(度)。鎖全体ではこの値 × 骨の数まで	Pitch-down limit per bone (degrees). The whole chain goes down to this value × the number of bones
+GunnerRig.chainYawLimit	鎖の左右の合計上限	Chain yaw limit
+GunnerRig.chainYawLimit.tip	連動する骨全部を合わせた左右の曲がりの上限(度)。0 なら「左右の上限 × 骨の数」。骨1本あたりの上限も同時に効く(小さいほう)	Yaw limit for all linked bones together (degrees). 0 = yaw limit × number of bones. The per-bone limit also applies (the smaller wins)
+GunnerRig.chainPitchUpLimit	鎖の上向きの合計上限	Chain pitch up limit
+GunnerRig.chainPitchUpLimit.tip	連動する骨全部を合わせた上向きの曲がりの上限(度)。0 なら「上の上限 × 骨の数」。小さいほうが効く	Pitch-up limit for all linked bones together (degrees). 0 = pitch up limit × number of bones. The smaller wins
+GunnerRig.chainPitchDownLimit	鎖の下向きの合計上限	Chain pitch down limit
+GunnerRig.chainPitchDownLimit.tip	連動する骨全部を合わせた下向きの曲がりの上限(度)。0 なら「下の上限 × 骨の数」。小さいほうが効く	Pitch-down limit for all linked bones together (degrees). 0 = pitch down limit × number of bones. The smaller wins
 GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
 GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか	Per second, share of the remaining angle closed
 GunnerRig.boneMinSpeed	最低の速さ	Minimum speed

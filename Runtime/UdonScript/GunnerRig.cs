@@ -1019,6 +1019,12 @@ namespace Mecaota.Gunner
         // _CastPath の経路に沿った距離(true を返した直後だけ有効)。
         public float _CastDistance() { return castDistance; }
 
+        // _CastPath で一番近かった物の種類(KindWorld / KindMoving / KindPlayer、外れは KindNone)。読むだけで状態は変えない。
+        public int _CastKind() { return castKind; }
+
+        // _CastPath で一番近かった物の番号。KindPlayer は playerId、KindMoving は movers の番号、それ以外は -1。
+        public int _CastIndex() { return castIndex; }
+
         private bool Cast(Vector3 origin, Vector3 dir, float range)
         {
             castKind = KindNone;

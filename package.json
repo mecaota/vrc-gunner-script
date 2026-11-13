@@ -2,7 +2,7 @@
   "name": "com.mecaota.gunner",
   "displayName": "Gunner",
   "description": "Generic projectile shooting library for VRChat worlds (UdonSharp): emitters, aiming, single shots and streams, synced hit records, and hit receivers.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "mecaota",
     "url": "https://github.com/mecaota/"

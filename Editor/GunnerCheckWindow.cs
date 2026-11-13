@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Mecaota.Gunner.EditorTools
 {
     /// <summary>
-    /// Every check of every U# component in the open scenes, in one list. Clicking a row selects the object. Components of other
-    /// packages show up here as soon as they register an <see cref="IGunnerCheckProvider"/>.
+    /// 開いているシーンの全 U# 部品の点検を1つの一覧にまとめる。行をクリックするとそのオブジェクトを選ぶ。ほかのパッケージの部品も、
+    /// <see cref="IGunnerCheckProvider"/> を登録すればここに出る。
     /// </summary>
     public class GunnerCheckWindow : EditorWindow
     {

@@ -3,27 +3,27 @@ using UnityEngine;
 
 namespace Mecaota.Gunner
 {
-    // Stream fire for one GunnerRig: emits stream particles, keeps their paths, finds where they touch (owner), joins the trails.
-    // Driven only by the rig (Update -> _PreSimulate, PostLateUpdate -> _Step); it has no events of its own.
+    // 1つの GunnerRig の連射: 連射の粒子を出し、その経路を持ち、当たる所を見つけ(持ち主)、トレイルをつなぐ。
+    // rig からだけ動かされる(Update → _PreSimulate、PostLateUpdate → _Step)。自分のイベントは持たない。
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class GunnerStream : UdonSharpBehaviour
     {
         public const int JoinParticles = 0;
         public const int JoinLine = 1;
-        // HitOnce: the first touch records one hit, clears that emitter's particles in the air, and that emitter records no more
-        // until the stream restarts or collision is switched on again; emission goes on while the trigger is held.
+        // HitOnce: 最初の接触で着弾を1つ記録し、その射出口の飛んでいる粒子を消す。その射出口は、連射をやり直すか
+        // 当たり判定をもう一度 on にするまで記録しない。トリガーを押している間は出し続ける。
         public const int HitOnce = 0;
         public const int HitKeep = 1;
 
-        private const int CatchUpMax = 3;        // emits per frame after a hitch (no burst)
-        private const float FrameMax = 0.1f;     // frame time counted for the trail overlap at most
-        private const float FrameEase = 0.05f;   // per frame: how fast the followed frame time comes back down
-        private const float OverlapMin = 0.02f;  // seconds a joined trail reaches past the previous particle at least
-        private const float OverlapFrames = 2f;  // ... and at least this many frames (births and trail points land on frames)
-        private const float StallShare = 1.5f;   // a birth gap wider than this many intervals is a stall
+        private const int CatchUpMax = 3;        // 引っかかりの後、1フレームに出す数の上限(まとめて出さない)
+        private const float FrameMax = 0.1f;     // トレイルの重なりに数えるフレーム時間の上限
+        private const float FrameEase = 0.05f;   // フレームごと: 追っているフレーム時間が下がって戻る速さ
+        private const float OverlapMin = 0.02f;  // つないだトレイルが1つ前の粒子より先へ伸びる最低の秒数
+        private const float OverlapFrames = 2f;  // ... と最低このフレーム数(生まれる時とトレイルの点はフレームに乗る)
+        private const float StallShare = 1.5f;   // 生まれる間隔がこの何倍より開いたら止まったとみなす
 
-        // Per emitter, for look scripts: metres the farthest stream particle has flown, metres one joined trail spans, and
-        // whether any stream particle is in the air.
+        // 射出口ごと、見た目のスクリプト用: 一番遠い連射の粒子が飛んだメートル、つないだトレイル1本の長さのメートル、
+        // 連射の粒子が1つでも飛んでいるか。
         [System.NonSerialized] public float[] reach;
         [System.NonSerialized] public float[] span;
         [System.NonSerialized] public bool[] active;
@@ -34,7 +34,7 @@ namespace Mecaota.Gunner
         private int cap;
         private Transform[] emitters;
         private ParticleSystem[] systems;
-        private bool[] flightOn;               // the rig's array: a single shot owns the system meanwhile
+        private bool[] flightOn;               // rig の配列: その間は単発が粒子を使う
         private float speed;
         private float range;
         private float life;
@@ -112,8 +112,8 @@ namespace Mecaota.Gunner
             }
         }
 
-        // The stream (re)starts now: emits from now, the gap from the previous run is never bridged, and every emitter may hit
-        // again (a rig that never toggles collision would otherwise stay latched after its first HitOnce touch).
+        // 連射を今(また)始める: 今から出し、前の回との間はつながない。どの射出口もまた当たってよい
+        // (当たり判定を切り替えない rig は、最初の HitOnce の接触の後ずっと止まったままになってしまうため)。
         public void _Begin(float now)
         {
             if (!ready) return;
@@ -127,7 +127,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Collision off -> on: each emitter may hit again, counted from where its particles are now.
+        // 当たり判定 off → on: 各射出口がまた当たってよい。粒子の今の位置から数える。
         public void _ResetCollision(float now)
         {
             if (!ready) return;
@@ -139,7 +139,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Back to the authored single-shot setup (the rig calls this before a single shot on the same system).
+        // 作ったときの単発の設定へ戻す(同じ粒子で単発を撃つ前に rig が呼ぶ)。
         public void _Restore(int e)
         {
             if (!ready || e < 0 || e >= count) return;
@@ -159,7 +159,7 @@ namespace Mecaota.Gunner
             trails.widthOverTrail = baseTrailWidth[e];
         }
 
-        // Clears emitter e's stream particles (a HitOnce touch, StopFire, ClearHits).
+        // 射出口 e の連射の粒子を消す(HitOnce の接触、StopFire、ClearHits)。
         public void _Clear(int e)
         {
             if (!ready || e < 0 || e >= count || !Any(e)) return;
@@ -180,8 +180,8 @@ namespace Mecaota.Gunner
             return false;
         }
 
-        // Before the particle simulation, on a stalled frame only: joined trails lengthen now. Later would be too late, the
-        // simulation would already have dropped the points from before the stall, and dropped points never come back.
+        // 粒子のシミュレーションの前、止まったフレームでだけ: つないだトレイルを今伸ばす。後に回すと、
+        // シミュレーションが止まり(引っかかり)より前の点を先に落としてしまい、落ちた点は戻らない。
         public void _PreSimulate(float now, float dt)
         {
             if (!ready || join != JoinLine || dt <= StallShare * interval) return;
@@ -196,8 +196,8 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Every client, from the rig's PostLateUpdate (after the aim): emit, age the paths, keep the trails joined, and on the
-        // owner with collision on, record where a path first touches. True = still busy (streaming or particles in the air).
+        // 全員、rig の PostLateUpdate から(狙いの後): 出す、経路を古くする、トレイルをつないだままにする。持ち主で
+        // 当たり判定が on なら、経路が最初に当たった所を記録する。true = まだ動いている(連射中か粒子が飛んでいる)。
         public bool _Step(float now, bool streaming, bool owner, bool collide)
         {
             if (!ready) return false;
@@ -207,7 +207,7 @@ namespace Mecaota.Gunner
             for (int e = 0; e < count; e++)
             {
                 if (emitters[e] == null) continue;
-                if (streaming && flightOn[e]) nextEmitAt[e] = now; // the single shot owns the system; resume without catch-up
+                if (streaming && flightOn[e]) nextEmitAt[e] = now; // 単発が粒子を使っている。追いつかずに再開する
                 else if (streaming)
                 {
                     int k = 0;
@@ -230,7 +230,7 @@ namespace Mecaota.Gunner
             return busy;
         }
 
-        // Drops paths past the range; fills reach / active. Returns the widest birth gap between consecutive particles in the air.
+        // 射程を越えた経路を捨てる。reach / active を埋める。飛んでいる隣り合う粒子の、生まれた間隔の最大を返す。
         private float Age(int e, float now)
         {
             int at = e * cap;
@@ -240,7 +240,7 @@ namespace Mecaota.Gunner
             bool any = false;
             for (int r = 0; r < cap; r++)
             {
-                int q = at + (head[e] + r) % cap; // oldest to newest
+                int q = at + (head[e] + r) % cap; // 古いものから新しいものへ
                 if (!rAlive[q]) continue;
                 float flown = (now - rTime[q]) * speed;
                 if (flown > range) { rAlive[q] = false; continue; }
@@ -255,7 +255,7 @@ namespace Mecaota.Gunner
             return maxGap;
         }
 
-        // Owner: casts each live path along the stretch flown since the last check; the earliest touch in time wins.
+        // 持ち主: 生きている経路ごとに、前に確かめた後に飛んだ区間を判定する。時間で一番早い接触を採る。
         private void Collide(int e, float now)
         {
             if (hitMode == HitOnce && latched[e]) return;
@@ -275,7 +275,7 @@ namespace Mecaota.Gunner
                 if (when >= bestWhen) continue;
                 bestWhen = when;
                 bestQ = q;
-                // The rig's cast result is overwritten by the next cast: the rig keeps the best one now.
+                // rig の判定の結果は次の判定で上書きされる: 一番よいものを今 rig に残させる。
                 rig._KeepCast();
             }
             if (bestQ < 0) return;
@@ -292,8 +292,8 @@ namespace Mecaota.Gunner
             }
         }
 
-        // One particle from the emitter's current pose (the rig aimed it this frame). Always born at the emitter, so the newest
-        // trail keeps the line attached to it.
+        // 射出口の今の姿勢(このフレームで rig が狙わせた)から粒子を1つ。いつも射出口で生まれるので、一番新しい
+        // トレイルが線を射出口につないでおく。
         private void Emit(int e, float now)
         {
             ParticleSystem ps = Shot(e);
@@ -317,24 +317,24 @@ namespace Mecaota.Gunner
         {
             look[e] = true;
             trailShare[e] = -1f;
-            // Particles come from Emit only; Play must not fire the authored burst.
+            // 粒子は Emit からだけ出す。Play で作ったときのバーストを出してはいけない。
             ParticleSystem.EmissionModule emission = ps.emission;
             emission.enabled = false;
-            // HitOnce: the owner's cast decides the touch, and authored collision would kill particles on the shooter itself.
-            // HitKeep: the authored collision stays so a stream (water) can end on walls by itself.
+            // HitOnce: 接触は持ち主の判定で決める。作ったときの当たり判定だと、撃つ人の体で粒子が消えてしまう。
+            // HitKeep: 作ったときの当たり判定を残し、連射(水)が壁で自然に終わるようにする。
             ParticleSystem.CollisionModule collision = ps.collision;
             collision.enabled = hitMode == HitKeep && baseCollision[e];
             ParticleSystem.MainModule main = ps.main;
             if (main.maxParticles < cap + 1) main.maxParticles = cap + 1;
             if (join != JoinLine) return;
-            // One even width per trail: a root-to-tip taper over each short trail would read as a chain of wedges.
+            // トレイルごとに幅は一定: 短いトレイルごとに根元から先へ細くすると、くさびをつないだ鎖に見える。
             ParticleSystem.TrailModule trails = ps.trails;
             if (taper != null && taper.length >= 2) trails.widthOverTrail = new ParticleSystem.MinMaxCurve(width, taper);
             else trails.widthOverTrail = new ParticleSystem.MinMaxCurve(width);
         }
 
-        // Seconds one joined trail must cover: up to the previous particle plus a frame-based overlap. Over a stall the older
-        // particle's trail holds one long span that is cut point by point, so it must last about twice the gap.
+        // つないだトレイル1本が覆うべき秒数: 1つ前の粒子まで + フレームに基づく重なり。止まった時は古い方の
+        // 粒子のトレイルが長い1区間を持ち、それが点ごとに削られるので、間隔の約2倍もたせる必要がある。
         private float TrailTime(float gap)
         {
             float reachBack = gap > StallShare * interval ? 2f * gap : Mathf.Max(interval, gap);

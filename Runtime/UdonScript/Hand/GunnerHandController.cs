@@ -4,8 +4,8 @@ using VRC.SDKBase;
 
 namespace Mecaota.Gunner
 {
-    // Controller of the hand-held shooter: switches it on and off, runs the trigger press / release and the collision window,
-    // and gathers every way of ending into one place. Has no synced state: the rig syncs the shots and the aim.
+    // 手持ちの発射器の本体: 入り切り、トリガーの押す・放す、当たり判定の窓を受け持ち、
+    // 終わり方をすべて1か所に集める。同期する状態は持たない: 弾と狙いは rig が同期する。
     [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class GunnerHandController : UdonSharpBehaviour
     {
@@ -13,15 +13,15 @@ namespace Mecaota.Gunner
 
         public GunnerRig rig;
         public GunnerPickupInput input;
-        public GunnerStickAim aim;                // optional: no stick aim
-        public GunnerMoveHold hold;               // optional: the player can walk while shooting
+        public GunnerStickAim aim;                // 任意: 無ければスティックで狙わない
+        public GunnerMoveHold hold;               // 任意: 撃っている間もプレイヤーが歩ける
 
-        public int emitter = -1;                  // single shots: -1 = every emitter
-        public int payload;                       // passed to the rig as is; what it means is up to the projectile
-        // AfterRelease: a held stream passes through everything; on release the first thing its particles touch is hit once.
+        public int emitter = -1;                  // 単発: -1 = 全部の射出口
+        public int payload;                       // rig へそのまま渡す。意味は弾が決める
+        // AfterRelease: 押している間の連射は何でも素通りし、放すとその粒子が最初に触れたものに1回当たる。
         public int collideMode = CollideAlways;
-        public float releaseWindow = 3f;          // AfterRelease: seconds the released particles may still hit, at most
-        public bool followBone;                   // turn the rig's bone link on while held (restored on end)
+        public float releaseWindow = 3f;          // AfterRelease: 放した粒子がまだ当たってよい秒数の上限
+        public bool followBone;                   // 持っている間は rig の骨の連動を on にする(終わったら戻す)
         public bool resetAimOnEnd = true;
 
         private bool active;
@@ -44,7 +44,7 @@ namespace Mecaota.Gunner
             Deactivate();
             if (closePending)
             {
-                // No Update will close the window later; give the rig its own setting back now.
+                // 後で窓を閉じる Update が無いので、rig の設定を今すぐ戻す。
                 closePending = false;
                 if (rig != null) rig._SetCollision(rig.streamCollide);
             }
@@ -52,11 +52,11 @@ namespace Mecaota.Gunner
 
         public override void OnPlayerRespawn(VRCPlayerApi player)
         {
-            // Update switches it on again on the next frame when the pickup is still held.
+            // まだ持っていれば、次のフレームに Update が入れ直す。
             if (Utilities.IsValid(player) && player.isLocal) Deactivate();
         }
 
-        // Called by the input on pick up / drop and every frame here: hand changes and a disabled rig end it too.
+        // 拾う・落とす時に入力から、またここで毎フレーム呼ばれる。持つ手が変わった時や rig が無効になった時も終える。
         public void _Refresh()
         {
             bool want = Want();
@@ -97,7 +97,7 @@ namespace Mecaota.Gunner
 
         public bool _IsActive() { return active; }
 
-        // ---------------- Switching ----------------
+        // ---------------- 入り切り ----------------
 
         private bool Want()
         {
@@ -119,7 +119,7 @@ namespace Mecaota.Gunner
             if (collideMode == CollideAfterRelease && !closePending) rig._SetCollision(false);
         }
 
-        // Safe to call any number of times. A forced end never hits anything: collision stays off until the particles are gone.
+        // 何回呼んでもよい。強制的な終わりでは何にも当てない: 粒子が消えるまで当たり判定は off のまま。
         private void Deactivate()
         {
             if (!active) return;
@@ -129,7 +129,7 @@ namespace Mecaota.Gunner
             streaming = false;
             if (hold != null) hold._Release();
             if (rig == null) return;
-            // The aim goes first, so the stop and bone-off below send "no aim" and remote emitters return to rest.
+            // 狙いを先に外す。下の停止と骨の連動 off が「狙いなし」を送り、ほかの人の画面の射出口が休みに戻る。
             if (resetAimOnEnd) rig.ResetAim();
             if (wasStreaming)
             {
@@ -144,13 +144,13 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Only a stream this client is running: someone who took the rig since is left alone.
+        // この端末が動かしている連射だけ: その後で rig を取った人のものには触らない。
         private void StopOwnStream()
         {
             if (Networking.IsOwner(rig.gameObject) && rig._IsStreaming()) rig.StopStream();
         }
 
-        // ---------------- Per frame ----------------
+        // ---------------- 毎フレーム ----------------
 
         private void StepAim()
         {
@@ -169,7 +169,7 @@ namespace Mecaota.Gunner
             closeAt = Time.time + Mathf.Max(releaseWindow, 0.1f);
         }
 
-        // Closes early once nothing released is in the air, so a later stream from someone else is not caught by it.
+        // 放したものが何も飛んでいなければ早めに閉じる。後でほかの人が始めた連射を拾わないように。
         private void StepWindow()
         {
             if (rig == null) { closePending = false; return; }

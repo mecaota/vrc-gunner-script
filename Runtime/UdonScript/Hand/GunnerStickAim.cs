@@ -3,17 +3,17 @@ using UnityEngine;
 
 namespace Mecaota.Gunner
 {
-    // Turns a stick value into aim angles (degrees, yaw right +, pitch up +). Holds no input and talks to no rig.
+    // スティックの値を狙いの角度(度。左右は右が +、上下は上が +)に変える。入力は持たず、rig とも話さない。
     [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class GunnerStickAim : UdonSharpBehaviour
     {
         public const int ModeRate = 0, ModePosition = 1;
 
-        public int mode = ModeRate;         // Rate: the tilt sets the turn speed and the aim stays put. Position: the tilt is the angle.
-        public float turnSpeed = 90f;       // degrees per second at full tilt (Rate)
-        public float range = 60f;           // degrees each way
+        public int mode = ModeRate;         // Rate: 傾きで回る速さが決まり、狙いはその場に残る。Position: 傾きがそのまま角度。
+        public float turnSpeed = 90f;       // 傾けきった時の1秒あたりの角度(Rate)
+        public float range = 60f;           // 片側の角度
         public float deadZone = 0.15f;
-        public float positionEase = 12f;    // Position: per second, share of the remaining angle closed (0 = jump at once)
+        public float positionEase = 12f;    // Position: 1秒あたり、残りの角度を詰める割合(0 = すぐに飛ぶ)
 
         [System.NonSerialized] public float yaw;
         [System.NonSerialized] public float pitch;
@@ -24,7 +24,7 @@ namespace Mecaota.Gunner
             pitch = 0f;
         }
 
-        // True when the angles changed.
+        // 角度が変わった時に true。
         public bool _Step(float x, float y, float dt)
         {
             float lastYaw = yaw, lastPitch = pitch;
@@ -51,7 +51,7 @@ namespace Mecaota.Gunner
             return yaw != lastYaw || pitch != lastPitch;
         }
 
-        // Inside the dead zone is zero; outside it the tilt is rescaled so a small push past the edge is still a small turn.
+        // 不感帯の中は0。外は傾きを伸ばし直し、端を少し越えた押し込みは小さな回転のままにする。
         private float Shape(float v)
         {
             float dz = Mathf.Clamp(deadZone, 0f, 0.95f);

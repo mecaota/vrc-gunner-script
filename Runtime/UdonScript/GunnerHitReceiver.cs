@@ -2,33 +2,33 @@ using UdonSharp;
 
 namespace Mecaota.Gunner
 {
-    // Base for anything that reacts to a GunnerRig's hits: override only what you need, read the hit from the rig's hit* fields.
+    // GunnerRig の着弾に反応するものの基底: 必要なものだけ override し、着弾は rig の hit* フィールドから読む。
     public abstract class GunnerHitReceiver : UdonSharpBehaviour
     {
-        // True: the rig calls _OnGunnerLateStep every frame and fills hitStart / hitWorld / hitLive for it. Off by default so a
-        // rig whose receivers only react to hits does no per-frame end-point work.
+        // true: rig が毎フレーム _OnGunnerLateStep を呼び、そのために hitStart / hitWorld / hitLive を埋める。既定は off。
+        // 着弾に反応するだけの受け手しかない rig は、毎フレームの端点の計算をしない。
         public bool wantsLateStep;
 
-        // Owner only, on the rig's projectile receiver only: the record is about to be written. rig.hitPayload may be changed.
+        // 持ち主だけ、rig の弾の受け手だけ: 記録を書く直前。rig.hitPayload を変えてよい。
         public virtual void _OnOwnerHit(GunnerRig rig) { }
 
-        // Owner only, on the projectile receiver only: right before the records go out (also after _RetireHit + _Commit).
+        // 持ち主だけ、弾の受け手だけ: 記録を送る直前(_RetireHit + _Commit の後にも呼ぶ)。
         public virtual void _OnOwnerCommit(GunnerRig rig) { }
 
-        // Every client: a hit arrived (rig.hitReplay = restored for a late joiner: no effects or sounds).
+        // 全員: 着弾が届いた(rig.hitReplay = 遅れて入った人のために戻したもの。効果も音も出さない)。
         public virtual void _OnHit(GunnerRig rig) { }
 
-        // Every client: a hit that had arrived was retired, cleared or overwritten.
+        // 全員: 届いていた着弾が引退した・消された・上書きされた。
         public virtual void _OnHitGone(GunnerRig rig) { }
 
         // 全員: 単発が射出口を出た時と、連射が始まった時。中身は rig.fireEmitter / fireStream / fireReplay で読む。
         // 発射の途中で呼ばれるので、ここから撃ち直したり記録を消したりしない。
         public virtual void _OnFire(GunnerRig rig) { }
 
-        // Every client, once per frame, at the end of the rig's PostLateUpdate (wantsLateStep only).
+        // 全員、毎フレーム1回、rig の PostLateUpdate の最後に(wantsLateStep の時だけ)。
         public virtual void _OnGunnerLateStep(GunnerRig rig) { }
 
-        // Every client: the rig's owner changed (check Networking.IsOwner(rig.gameObject) yourself).
+        // 全員: rig の持ち主が変わった(Networking.IsOwner(rig.gameObject) は自分で確かめる)。
         public virtual void _OnGunnerOwner(GunnerRig rig) { }
     }
 }

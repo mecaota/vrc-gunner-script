@@ -5,14 +5,14 @@ using VRC.SDKBase;
 
 namespace Mecaota.Gunner.EditorTools
 {
-    /// <summary>One-shot setup commands (hierarchy right-click: GameObject/Gunner/...). Menu names stay English.</summary>
+    /// <summary>1回きりのセットアップのコマンド(ヒエラルキーの右クリック: GameObject/Gunner/...)。メニュー名は英語のまま。</summary>
     public static class GunnerSetup
     {
         const string Root = "GameObject/Gunner/";
         const int Priority = 10;
         const int PickupLayer = 13;
 
-        // ---------------- Menus ----------------
+        // ---------------- メニュー ----------------
 
         [MenuItem(Root + "Add Gunner Rig", false, Priority)]
         static void MenuAddRig(MenuCommand command)
@@ -23,7 +23,7 @@ namespace Mecaota.Gunner.EditorTools
             {
                 rig = AttachRig(go);
                 AddEmitter(rig, rig.transform, rig.transform.position, rig.transform.rotation);
-                // Ready for stream mode too: switching the fire mode in the inspector is then enough.
+                // 連射にも備えておく: インスペクタで撃ち方を切り替えるだけで済む。
                 EnsureStream(rig);
             }
             Selection.activeObject = rig.gameObject;
@@ -131,11 +131,11 @@ namespace Mecaota.Gunner.EditorTools
             return a != null && a.isHuman && a.avatar != null ? a : null;
         }
 
-        // ---------------- Operations ----------------
+        // ---------------- 操作 ----------------
 
         /// <summary>
-        /// Adds a GunnerRig to the object (or a new one when nothing is given). The rig is Manual-synced, which cannot share a
-        /// GameObject with VRC Object Sync, so such an object gets a child for the rig instead.
+        /// オブジェクトに GunnerRig を足す(何も渡さなければ新しく作る)。rig は Manual 同期で、VRC Object Sync と同じ
+        /// GameObject には置けないので、そういうオブジェクトには rig 用の子を作る。
         /// </summary>
         public static GunnerRig AttachRig(GameObject go)
         {
@@ -155,7 +155,7 @@ namespace Mecaota.Gunner.EditorTools
             return rig;
         }
 
-        /// <summary>A new emitter under parent (+Z = rest direction) with its own shot particles, appended to the rig.</summary>
+        /// <summary>parent の下に新しい射出口(+Z = 休み方向)を、専用の弾の粒子と一緒に作り、rig に追加する。</summary>
         public static Transform AddEmitter(GunnerRig rig, Transform parent, Vector3 position, Quaternion rotation, string name = "Emitter")
         {
             var go = GunnerEditorUtil.CreateChild(parent, GunnerEditorUtil.UniqueChildName(parent, name));
@@ -181,14 +181,14 @@ namespace Mecaota.Gunner.EditorTools
             return stream;
         }
 
-        /// <summary>Generated helpers live under the rig's "Parts" child.</summary>
+        /// <summary>作った補助の部品は rig の "Parts" の子に置く。</summary>
         public static Transform Parts(GunnerRig rig)
         {
             var t = rig.transform.Find("Parts");
             return t != null ? t : GunnerEditorUtil.CreateChild(rig.transform, "Parts").transform;
         }
 
-        /// <summary>The hand-held ball: a small sphere with VRC Pickup (AutoHold, so the desktop trigger arrives) and the four parts.</summary>
+        /// <summary>手に持つ玉: VRC Pickup(AutoHold。デスクトップのトリガーが届くように)付きの小さな球と、4つの部品。</summary>
         public static GunnerHandController PlaceHand(GunnerRig rig)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -223,7 +223,7 @@ namespace Mecaota.Gunner.EditorTools
                 so.FindProperty("aim").objectReferenceValue = aim;
                 so.FindProperty("hold").objectReferenceValue = hold;
             });
-            // The ball is held next to the shooter: a shot must not stop on it.
+            // 玉は撃つ人のすぐそばに持たれる: 弾が玉で止まってはいけない。
             if (GunnerEditorUtil.InMask(rig.hitMask, PickupLayer)) ExcludeLayer(rig, PickupLayer);
             return hand;
         }
@@ -239,7 +239,7 @@ namespace Mecaota.Gunner.EditorTools
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.playOnAwake = false;
             main.loop = false;
-            // Debug-friendly defaults: big, bright, long-lived, so the burst shows even in a far screenshot.
+            // 確認しやすい既定値: 大きく明るく長持ちさせ、遠くからのスクリーンショットでも弾けた様子が写るようにする。
             main.startLifetime = 1.5f;
             main.startSpeed = 3f;
             main.startSize = 0.2f;
@@ -295,7 +295,7 @@ namespace Mecaota.Gunner.EditorTools
             });
         }
 
-        // ---------------- Body parts (editor-time defaults only; runtime code never names bones) ----------------
+        // ---------------- 体の部位(エディタでの既定値だけ。実行時のコードは骨の名前を使わない) ----------------
 
         enum BodyPart { RightIndexTip, LeftIndexTip, RightPalm, LeftPalm, Mouth }
 
@@ -331,7 +331,7 @@ namespace Mecaota.Gunner.EditorTools
                     var prox = a.GetBoneTransform(right ? HumanBodyBones.RightIndexProximal : HumanBodyBones.LeftIndexProximal);
                     var mid = a.GetBoneTransform(right ? HumanBodyBones.RightIndexIntermediate : HumanBodyBones.LeftIndexIntermediate);
                     var dist = a.GetBoneTransform(right ? HumanBodyBones.RightIndexDistal : HumanBodyBones.LeftIndexDistal);
-                    // Walk back to the deepest pair of bones that exists; the tip lies one segment past the last joint.
+                    // ある骨の組のうち最も深いものまで戻る。先端は最後の関節から1区間先にある。
                     Transform last = dist != null ? dist : mid != null ? mid : prox;
                     Transform before = last == dist ? (mid != null ? mid : prox) : last == mid ? prox : hand;
                     if (last == null || before == null)
@@ -347,7 +347,7 @@ namespace Mecaota.Gunner.EditorTools
                     if (seg.sqrMagnitude < 1e-8f) return false;
                     bone = last;
                     forward = seg.normalized;
-                    pos = last.position + seg * 0.8f; // a fingertip segment is a bit shorter than the one before it
+                    pos = last.position + seg * 0.8f; // 指先の区間は1つ手前より少し短い
                     return true;
                 }
                 case BodyPart.RightPalm:
@@ -360,7 +360,7 @@ namespace Mecaota.Gunner.EditorTools
                     bone = hand;
                     Vector3 along = middle != null ? (middle.position - hand.position) : hand.forward * 0.08f * scale;
                     pos = hand.position + along * 0.5f;
-                    // The palm faces down in a T pose: shoot down from it; adjust in the scene if the avatar differs.
+                    // T ポーズでは手のひらが下を向く: そこから下へ撃つ。アバターが違えばシーンで調整する。
                     forward = -a.transform.up;
                     return true;
                 }

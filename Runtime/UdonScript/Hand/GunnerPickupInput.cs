@@ -5,8 +5,8 @@ using VRC.Udon.Common;
 
 namespace Mecaota.Gunner
 {
-    // Reads input only: which hand holds the pickup, the aim stick, and the trigger. Must sit on the VRC_Pickup's GameObject,
-    // because pickup events reach only the behaviours there.
+    // 入力だけを読む: ピックアップを持つ手、狙いのスティック、トリガー。VRC_Pickup の GameObject に置く必要がある。
+    // ピックアップのイベントは、そこにある behaviour にしか届かないため。
     [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class GunnerPickupInput : UdonSharpBehaviour
     {
@@ -14,8 +14,8 @@ namespace Mecaota.Gunner
         public const int DesktopMoveKeys = 0, DesktopArrowKeys = 1;
 
         public GunnerHandController controller;
-        public VRC_Pickup pickup;                 // empty = the VRC_Pickup on this GameObject
-        public int hand = HandLeft;               // VR only: the hand that may shoot. Desktop has one hand.
+        public VRC_Pickup pickup;                 // 空 = この GameObject の VRC_Pickup
+        public int hand = HandLeft;               // VR だけ: 撃ってよい手。デスクトップは手が1つ
         public int desktopStick = DesktopMoveKeys;
         public bool invertVertical;
 
@@ -31,7 +31,7 @@ namespace Mecaota.Gunner
             if (pickup == null) pickup = (VRC_Pickup)GetComponent(typeof(VRC_Pickup));
         }
 
-        // True when the local player holds it in a hand that may shoot (desktop: whenever held).
+        // ローカルのプレイヤーが撃ってよい手で持っている時に true(デスクトップ: 持っていればいつでも)。
         public bool _Allowed()
         {
             if (!held || pickup == null) return false;
@@ -43,7 +43,7 @@ namespace Mecaota.Gunner
             return current == VRC_Pickup.PickupHand.Left;
         }
 
-        // Fresh stick values for this frame (the move events arrive only when the value changes).
+        // このフレームの新しいスティックの値(移動のイベントは値が変わった時しか来ない)。
         public void _ReadStick()
         {
             float x = moveX, y = moveY;

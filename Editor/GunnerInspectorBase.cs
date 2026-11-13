@@ -7,9 +7,9 @@ using UnityEngine;
 namespace Mecaota.Gunner.EditorTools
 {
     /// <summary>
-    /// Inspector layout shared by every gunner component: U# header, the check rows on top, the fields (all labels and tips
-    /// from the string table, keys "&lt;Type&gt;.&lt;field&gt;"), and the language popup at the bottom.
-    /// Int fields with a "&lt;key&gt;.opt" entry ("A|B|C") are drawn as a popup.
+    /// gunner の全部品で共通のインスペクタの並び: U# のヘッダ、上に点検の行、フィールド(ラベルと説明はすべて
+    /// 文字列表から。キーは "&lt;Type&gt;.&lt;field&gt;")、下に言語の選択。
+    /// "&lt;key&gt;.opt" の項目("A|B|C")がある int のフィールドは選択式で描く。
     /// </summary>
     public abstract class GunnerInspectorBase : Editor
     {
@@ -23,7 +23,7 @@ namespace Mecaota.Gunner.EditorTools
             if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(targets)) return;
             missing.Clear();
 
-            // Every selected object is checked, not just the first one.
+            // 最初の1つだけでなく、選んだオブジェクトをすべて点検する。
             var checks = new List<GunnerCheck>();
             foreach (var t in targets) checks.AddRange(GunnerChecks.Run(t as Component));
             if (GunnerChecks.DrawRows(checks, targets.Length > 1)) GUIUtility.ExitGUI();
@@ -42,7 +42,7 @@ namespace Mecaota.Gunner.EditorTools
             GunnerL10n.DrawLanguagePopup();
         }
 
-        /// <summary>Default body: every visible serialized field in declaration order.</summary>
+        /// <summary>既定の中身: 見えるシリアライズ済みフィールドを宣言順にすべて。</summary>
         protected virtual void DrawBody()
         {
             var it = serializedObject.GetIterator();
@@ -75,7 +75,7 @@ namespace Mecaota.Gunner.EditorTools
             return p;
         }
 
-        // The most derived type that has text for the field, so a subclass from another package reuses its base's labels.
+        // フィールドの文がある最も派生した型を使う。ほかのパッケージの派生クラスは基底のラベルをそのまま使える。
         string KeyFor(string field)
         {
             for (var t = target.GetType(); t != null && t != typeof(UdonSharpBehaviour); t = t.BaseType)
@@ -130,7 +130,7 @@ namespace Mecaota.Gunner.EditorTools
     [CustomEditor(typeof(GunnerHitSplash)), CanEditMultipleObjects]
     public class GunnerHitSplashEditor : GunnerInspectorBase { }
 
-    // Receivers from other packages get the same layout unless they bring their own editor.
+    // ほかのパッケージの受け手も、独自のエディタが無ければ同じ並びになる。
     [CustomEditor(typeof(GunnerHitReceiver), true), CanEditMultipleObjects]
     public class GunnerHitReceiverEditor : GunnerInspectorBase { }
 

@@ -7,7 +7,7 @@ using E = Mecaota.Gunner.EditorTools.GunnerCheckLevel;
 
 namespace Mecaota.Gunner.EditorTools
 {
-    /// <summary>Checks for the gunner components themselves.</summary>
+    /// <summary>gunner 自身の部品の点検。</summary>
     [InitializeOnLoad]
     public sealed class GunnerBuiltinChecks : IGunnerCheckProvider
     {
@@ -28,7 +28,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // ---------------- Rig ----------------
+        // ---------------- rig ----------------
 
         static void Rig(GunnerRig rig, List<GunnerCheck> into)
         {
@@ -104,14 +104,14 @@ namespace Mecaota.Gunner.EditorTools
                 into.Add(new GunnerCheck(E.Warning, "check.rig.null_receiver", rig,
                     () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "receivers"))));
 
-            // The projectile hears _OnOwnerHit as the projectile, but _OnHit only as a listed receiver.
+            // projectile に指定した受け手は、_OnOwnerHit は一覧に無くても受けるが、_OnHit は一覧に入っていないと受けない。
             if (rig.projectile != null && System.Array.IndexOf(listed, rig.projectile) < 0)
                 into.Add(new GunnerCheck(E.Warning, "check.rig.projectile_unlisted", rig, () => AddReceiver(rig, rig.projectile)));
 
             foreach (var r in rig.GetComponentsInChildren<GunnerHitReceiver>(true))
             {
                 if (System.Array.IndexOf(listed, r) >= 0 || r == rig.projectile) continue;
-                if (r is GunnerHitSplash s && s.targetRig == rig) continue; // registers itself on Start
+                if (r is GunnerHitSplash s && s.targetRig == rig) continue; // Start で自分を登録する
                 if (r is GunnerSounds snd && snd.rigs != null && System.Array.IndexOf(snd.rigs, rig) >= 0) continue; // 開始時に自分で登録する
                 var receiver = r;
                 into.Add(new GunnerCheck(E.Warning, "check.rig.receiver_unlisted", r, () => AddReceiver(rig, receiver), r.name));
@@ -127,7 +127,7 @@ namespace Mecaota.Gunner.EditorTools
             });
         }
 
-        // ---------------- Hand ----------------
+        // ---------------- 手持ち ----------------
 
         static void Hand(GunnerHandController hand, List<GunnerCheck> into)
         {
@@ -207,7 +207,7 @@ namespace Mecaota.Gunner.EditorTools
                     () => Undo.AddComponent<VRCObjectSync>(input.gameObject)));
         }
 
-        // ---------------- Receivers and stream ----------------
+        // ---------------- 受け手と連射 ----------------
 
         static void Splash(GunnerHitSplash splash, List<GunnerCheck> into)
         {

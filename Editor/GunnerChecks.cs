@@ -6,17 +6,17 @@ using Object = UnityEngine.Object;
 
 namespace Mecaota.Gunner.EditorTools
 {
-    /// <summary>Error = it will not work. Warning = looks or load may be off.</summary>
+    /// <summary>Error = 動かない。Warning = 見た目や負荷がずれるおそれがある。</summary>
     public enum GunnerCheckLevel { Warning, Error }
 
-    /// <summary>One check row: an icon, a short text from the string table, and an optional fix.</summary>
+    /// <summary>点検の1行: アイコン、文字列表の短い文、任意の直し方。</summary>
     public sealed class GunnerCheck
     {
         public GunnerCheckLevel level;
-        public string key;          // string table key; "{0}" in the text is replaced by arg
+        public string key;          // 文字列表のキー。文中の "{0}" は arg に置き換える
         public string arg;
-        public Object target;       // selected when the row is clicked in the check window
-        public Action fix;          // null = the fix button is shown disabled
+        public Object target;       // 点検ウィンドウで行をクリックした時に選ぶもの
+        public Action fix;          // null = 直すボタンを無効で表示する
 
         public GunnerCheck(GunnerCheckLevel level, string key, Object target, Action fix = null, string arg = null)
         {
@@ -34,8 +34,8 @@ namespace Mecaota.Gunner.EditorTools
     }
 
     /// <summary>
-    /// Adds checks for components. Other packages implement this and call <see cref="GunnerChecks.Register"/> from an
-    /// [InitializeOnLoad] static constructor; providers ignore components they do not know.
+    /// 部品の点検を足す。ほかのパッケージはこれを実装し、[InitializeOnLoad] の static コンストラクタから
+    /// <see cref="GunnerChecks.Register"/> を呼ぶ。知らない部品は無視する。
     /// </summary>
     public interface IGunnerCheckProvider
     {
@@ -65,7 +65,7 @@ namespace Mecaota.Gunner.EditorTools
             return list;
         }
 
-        /// <summary>Draws the rows. True = a fix ran (the caller should stop drawing this frame).</summary>
+        /// <summary>行を描く。true = 直しを実行した(呼び出し側はこのフレームの描画をやめる)。</summary>
         public static bool DrawRows(List<GunnerCheck> checks, bool selectOnClick = false)
         {
             if (errorIcon == null)

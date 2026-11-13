@@ -8,22 +8,22 @@ using UnityEngine;
 namespace Mecaota.Gunner.EditorTools
 {
     /// <summary>
-    /// Editor-only string table (Japanese / English).
-    /// Each package keeps Editor/strings.tsv (columns: key, ja, en). Other packages add
-    /// their own table with <see cref="AddTable"/>. Lookup falls back: chosen language -> ja -> key.
-    /// Do not use [Tooltip]; draw every label and tooltip through <see cref="Tr"/>.
+    /// エディタ専用の文字列表(日本語 / 英語)。
+    /// 各パッケージは Editor/strings.tsv(列: key, ja, en)を持つ。ほかのパッケージは
+    /// <see cref="AddTable"/> で自分の表を足す。引けない時は 選んだ言語 → ja → キー の順に戻る。
+    /// [Tooltip] は使わない。ラベルと説明はすべて <see cref="Tr"/> を通して描く。
     /// </summary>
     public static class GunnerL10n
     {
         public const string Japanese = "ja";
         public const string English = "en";
-        const string PrefKey = "Mecaota.Gunner.Language"; // "", "ja" or "en". Empty = follow the editor.
+        const string PrefKey = "Mecaota.Gunner.Language"; // ""、"ja"、"en" のいずれか。空 = エディタに合わせる。
         const string GunnerTableGuid = "a8c460bbc0ac4ae09789c3dfcacb83cd"; // Editor/strings.tsv
 
         static readonly List<string> tablePaths = new List<string>();
-        static Dictionary<string, string[]> table; // key -> { ja, en }
+        static Dictionary<string, string[]> table; // キー → { ja, en }
 
-        /// <summary>Current language: the saved choice, else the editor language (Japanese -> ja, others -> en).</summary>
+        /// <summary>今の言語: 保存した選択、無ければエディタの言語(日本語 → ja、ほか → en)。</summary>
         public static string Language
         {
             get
@@ -35,10 +35,10 @@ namespace Mecaota.Gunner.EditorTools
             set => EditorPrefs.SetString(PrefKey, value == Japanese || value == English ? value : "");
         }
 
-        /// <summary>The saved choice as is: "" (follow the editor), "ja" or "en".</summary>
+        /// <summary>保存した選択そのまま: ""(エディタに合わせる)、"ja"、"en"。</summary>
         public static string SavedChoice => EditorPrefs.GetString(PrefKey, "");
 
-        /// <summary>Language popup (follow the editor / 日本語 / English) for the bottom of inspectors and the check window.</summary>
+        /// <summary>インスペクタと点検ウィンドウの下に出す言語の選択(エディタに合わせる / 日本語 / English)。</summary>
         public static void DrawLanguagePopup()
         {
             string saved = SavedChoice;
@@ -50,7 +50,7 @@ namespace Mecaota.Gunner.EditorTools
             InternalEditorUtility.RepaintAllViews();
         }
 
-        /// <summary>Registers another package's strings.tsv (asset path). Later tables override earlier keys.</summary>
+        /// <summary>ほかのパッケージの strings.tsv(アセットのパス)を登録する。後の表が前のキーを上書きする。</summary>
         public static void AddTable(string assetPath)
         {
             if (string.IsNullOrEmpty(assetPath) || tablePaths.Contains(assetPath)) return;
@@ -58,7 +58,7 @@ namespace Mecaota.Gunner.EditorTools
             table = null;
         }
 
-        /// <summary>Text for the key in the current language.</summary>
+        /// <summary>今の言語でのキーの文。</summary>
         public static string Tr(string key) => Tr(key, Language);
 
         public static string Tr(string key, string language)
@@ -68,10 +68,10 @@ namespace Mecaota.Gunner.EditorTools
             return key;
         }
 
-        /// <summary>True if the key has text in the given language (no fallback). For checks.</summary>
+        /// <summary>指定の言語でキーに文があれば true(戻りなし)。点検用。</summary>
         public static bool Has(string key, string language) => TryGet(key, language, out _);
 
-        /// <summary>Label with its tooltip (key + ".tip"); the tooltip is empty when the key has none.</summary>
+        /// <summary>説明(キー + ".tip")付きのラベル。キーに説明が無ければ説明は空。</summary>
         public static GUIContent Content(string key)
         {
             string tip = Tr(key + ".tip");
@@ -100,10 +100,10 @@ namespace Mecaota.Gunner.EditorTools
         static void Load(string assetPath)
         {
             if (string.IsNullOrEmpty(assetPath)) return;
-            string fullPath = Path.GetFullPath(assetPath); // resolves "Packages/<id>/..." to the real folder
+            string fullPath = Path.GetFullPath(assetPath); // "Packages/<id>/..." を実際のフォルダに解決する
             if (!File.Exists(fullPath)) return;
             string[] lines = File.ReadAllLines(fullPath, Encoding.UTF8);
-            for (int i = 1; i < lines.Length; i++) // line 0 is the header
+            for (int i = 1; i < lines.Length; i++) // 0行目は見出し
             {
                 if (lines[i].Length == 0 || lines[i][0] == '#') continue;
                 string[] cols = lines[i].Split('\t');

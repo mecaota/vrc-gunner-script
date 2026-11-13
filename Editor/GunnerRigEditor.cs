@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Mecaota.Gunner.EditorTools
 {
-    /// <summary>GunnerRig inspector (grouped fields, setup buttons) and scene handles: emitter pose, range, aim fan.</summary>
+    /// <summary>GunnerRig のインスペクタ(項目のまとめ、セットアップのボタン)とシーンのハンドル: 射出口の姿勢、射程、狙いの扇。</summary>
     [CustomEditor(typeof(GunnerRig)), CanEditMultipleObjects]
     public class GunnerRigEditor : GunnerInspectorBase
     {
@@ -105,7 +105,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // ---------------- Scene view ----------------
+        // ---------------- シーンビュー ----------------
 
         void OnSceneGUI()
         {
@@ -131,7 +131,7 @@ namespace Mecaota.Gunner.EditorTools
             float angle = Mathf.Clamp(rig.aimMaxAngle, 0f, 180f);
             float fan = Mathf.Min(range, size * 1.5f);
 
-            // The aim reaches this far from the rest direction: one fan for yaw, one for pitch.
+            // 狙いは休み方向からここまで届く: 左右に扇を1つ、上下に1つ。
             Handles.color = FanFill;
             Handles.DrawSolidArc(pos, up, Quaternion.AngleAxis(-angle, up) * fwd, angle * 2f, fan);
             Handles.DrawSolidArc(pos, right, Quaternion.AngleAxis(-angle, right) * fwd, angle * 2f, fan);
@@ -145,8 +145,8 @@ namespace Mecaota.Gunner.EditorTools
 
             if (!edit) return;
 
-            // Pose: follows the scene tool (move / rotate), so it never fights the default transform handle.
-            // An emitter on the rig's own Transform already has Unity's handle; a second one would fight it.
+            // 姿勢: シーンのツール(移動 / 回転)に従うので、既定の Transform ハンドルとぶつからない。
+            // rig 自身の Transform にある射出口には Unity のハンドルが既にある。2つ目を出すとぶつかる。
             bool own = em == rig.transform;
             if (!own && Tools.current == Tool.Move)
             {
@@ -169,7 +169,7 @@ namespace Mecaota.Gunner.EditorTools
                 }
             }
 
-            // Range and aim limit belong to the rig: edited on the first emitter only.
+            // 射程と狙いの限度は rig のもの: 最初の射出口でだけ編集する。
             if (index != 0) return;
             Handles.color = RangeLine;
             EditorGUI.BeginChangeCheck();

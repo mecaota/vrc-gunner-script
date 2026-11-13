@@ -8,12 +8,12 @@ using Object = UnityEngine.Object;
 
 namespace Mecaota.Gunner.EditorTools
 {
-    /// <summary>Small helpers shared by the inspectors, checks and setup menus.</summary>
+    /// <summary>インスペクタ・点検・セットアップのメニューで共有する小さな補助。</summary>
     public static class GunnerEditorUtil
     {
         /// <summary>
-        /// After editing a U# component through its proxy: copy proxy -> backing UdonBehaviour and record prefab overrides.
-        /// Never copies the other way, because an edit-mode backing can hold stale defaults that would wipe the proxy.
+        /// U# 部品をプロキシ経由で編集した後: プロキシ → backing の UdonBehaviour へ写し、プレハブのオーバーライドを記録する。
+        /// 逆向きには写さない。編集モードの backing は古い既定値を持っていることがあり、プロキシを消してしまうため。
         /// </summary>
         public static void CommitProxy(UdonSharpBehaviour proxy)
         {
@@ -29,7 +29,7 @@ namespace Mecaota.Gunner.EditorTools
             if (proxy.gameObject.scene.IsValid()) EditorSceneManager.MarkSceneDirty(proxy.gameObject.scene);
         }
 
-        /// <summary>Edits a U# component through a SerializedObject, then commits the proxy.</summary>
+        /// <summary>U# 部品を SerializedObject で編集し、プロキシを確定する。</summary>
         public static void Edit(UdonSharpBehaviour target, System.Action<SerializedObject> change)
         {
             if (target == null) return;
@@ -63,7 +63,7 @@ namespace Mecaota.Gunner.EditorTools
             return go;
         }
 
-        /// <summary>A name not used by the parent's children yet: base, base_1, base_2 ...</summary>
+        /// <summary>親の子でまだ使われていない名前: base, base_1, base_2 ...</summary>
         public static string UniqueChildName(Transform parent, string baseName)
         {
             if (parent == null || parent.Find(baseName) == null) return baseName;
@@ -75,7 +75,7 @@ namespace Mecaota.Gunner.EditorTools
             return baseName;
         }
 
-        // ---------------- Serialized arrays ----------------
+        // ---------------- シリアライズされた配列 ----------------
 
         public static void SetLength(SerializedProperty array, int length)
         {
@@ -102,7 +102,7 @@ namespace Mecaota.Gunner.EditorTools
             return false;
         }
 
-        /// <summary>Removes null entries. Parallel arrays (same index meaning) lose the same indices.</summary>
+        /// <summary>null の要素を除く。並行配列(同じ番号が同じ意味の配列)からも同じ番号を除く。</summary>
         public static void RemoveNulls(SerializedObject so, string array, params string[] parallel)
         {
             var main = so.FindProperty(array);
@@ -120,15 +120,15 @@ namespace Mecaota.Gunner.EditorTools
 
         static void RemoveAt(SerializedProperty array, int index)
         {
-            // DeleteArrayElementAtIndex only clears a non-null object slot the first time; clear first so one call removes it.
+            // DeleteArrayElementAtIndex は null でないオブジェクトの枠だと1回目は中身を消すだけなので、先に消して1回で除く。
             var e = array.GetArrayElementAtIndex(index);
             if (e.propertyType == SerializedPropertyType.ObjectReference) e.objectReferenceValue = null;
             array.DeleteArrayElementAtIndex(index);
         }
 
-        // ---------------- Particles ----------------
+        // ---------------- 粒子 ----------------
 
-        /// <summary>A plain shot particle system under the emitter: World space, one particle per shot, a short trail.</summary>
+        /// <summary>射出口の下の素朴な弾の粒子: World 空間、1発に1粒、短いトレイル。</summary>
         public static ParticleSystem CreateShotParticles(Transform emitter)
         {
             var go = CreateChild(emitter, "Shot");
@@ -140,8 +140,8 @@ namespace Mecaota.Gunner.EditorTools
             main.playOnAwake = false;
             main.loop = false;
             main.duration = 0.1f;
-            main.startLifetime = 1f;      // the rig sets the lifetime per shot from the distance
-            main.startSpeed = 25f;        // the rig sets the speed from shotSpeed
+            main.startLifetime = 1f;      // 寿命は rig が1発ごとに距離から決める
+            main.startSpeed = 25f;        // 速さは rig が shotSpeed から決める
             main.startSize = 0.1f;
             main.gravityModifier = 0f;
             main.maxParticles = 64;
@@ -151,14 +151,14 @@ namespace Mecaota.Gunner.EditorTools
             emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 1) });
 
             var shape = ps.shape;
-            shape.enabled = false;        // straight along +Z
+            shape.enabled = false;        // +Z へまっすぐ
 
             var trails = ps.trails;
             trails.enabled = true;
             trails.lifetime = 0.3f;
             trails.minVertexDistance = 0.02f;
             trails.sizeAffectsWidth = false;
-            trails.widthOverTrail = 0.08f;   // metres: a clearly visible line
+            trails.widthOverTrail = 0.08f;   // メートル。はっきり見える線
 
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             var mat = DefaultParticleMaterial();
@@ -209,7 +209,7 @@ namespace Mecaota.Gunner.EditorTools
             EditorUtility.SetDirty(ps);
         }
 
-        // ---------------- Scene ----------------
+        // ---------------- シーン ----------------
 
         public static List<T> FindInScenes<T>() where T : Component
         {

@@ -5,11 +5,11 @@ using VRC.Udon.Common;
 
 namespace Mecaota.Gunner
 {
-    // Controller: settings, the synced hit records, shooting, the cast, single shots, aim, bone link, and the per-frame order.
+    // 本体: 設定、同期する着弾の記録、射撃、当たり判定、単発、狙い、骨の連動、毎フレームの順番。
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class GunnerRig : UdonSharpBehaviour
     {
-        // ---------------- Constants ----------------
+        // ---------------- 定数 ----------------
 
         public const int KindNone = 0;
         public const int KindWorld = 1;
@@ -24,18 +24,18 @@ namespace Mecaota.Gunner
         public const int MaxEmitters = 16;
 
         /// <summary>
-        /// Length of the synced record ring, the same on every build (PC and Android must agree on it or the ring is read
-        /// differently). maxHits only limits how many of the newest records a client uses.
+        /// 同期する記録の輪の長さ。どのビルドでも同じ(PC と Android で合っていないと、輪の読み方が
+        /// 変わってしまう)。maxHits は、端末が使う新しい記録の数を絞るだけ。
         /// </summary>
         public const int SyncSlots = 16;
 
         /// <summary>
-        /// Largest target number a record can hold (16 bits). A player whose playerId is above this (only in very long-running
-        /// instances) is not recorded as a player hit; the shot passes on to whatever is behind.
+        /// 記録に入れられる的の番号の最大(16ビット)。playerId がこれを超えるプレイヤー(とても長く続いた
+        /// インスタンスだけ)はプレイヤーへの着弾として記録せず、弾は後ろにあるものへ抜ける。
         /// </summary>
         public const int MaxTargetIndex = 0xFFFF;
 
-        // hMeta layout (31 bits, sign bit unused so the value never goes negative).
+        // hMeta の並び(31ビット。符号ビットは使わないので値が負にならない)。
         private const int EmitterShift = 0;
         private const int EmitterMask = 0xF;
         private const int KindShift = 4;
@@ -47,96 +47,96 @@ namespace Mecaota.Gunner
         private const int IndexMask = 0xFFFF;
         private const int InstantBit = 1 << 30;
 
-        // hWriter layout: who wrote the record (low 12 bits of the playerId) and when (server time in 16 ms ticks, 19 bits,
-        // wraps after about 2.3 hours). Tells two records with the same seq apart, and a late joiner's recent records from old ones.
+        // hWriter の並び: 記録を書いた人(playerId の下位12ビット)と時刻(サーバー時刻を16 ms 刻み、19ビット。
+        // 約2.3時間で一周する)。同じ seq の2つの記録や、遅れて入った人にとっての新しい記録と古い記録を見分ける。
         private const int TickShift = 4;
         private const int TickMask = 0x7FFFF;
         private const int TickMs = 16;
         private const int WriterIdShift = 19;
         private const int WriterIdMask = 0xFFF;
-        private const int JoinMarginMs = 1000;  // records this much older than the join still count as seen live
+        private const int JoinMarginMs = 1000;  // 入った時刻よりこれだけ古い記録までは、その場で見たものとして扱う
 
         private const int PlayerLayers = (1 << 9) | (1 << 10);
         private const int CastBuffer = 32;
-        private const float SendInterval = 0.2f;   // throttled sends (stream hits, aim) at most 5 per second
+        private const float SendInterval = 0.2f;   // 間引いて送るもの(連射の着弾、狙い)は1秒に5回まで
         private const float AimSyncAngle = 2f;
         private const float AimSyncMove = 0.05f;
-        private const float BodyRadiusMin = 0.08f;  // metres; keeps tiny avatars hittable
-        private const float BodyRadiusMax = 0.5f;   // metres; keeps huge avatars from swallowing every shot nearby
+        private const float BodyRadiusMin = 0.08f;  // メートル。小さいアバターにも当たるように
+        private const float BodyRadiusMax = 0.5f;   // メートル。大きいアバターが近くの弾を全部吸い込まないように
 
-        // ---------------- Setup (written by the editor) ----------------
+        // ---------------- セットアップ(エディタが書く) ----------------
 
-        public Transform[] emitters;              // +Z = rest direction
-        public ParticleSystem[] shotParticles;    // same index as emitters; World simulation space
-        public Transform[] mounts;                // optional per emitter: the emitter takes this pose every frame (+Z = rest)
-        public Transform[] linkBones;             // optional per emitter: what the aim turns; empty = the emitter's parent in the rig
-        public Transform[] movers;                // moving objects: a hit on one (or a child) follows it
-        public GunnerStream stream;               // optional: stream fire
-        public GunnerHitReceiver projectile;      // the one receiver asked for the payload (_OnOwnerHit / _OnOwnerCommit)
-        public GunnerHitReceiver[] receivers;     // everyone notified of hits; _Register adds more at runtime
+        public Transform[] emitters;              // +Z = 休み方向
+        public ParticleSystem[] shotParticles;    // emitters と同じ番号。World シミュレーション空間
+        public Transform[] mounts;                // 射出口ごとに任意: 射出口が毎フレームこの姿勢を取る(+Z = 休み)
+        public Transform[] linkBones;             // 射出口ごとに任意: 狙いで回すもの。空 = rig の中での射出口の親
+        public Transform[] movers;                // 動くオブジェクト: これ(または子)への着弾はそれに付いていく
+        public GunnerStream stream;               // 任意: 連射
+        public GunnerHitReceiver projectile;      // payload を聞く唯一の受け手(_OnOwnerHit / _OnOwnerCommit)
+        public GunnerHitReceiver[] receivers;     // 着弾を知らされる全員。実行中は _Register で増える
 
-        public int maxHits = 16;                  // records this client uses (1..SyncSlots); lower it on Android, the sync stays 16
+        public int maxHits = 16;                  // この端末が使う記録の数(1..SyncSlots)。Android では下げる。同期は16のまま
         public float shotSpeed = 25f;
         public float maxRange = 30f;
         public float castRadius = 0.05f;
-        public LayerMask hitMask = ~(1 << 2);     // player layers are ignored here; hitPlayers decides
+        public LayerMask hitMask = ~(1 << 2);     // プレイヤーのレイヤーはここでは無視する。hitPlayers で決める
         public bool hitPlayers = true;
-        // Skips the body of the player on this device, i.e. whoever runs the cast. Casts run on the rig owner, so in practice
-        // the shooter is never hit by their own shot (an emitter on their own bones, a shot fired backwards). A trap owned by a
-        // bystander also leaves that bystander unhit.
+        // この端末のプレイヤー、つまり当たり判定を走らせる人の体を飛ばす。判定は rig の持ち主で走るので、実際には
+        // 撃つ人が自分の弾に当たることはない(自分の骨に付けた射出口、後ろ向きに撃った弾)。見ている人が持ち主の
+        // 罠も、その人には当たらない。
         public bool excludeOwner = true;
-        public float playerRadius = 0.12f;        // body radius as a share of the target's eye height
-        public int fireMode = FireSingle;         // what TriggerDown / TriggerUp do
-        public float aimMaxAngle = 60f;           // degrees from the rest direction
+        public float playerRadius = 0.12f;        // 体の半径。的の目の高さに対する割合
+        public int fireMode = FireSingle;         // TriggerDown / TriggerUp で何をするか
+        public float aimMaxAngle = 60f;           // 休み方向からの角度
 
-        public float streamRate = 12f;            // particles per second per emitter
-        public float streamWidth = 0.02f;         // joined line width (metres)
-        public AnimationCurve streamTaper;        // width along one trail (empty = flat)
+        public float streamRate = 12f;            // 射出口ごとの1秒あたりの粒子数
+        public float streamWidth = 0.02f;         // つないだ線の幅(メートル)
+        public AnimationCurve streamTaper;        // 1本のトレイルに沿った幅(空 = 一定)
         public int streamJoin = GunnerStream.JoinLine;
         public int streamHitMode = GunnerStream.HitOnce;
-        public float streamHitInterval = 0.25f;   // HitKeep: seconds between records per emitter
-        public bool streamCollide = true;         // collision at start (owner-local; _SetCollision changes it)
+        public float streamHitInterval = 0.25f;   // HitKeep: 射出口ごとの記録の間隔(秒)
+        public bool streamCollide = true;         // 開始時の当たり判定(持ち主の端末だけ。_SetCollision で変わる)
 
-        public bool boneFollow;                   // initial value; BoneFollowOn / Off sync a change
-        public float boneStrength = 1f;           // share of the aim the bone takes
+        public bool boneFollow;                   // 初期値。BoneFollowOn / Off で変えると同期する
+        public float boneStrength = 1f;           // 狙いのうち骨が受け持つ割合
         public float boneYawMax = 30f;
         public float bonePitchUpMax = 30f;
         public float bonePitchDownMax = 15f;
-        public float boneSmooth = 10f;            // per second: share of the remaining angle closed
-        public float boneMinSpeed = 30f;          // degrees per second at least
+        public float boneSmooth = 10f;            // 1秒あたり: 残りの角度を詰める割合
+        public float boneMinSpeed = 30f;          // 最低でも1秒あたりこの角度
 
-        // ---------------- Synced (Manual) ----------------
+        // ---------------- 同期(Manual) ----------------
 
-        [UdonSynced] private int hSeq;                         // records written so far; slot of seq q = (q - 1) % SyncSlots
+        [UdonSynced] private int hSeq;                         // これまでに書いた記録の数。seq q の枠 = (q - 1) % SyncSlots
         [UdonSynced] private int[] hMeta = new int[0];
         [UdonSynced] private int[] hPayload = new int[0];
-        [UdonSynced] private Vector3[] hLocal = new Vector3[0]; // world point, or the point in the target's frame
-        [UdonSynced] private int[] hWriter = new int[0];       // writer and write time (hWriter layout above)
-        [UdonSynced] private int[] mSeq = new int[0];          // per emitter: misses fired
-        [UdonSynced] private Vector3[] mDir = new Vector3[0];  // per emitter: direction of the last miss
+        [UdonSynced] private Vector3[] hLocal = new Vector3[0]; // ワールドの点、または的の座標系での点
+        [UdonSynced] private int[] hWriter = new int[0];       // 書いた人と書いた時刻(上の hWriter の並び)
+        [UdonSynced] private int[] mSeq = new int[0];          // 射出口ごと: 外れた弾の数
+        [UdonSynced] private Vector3[] mDir = new Vector3[0];  // 射出口ごと: 最後に外れた弾の向き
         [UdonSynced] private int stopSeq;
         [UdonSynced] private bool streamOn;
         [UdonSynced] private int streamPayload;
         [UdonSynced] private byte aimSyncMode;
         [UdonSynced] private Vector3 aimSync;
-        [UdonSynced] private byte boneMode;                    // 0 = boneFollow as set, 1 = off, 2 = on
+        [UdonSynced] private byte boneMode;                    // 0 = boneFollow の設定どおり、1 = off、2 = on
 
-        // ---------------- Read by receivers (the current hit) ----------------
+        // ---------------- 受け手が読む(今の着弾) ----------------
 
         [System.NonSerialized] public int hitSlot = -1;
         [System.NonSerialized] public int hitSeq;
         [System.NonSerialized] public int hitEmitter = -1;
         [System.NonSerialized] public int hitKind;
-        [System.NonSerialized] public int hitIndex = -1;       // mover index or playerId
-        [System.NonSerialized] public int hitBone = -1;        // HumanBodyBones as int, -1 = player root
+        [System.NonSerialized] public int hitIndex = -1;       // 動くオブジェクトの番号、または playerId
+        [System.NonSerialized] public int hitBone = -1;        // HumanBodyBones の int。-1 = プレイヤーの根元
         [System.NonSerialized] public Vector3 hitLocal;
         [System.NonSerialized] public Vector3 hitPoint;
         [System.NonSerialized] public float hitDistance;
         [System.NonSerialized] public int hitPayload;
         [System.NonSerialized] public bool hitReplay;
         [System.NonSerialized] public bool hitStream;
-        // False when the target cannot be found now (player left, mover gone): hitPoint is then the last world point seen,
-        // or Vector3.zero when this client never saw one.
+        // 今は的が見つからない時(プレイヤーが抜けた、動くオブジェクトが無い)は false。その時の hitPoint は最後に見たワールドの点、
+        // この端末が一度も見ていなければ Vector3.zero。
         [System.NonSerialized] public bool hitResolved;
 
         // ---------------- 受け手が読む(_OnFire の中身) ----------------
@@ -145,43 +145,43 @@ namespace Mecaota.Gunner
         [System.NonSerialized] public bool fireStream;         // 連射の開始なら真
         [System.NonSerialized] public bool fireReplay;         // 入室時に既に続いていた連射なら真。今撃たれたのではないので音は鳴らさない
 
-        // Per slot, filled before _OnGunnerLateStep (only when a receiver wants it). Never reallocated after Init.
+        // 枠ごと。_OnGunnerLateStep の前に埋める(受け手が欲しがる時だけ)。Init の後は作り直さない。
         [System.NonSerialized] public Vector3[] hitStart;
         [System.NonSerialized] public Vector3[] hitWorld;
         [System.NonSerialized] public bool[] hitLive;
 
-        // Per emitter: the single shot in the air (for look scripts).
+        // 射出口ごと: 飛んでいる単発の弾(見た目のスクリプト用)。
         [System.NonSerialized] public bool[] flightOn;
         [System.NonSerialized] public float[] flightFlown;
         [System.NonSerialized] public float[] flightLength;
-        [System.NonSerialized] public int[] flightSlot;          // -1 = a miss
+        [System.NonSerialized] public int[] flightSlot;          // -1 = 外れ
 
-        // _SolveFor result.
+        // _SolveFor の結果。
         [System.NonSerialized] public Vector3 solveDir;
         [System.NonSerialized] public float solveDistance;
 
-        // ---------------- Local state ----------------
+        // ---------------- 端末ごとの状態 ----------------
 
         private bool initialized;
         private bool baselined;
         private int slots;
         private int emitterCount;
-        private int used;               // maxHits clamped: the newest records this client holds
-        private int headSeq;            // newest seq known here: the last received hSeq, or this client's own last write
-        private int sentSeq;            // hSeq as last actually serialized by this client (records up to it are out)
-        private int pendingSeq;         // hSeq captured in OnPreSerialization
-        private int joinMs;             // server time when this client's rig started (late-join cut-off)
+        private int used;               // maxHits を範囲に収めたもの: この端末が持つ新しい記録の数
+        private int headSeq;            // ここで知っている最新の seq: 最後に受け取った hSeq、またはこの端末が最後に書いたもの
+        private int sentSeq;            // この端末が実際に最後にシリアライズした hSeq(そこまでの記録は送り済み)
+        private int pendingSeq;         // OnPreSerialization で取った hSeq
+        private int joinMs;             // この端末の rig が始まったサーバー時刻(遅れて入った人の区切り)
         private int seenStop;
         private int[] seenMiss;
-        // Per slot, this client's own copy of the record it holds: the synced arrays may already carry the next record when
-        // the old one is dropped, and receivers must hear the old one's values.
-        private int[] slotSeq;          // 0 = empty
+        // 枠ごとに、この端末が持つ記録の自分用の写し: 古い記録を手放す時には同期の配列に次の記録が入っていることがあり、
+        // 受け手には古い記録の値を聞かせる必要がある。
+        private int[] slotSeq;          // 0 = 空
         private int[] kMeta;
         private int[] kPayload;
         private Vector3[] kLocal;
-        private Vector3[] kWorld;       // last world point seen for the record
+        private Vector3[] kWorld;       // その記録で最後に見たワールドの点
         private int[] kWriter;
-        private float[] arriveAt;       // < 0 = nothing pending
+        private float[] arriveAt;       // 0 未満 = 待ちなし
         private bool[] arrived;
         private bool[] slotReplay;
         private float[] flightStart;
@@ -192,17 +192,17 @@ namespace Mecaota.Gunner
         private bool streamWas;
         private bool streamBusy;
         private bool collideOn;
-        private bool dirty;             // owner: records changed, not sent yet
-        private bool aimPending;        // owner: the aim changed, not sent yet
+        private bool dirty;             // 持ち主: 記録が変わったがまだ送っていない
+        private bool aimPending;        // 持ち主: 狙いが変わったがまだ送っていない
         private float nextSendAt;
 
         private GunnerHitReceiver[] lateReceivers = new GunnerHitReceiver[0];
 
-        private Transform[] restRef;    // per emitter: the frame its rest rotation is relative to
+        private Transform[] restRef;    // 射出口ごと: 休みの回転の基準になる座標系
         private Quaternion[] restRel;
-        private Quaternion[] restLocal; // taken once in Init, never from an aimed pose
+        private Quaternion[] restLocal; // Init で1回だけ取る。狙った後の姿勢からは取らない
         private Vector3[] restPos;
-        private int[] linkOf;           // per emitter: link index, -1 = none
+        private int[] linkOf;           // 射出口ごと: 連動の番号。-1 = なし
         private Transform[] links;
         private int[] linkLead;
         private Quaternion[] linkBase;
@@ -212,12 +212,12 @@ namespace Mecaota.Gunner
         private float[] followPitch;
         private float[] turnYaw;
         private float[] turnPitch;
-        private bool aimedOnce;         // emitters were turned and need one return to rest
+        private bool aimedOnce;         // 射出口が回されていて、休みへ1回戻す必要がある
 
         private int[] probeBones = { 0, 7, 8, 54, 9, 10, 13, 15, 17, 14, 16, 18, 1, 3, 5, 2, 4, 6 };
-        private Vector3 wish;           // result of Wish / Resolve (U# has no out parameters on user methods)
+        private Vector3 wish;           // Wish / Resolve の結果(U# のユーザーのメソッドは out 引数を使えない)
 
-        // Players, read once per frame for every cast of that frame.
+        // プレイヤー。そのフレームのすべての判定のために、フレームごとに1回読む。
         private VRCPlayerApi[] players = new VRCPlayerApi[16];
         private Vector3[] pFeet = new Vector3[16];
         private Vector3[] pHead = new Vector3[16];
@@ -227,28 +227,28 @@ namespace Mecaota.Gunner
 
         private RaycastHit[] castHits = new RaycastHit[CastBuffer];
 
-        // Cast result (owner). The bone and its local point are worked out only for the hit that is kept (FinishCast).
+        // 当たり判定の結果(持ち主)。骨とその中での点は、残す着弾についてだけ求める(FinishCast)。
         private int castKind;
         private int castIndex;
         private Vector3 castPoint;
         private Vector3 castLocal;
         private float castDistance;
         private VRCPlayerApi castPlayer;
-        // The cast kept by the stream (its best touch of the frame).
+        // 連射が残した判定(そのフレームで一番よい接触)。
         private int keepKind;
         private int keepIndex;
         private Vector3 keepPoint;
         private Vector3 keepLocal;
         private float keepDistance;
         private VRCPlayerApi keepPlayer;
-        private int recBone;            // FinishCast result
+        private int recBone;            // FinishCast の結果
 
-        // ================= Lifecycle =================
+        // ================= 起動と終了 =================
 
         private void Start()
         {
             Init();
-            // Everyone else waits for the first state; the owner resends it to each joiner (OnPlayerJoined).
+            // 持ち主以外は最初の状態を待つ。持ち主は入ってきた人ごとに送り直す(OnPlayerJoined)。
             if (Networking.IsOwner(gameObject)) baselined = true;
         }
 
@@ -299,7 +299,7 @@ namespace Mecaota.Gunner
             if (stream != null) stream._Init(this);
         }
 
-        // Received arrays are kept when they already fit, so a state that arrived before Init is not wiped.
+        // 受け取った配列は、大きさが合っていれば残す。Init より前に届いた状態を消さないため。
         private void EnsureSyncArrays()
         {
             int n = SyncSlots;
@@ -319,7 +319,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Rest frames from the rest pose taken in Init (callers release the linked bones first, so the bones are at rest too).
+        // Init で取った休みの姿勢から休みの座標系を作る(呼び出し側が先に連動した骨を放すので、骨も休みにある)。
         private void InitAimFrames()
         {
             int e = emitterCount;
@@ -337,7 +337,7 @@ namespace Mecaota.Gunner
                 Transform m = emitters[i];
                 if (m == null) continue;
                 Transform mount = Mount(i);
-                if (mount != null) { restRef[i] = mount; continue; } // a mounted emitter is never bone-linked
+                if (mount != null) { restRef[i] = mount; continue; } // 付け替えた射出口は骨に連動させない
                 Transform parent = m.parent;
                 Quaternion parentRot = parent != null ? parent.rotation : Quaternion.identity;
                 Transform bone = linkBones != null && i < linkBones.Length ? linkBones[i] : null;
@@ -348,7 +348,7 @@ namespace Mecaota.Gunner
                     restRel[i] = restLocal[i];
                     continue;
                 }
-                // Relative to the linked bone, so a bone above the direct parent still works (the chain between is assumed still).
+                // 連動した骨からの相対。直接の親より上の骨でも動く(間の骨は止まっているとみなす)。
                 restRef[i] = bone;
                 restRel[i] = Quaternion.Inverse(bone.rotation) * parentRot * restLocal[i];
                 int at = -1;
@@ -382,7 +382,7 @@ namespace Mecaota.Gunner
 
         private void OnDisable()
         {
-            // No PostLateUpdate will ease them back, so the linked bones return at once.
+            // 戻してくれる PostLateUpdate が無いので、連動した骨はすぐに戻す。
             if (initialized) ReleaseLinks();
         }
 
@@ -401,7 +401,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // ================= Receivers =================
+        // ================= 受け手 =================
 
         public void _Register(GunnerHitReceiver receiver)
         {
@@ -433,7 +433,7 @@ namespace Mecaota.Gunner
             RecountLate();
         }
 
-        // wantsLateStep is read here, not every frame. A receiver that changes it later calls this again.
+        // wantsLateStep は毎フレームではなくここで読む。後で変える受け手は、これをもう一度呼ぶ。
         public void _RefreshReceivers() { RecountLate(); }
 
         private void RecountLate()
@@ -452,7 +452,7 @@ namespace Mecaota.Gunner
             lateReceivers = late;
         }
 
-        // Each loop walks the array as it was when the loop began: a receiver may (un)register from inside a callback.
+        // どのループも始めた時の配列をたどる: 受け手がコールバックの中で登録・解除することがあるため。
         private void NotifyHit()
         {
             GunnerHitReceiver[] list = receivers;
@@ -475,13 +475,13 @@ namespace Mecaota.Gunner
             for (int i = 0; i < list.Length; i++) if (list[i] != null) list[i]._OnFire(this);
         }
 
-        // ================= Public operations =================
+        // ================= 公開の操作 =================
 
         public void Fire() { _FireWith(-1, 0); }
 
         public void _FireFrom(int emitter) { _FireWith(emitter, 0); }
 
-        // emitter < 0 = every emitter. The payload is opaque here; the projectile receiver may rewrite it per record.
+        // emitter < 0 = 全部の射出口。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
         public void _FireWith(int emitter, int payload)
         {
             Init();
@@ -514,7 +514,7 @@ namespace Mecaota.Gunner
             SendNow();
         }
 
-        // Stops only a stream this client started: a late release must not stop someone else's newer stream.
+        // この端末が始めた連射だけを止める: 遅れて届いた放す操作で、ほかの人の新しい連射を止めてはいけない。
         public void StopStream()
         {
             Init();
@@ -535,7 +535,7 @@ namespace Mecaota.Gunner
             SendNow();
         }
 
-        // Stops whatever stream is running, whoever started it (takes the rig).
+        // 誰が始めたかに関係なく、動いている連射を止める(rig を取る)。
         public void _ForceStopStream()
         {
             Init();
@@ -547,7 +547,7 @@ namespace Mecaota.Gunner
             SendNow();
         }
 
-        // Owner: once neither the own stream nor the bone link carries the aim, everyone else's emitters go back to rest.
+        // 持ち主: 自分の連射も骨の連動も狙いを受け持たなくなったら、ほかの人の画面の射出口は休みに戻る。
         private void ClearSyncedAimIfUnused()
         {
             if (AimSynced()) return;
@@ -557,7 +557,7 @@ namespace Mecaota.Gunner
 
         private bool AimSynced() { return (streamOn && streamMine) || (BoneOn() && links.Length > 0); }
 
-        // Stops what is in the air: shots not yet arrived are retired; arrived hits stay.
+        // 飛んでいるものを止める: まだ届いていない弾は引退させ、届いた着弾は残す。
         public void StopFire()
         {
             Init();
@@ -580,7 +580,7 @@ namespace Mecaota.Gunner
             _Commit();
         }
 
-        // Owner only: forgets one record (callers then _Commit once, after any number of retires).
+        // 持ち主だけ: 記録を1つ忘れる(呼び出し側は、いくつ引退させても最後に1回 _Commit する)。
         public void _RetireHit(int slot)
         {
             Init();
@@ -588,7 +588,7 @@ namespace Mecaota.Gunner
             RetireSlot(slot);
         }
 
-        // Owner only: lets the projectile tidy up, then sends the records now.
+        // 持ち主だけ: 弾に片付けさせてから、記録を今すぐ送る。
         public void _Commit()
         {
             if (!Networking.IsOwner(gameObject)) return;
@@ -597,14 +597,14 @@ namespace Mecaota.Gunner
             SendNow();
         }
 
-        // For a holder (e.g. a grabbed controller) that should own the rig before it shoots. True = owner now.
+        // 撃つ前に rig の持ち主になっておくべき部品(例: つかんだコントローラー)のため。true = 今は持ち主。
         public bool _TakeOwnership()
         {
             Init();
             return TakeOwnership();
         }
 
-        // Single: fires. Stream: starts; TriggerUp stops it.
+        // 単発: 撃つ。連射: 始める。TriggerUp で止まる。
         public void TriggerDown()
         {
             if (fireMode == FireStream) StartStream();
@@ -616,7 +616,7 @@ namespace Mecaota.Gunner
             if (fireMode == FireStream) StopStream();
         }
 
-        // Owner-local: stream particles may record hits. Off -> on starts counting from where the particles are now.
+        // 持ち主の端末だけ: 連射の粒子が着弾を記録してよいか。off → on では、粒子の今の位置から数え始める。
         public void _SetCollision(bool on)
         {
             Init();
@@ -640,7 +640,7 @@ namespace Mecaota.Gunner
             return count;
         }
 
-        // Record accessors (this client's copy) for receivers that walk the slots themselves.
+        // 自分で枠をたどる受け手のための記録の読み出し(この端末の写し)。
         public bool _SlotUsed(int slot) { return initialized && slot >= 0 && slot < slots && slotSeq[slot] != 0; }
 
         public int _SlotKind(int slot) { return _SlotUsed(slot) ? MetaKind(kMeta[slot]) : KindNone; }
@@ -651,7 +651,7 @@ namespace Mecaota.Gunner
 
         public int _SlotCount() { return slots; }
 
-        // Which emitter can reach the point (in range, inside its cone, nothing in the way). -1 = none. Sets solveDir / solveDistance.
+        // その点に届く射出口(射程内、円錐の中、間に何も無い)。-1 = なし。solveDir / solveDistance を設定する。
         public int _SolveFor(Vector3 point)
         {
             Init();
@@ -676,9 +676,9 @@ namespace Mecaota.Gunner
             return best;
         }
 
-        // ---------------- Aim ----------------
-        // Aiming never takes the rig. The owner's aim is synced while it streams or while the bone link is on; anyone else's
-        // aim turns the emitters on their own screen only.
+        // ---------------- 狙い ----------------
+        // 狙っても rig は取らない。持ち主の狙いは、連射中か骨の連動が on の間は同期する。ほかの人の
+        // 狙いは、その人の画面の射出口だけを回す。
 
         public void _SetAimDirection(Vector3 worldDir)
         {
@@ -695,7 +695,7 @@ namespace Mecaota.Gunner
             aimVector = worldPoint;
         }
 
-        // Degrees in emitter 0's rest frame: yaw right +, pitch up +.
+        // 射出口0の休みの座標系での角度: 左右は右が +、上下は上が +。
         public void _SetAimAngles(float yaw, float pitch)
         {
             Init();
@@ -728,7 +728,7 @@ namespace Mecaota.Gunner
             SendNow();
         }
 
-        // Moves emitter e onto another Transform at runtime (e.g. a point that follows someone's bone); null puts it back.
+        // 実行中に射出口 e を別の Transform に付け替える(例: 誰かの骨に付いていく点)。null で元に戻す。
         public void _SetMount(int emitter, Transform mount)
         {
             Init();
@@ -750,13 +750,13 @@ namespace Mecaota.Gunner
             InitAimFrames();
         }
 
-        // ================= Shooting (owner) =================
+        // ================= 射撃(持ち主) =================
 
         private bool TakeOwnership()
         {
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return false;
-            // Before the first state arrives this client's records are empty: writing them would wipe everyone's.
+            // 最初の状態が届くまで、この端末の記録は空: それを書くと全員の記録を消してしまう。
             if (!baselined && !Networking.IsOwner(gameObject)) return false;
             if (!Networking.IsOwner(gameObject)) Networking.SetOwner(local, gameObject);
             if (!Networking.IsOwner(gameObject)) return false;
@@ -768,7 +768,7 @@ namespace Mecaota.Gunner
         private bool Shoot(int e, int payload)
         {
             if (!ValidEmitter(e)) return false;
-            // Called from input outside PostLateUpdate: the mount and aim are brought to now first.
+            // PostLateUpdate の外の入力から呼ばれる: 先に付け替えと狙いを今の状態にする。
             ApplyMount(e);
             AimEmitter(e, aimMode, aimVector);
             Vector3 origin = emitters[e].position;
@@ -788,7 +788,7 @@ namespace Mecaota.Gunner
             return true;
         }
 
-        // GunnerStream, owner: keeps the last cast as the frame's best touch so far.
+        // GunnerStream、持ち主: 最後の判定を、そのフレームでここまでで一番よい接触として残す。
         public void _KeepCast() { KeepCast(); }
 
         private void KeepCast()
@@ -801,19 +801,19 @@ namespace Mecaota.Gunner
             keepPlayer = castPlayer;
         }
 
-        // GunnerStream, owner: records the kept touch, shown at once. Sent with the next throttled send.
+        // GunnerStream、持ち主: 残した接触を記録し、すぐに見せる。次の間引いた送信で送る。
         public void _StreamHit(int emitter)
         {
             if (!ValidEmitter(emitter) || !Networking.IsOwner(gameObject)) return;
-            // The ring would overwrite a record nobody else has received yet: that touch is not recorded (the send goes out at
-            // the next chance, see PostLateUpdate), so no client ever sees a hit the others never get.
+            // まだ誰も受け取っていない記録を輪が上書きしてしまう時は、その接触を記録しない(送信は次の機会に出る。
+            // PostLateUpdate を参照)。これで、ほかの人に届かない着弾をどの端末も見ることがない。
             if (WouldEvictUnsent()) return;
             int s = WriteRecord(emitter, streamPayload, true);
             arriveAt[s] = Time.time;
             dirty = true;
         }
 
-        // Writes the kept cast into the next slot. The old record there is gone first, everywhere, by the seq change.
+        // 残した判定を次の枠に書く。そこにあった古い記録は、seq が変わることで先にどこでも消える。
         private int WriteRecord(int e, int payload, bool instant)
         {
             int s = hSeq % slots;
@@ -841,8 +841,8 @@ namespace Mecaota.Gunner
             hPayload[s] = hitPayload;
             hLocal[s] = keepLocal;
             hWriter[s] = WriterMark();
-            // Alone in the instance (or ClientSim) nothing is serialized, so OnPostSerialization never advances sentSeq: with
-            // nobody to miss it, every record counts as sent.
+            // インスタンスに1人だけ(または ClientSim)だと何もシリアライズされず、OnPostSerialization で sentSeq が進まない。
+            // 取りこぼす相手もいないので、すべての記録を送り済みとみなす。
             if (VRCPlayerApi.GetPlayerCount() <= 1) sentSeq = seq;
             HoldSlot(s, seq);
             kWorld[s] = keepPoint;
@@ -860,28 +860,28 @@ namespace Mecaota.Gunner
             return ((id & WriterIdMask) << WriterIdShift) | tick;
         }
 
-        // Milliseconds since a record was written, from its mark (exact for about 2.3 hours, then it wraps).
+        // 記録を書いてからのミリ秒。記録の印から求める(約2.3時間までは正確で、その後は一周する)。
         private int WriterAgeMs(int mark)
         {
             int now = (Networking.GetServerTimeInMilliseconds() >> TickShift) & TickMask;
             return ((now - (mark & TickMask)) & TickMask) * TickMs;
         }
 
-        // Local only: records older than the newest `used` ones are let go here (still synced for clients that use more).
+        // 端末ごと: 新しい `used` 件より古い記録はここで手放す(もっと使う端末のために同期はしたまま)。
         private void ForgetUnused()
         {
             if (used >= slots) return;
             for (int s = 0; s < slots; s++) if (slotSeq[s] != 0 && slotSeq[s] <= hSeq - used) DropSlot(s);
         }
 
-        // The kept player hit gets its nearest bone and the point in that bone's frame (only now, for the one record).
+        // 残したプレイヤーへの着弾に、一番近い骨とその骨の座標系での点を付ける(この1つの記録について、今だけ)。
         private void FinishKept()
         {
             recBone = -1;
             if (keepKind != KindPlayer) return;
             if (!Utilities.IsValid(keepPlayer))
             {
-                // The player left between the cast and now: keep the point in the world.
+                // 判定から今までにプレイヤーが抜けた: 点はワールドのまま残す。
                 keepKind = KindWorld;
                 keepLocal = keepPoint;
                 return;
@@ -895,7 +895,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // This client now holds the synced record of slot s as seq: copy it and wait for its arrival.
+        // この端末は枠 s の同期の記録を seq として持つようになった: 写して、届くのを待つ。
         private void HoldSlot(int s, int seq)
         {
             slotSeq[s] = seq;
@@ -903,7 +903,7 @@ namespace Mecaota.Gunner
             kPayload[s] = hPayload[s];
             kLocal[s] = hLocal[s];
             kWriter[s] = hWriter[s];
-            // Only a world record's point is known before it is resolved; hitResolved tells receivers when it is not.
+            // 求める前に点が分かるのはワールドの記録だけ。分からない時は hitResolved で受け手に知らせる。
             kWorld[s] = MetaKind(hMeta[s]) == KindWorld ? hLocal[s] : Vector3.zero;
             arrived[s] = false;
             arriveAt[s] = -1f;
@@ -919,7 +919,7 @@ namespace Mecaota.Gunner
             hWriter[s] = 0;
         }
 
-        // Local: the slot no longer holds what this client knew. Receivers hear it only if they had heard the hit.
+        // 端末ごと: この枠はもう、この端末が知っていたものを持っていない。着弾を聞いていた受け手にだけ知らせる。
         private void DropSlot(int s)
         {
             if (slotSeq[s] == 0) return;
@@ -932,7 +932,7 @@ namespace Mecaota.Gunner
             if (wasArrived) NotifyGone();
         }
 
-        // ================= Records =================
+        // ================= 記録 =================
 
         private int Pack(int e, int kind, int bone, int index, bool instant)
         {
@@ -981,7 +981,7 @@ namespace Mecaota.Gunner
             hitDistance = ValidEmitter(hitEmitter) ? Vector3.Distance(emitters[hitEmitter].position, hitPoint) : 0f;
         }
 
-        // World point of a record into wish. False = cannot be resolved now (player gone, mover missing).
+        // 記録のワールドの点を wish へ。false = 今は求められない(プレイヤーがいない、動くオブジェクトが無い)。
         private bool Resolve(int m, Vector3 local)
         {
             int kind = MetaKind(m);
@@ -1000,7 +1000,7 @@ namespace Mecaota.Gunner
                 int b = MetaBone(m);
                 if (b >= 0)
                 {
-                    // Read the bone pose directly: a Transform driven by a constraint would trail by a frame.
+                    // 骨の姿勢を直接読む: コンストレイントで動く Transform は1フレーム遅れるため。
                     HumanBodyBones bone = (HumanBodyBones)b;
                     Vector3 pos = player.GetBonePosition(bone);
                     if (pos != Vector3.zero) { wish = pos + player.GetBoneRotation(bone) * local; return true; }
@@ -1011,12 +1011,12 @@ namespace Mecaota.Gunner
             return false;
         }
 
-        // ================= Cast =================
+        // ================= 当たり判定 =================
 
-        // Nearest touch along origin + dir * (0..range): world colliders not in this rig, then players. Fills the cast result.
+        // origin + dir * (0..range) に沿って一番近い接触: この rig に属さないワールドのコライダー、次にプレイヤー。判定の結果を埋める。
         public bool _CastPath(Vector3 origin, Vector3 dir, float range) { return Cast(origin, dir, range); }
 
-        // _CastPath's distance along the path (valid right after it returned true).
+        // _CastPath の経路に沿った距離(true を返した直後だけ有効)。
         public float _CastDistance() { return castDistance; }
 
         private bool Cast(Vector3 origin, Vector3 dir, float range)
@@ -1044,7 +1044,7 @@ namespace Mecaota.Gunner
             }
             if (hitPlayers && PlayerTouch(origin, dir, reach)) return true;
             if (best < 0) return false;
-            // A cast that starts inside a collider reports distance 0 and a zero point.
+            // コライダーの中から始めた判定は、距離0とゼロの点を返す。
             castPoint = castHits[best].distance > 0f ? castHits[best].point : origin;
             castDistance = castHits[best].distance;
             int mover = MoverOf(castHits[best].transform);
@@ -1067,7 +1067,7 @@ namespace Mecaota.Gunner
             return -1;
         }
 
-        // Feet, head and radius of every player, once per frame (the stream casts many paths in one frame).
+        // 全プレイヤーの足・頭・半径を、フレームごとに1回(連射は1フレームに多くの経路を判定する)。
         private void ReadPlayers()
         {
             int frame = Time.frameCount;
@@ -1101,7 +1101,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Player colliders do not follow the avatar, so each body is a capsule from the feet to the head instead.
+        // プレイヤーのコライダーはアバターに付いていかないので、代わりに足から頭までのカプセルを体とする。
         private bool PlayerTouch(Vector3 origin, Vector3 dir, float reach)
         {
             ReadPlayers();
@@ -1130,7 +1130,7 @@ namespace Mecaota.Gunner
             return true;
         }
 
-        // Distance along the shot (0..reach) where it comes closest to segment a-b.
+        // 弾に沿った距離(0..reach)のうち、線分 a-b に一番近づく所。
         private float SegmentApproach(Vector3 origin, Vector3 dir, float reach, Vector3 a, Vector3 b)
         {
             Vector3 seg = b - a;
@@ -1141,7 +1141,7 @@ namespace Mecaota.Gunner
             float denom = ss - ds * ds;
             float along = denom > 0.000001f ? (ds * Vector3.Dot(seg, w) - ss * Vector3.Dot(dir, w)) / denom : 0f;
             along = Mathf.Clamp(along, 0f, reach);
-            // Clamping the body end can move the best point on the shot: settle it once more.
+            // 体の端を範囲に収めると弾の上の一番よい点がずれることがあるので、もう1回だけ合わせ直す。
             Vector3 onBody = ClosestOnSegment(a, b, origin + dir * along);
             return Mathf.Clamp(Vector3.Dot(onBody - origin, dir), 0f, reach);
         }
@@ -1184,7 +1184,7 @@ namespace Mecaota.Gunner
             return false;
         }
 
-        // ================= Single-shot flights (every client) =================
+        // ================= 飛んでいる単発(全員) =================
 
         private void Launch(int s)
         {
@@ -1209,7 +1209,7 @@ namespace Mecaota.Gunner
             ParticleSystem ps = Particles(e);
             if (ps == null || !ValidEmitter(e)) return;
             if (dir.sqrMagnitude < 0.000001f) dir = emitters[e].forward;
-            // The same system serves the stream; back to its authored single-shot setup (this also clears stream particles).
+            // 同じ粒子を連射でも使う: 作ったときの単発の設定へ戻す(連射の粒子も消える)。
             if (stream != null) stream._Restore(e);
             else ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.transform.SetPositionAndRotation(emitters[e].position, Quaternion.LookRotation(dir));
@@ -1240,7 +1240,7 @@ namespace Mecaota.Gunner
             if (stream != null) stream._ClearAll();
         }
 
-        // ================= Sync =================
+        // ================= 同期 =================
 
         public override void OnDeserialization()
         {
@@ -1253,8 +1253,8 @@ namespace Mecaota.Gunner
             if (!first && stopSeq != seenStop) StopAllFlights();
             seenStop = stopSeq;
             int sinceJoin = Networking.GetServerTimeInMilliseconds() - joinMs;
-            // Every slot is matched against the received state each time, so two clients writing the same seq (or this client
-            // losing a race) can never leave a slot holding what was not kept.
+            // 毎回すべての枠を受け取った状態と突き合わせる。2つの端末が同じ seq を書いても(またはこの端末が
+            // 競り負けても)、残らなかったものを枠が持ち続けることはない。
             for (int s = 0; s < n; s++)
             {
                 int q = SeqOfSlot(s);
@@ -1270,12 +1270,12 @@ namespace Mecaota.Gunner
                 bool fresh;
                 if (first)
                 {
-                    // A late joiner: what was written after it arrived (give or take) is new to it; the rest is history.
+                    // 遅れて入った人: 入ってから(だいたい)後に書かれたものは新しく、残りは過去のもの。
                     fresh = WriterAgeMs(kWriter[s]) <= sinceJoin + JoinMarginMs;
                 }
-                else if (q > headSeq) fresh = true;          // beyond anything seen here
-                else if (q == heldSeq) fresh = true;         // same seq, another writer: the race was lost, this one is real
-                else fresh = false;                          // an older record came back (rolled back), or one seen before
+                else if (q > headSeq) fresh = true;          // ここで見たどれよりも先
+                else if (q == heldSeq) fresh = true;         // 同じ seq で書いた人が違う: 競り負けたので、こちらが本物
+                else fresh = false;                          // 古い記録が戻ってきた(巻き戻し)、または前に見たもの
                 if (!fresh)
                 {
                     arriveAt[s] = now;
@@ -1284,7 +1284,7 @@ namespace Mecaota.Gunner
                 else if (MetaInstant(kMeta[s]))
                 {
                     arriveAt[s] = now;
-                    // The owner's stream touched here: this emitter's stream particles end here too (HitOnce).
+                    // 持ち主の連射がここに当たった: この射出口の連射の粒子もここで終わる(HitOnce)。
                     int em = MetaEmitter(kMeta[s]);
                     if (!first && stream != null && streamHitMode == GunnerStream.HitOnce && ValidEmitter(em)) stream._Clear(em);
                 }
@@ -1294,7 +1294,7 @@ namespace Mecaota.Gunner
             for (int i = 0; i < e; i++)
             {
                 if (mSeq[i] == seenMiss[i]) continue;
-                // A smaller count is a rolled-back write of this client's own: match it without a flight.
+                // 数が小さいのは、この端末自身の書き込みが巻き戻されたもの: 飛ばさずに合わせる。
                 bool newer = !first && mSeq[i] > seenMiss[i];
                 seenMiss[i] = mSeq[i];
                 if (newer && ValidEmitter(i))
@@ -1311,7 +1311,7 @@ namespace Mecaota.Gunner
             return kMeta[s] == hMeta[s] && kPayload[s] == hPayload[s] && kLocal[s] == hLocal[s] && kWriter[s] == hWriter[s];
         }
 
-        // The newest seq that maps to slot s (0 = none yet).
+        // 枠 s に対応する最新の seq(0 = まだ無い)。
         private int SeqOfSlot(int s)
         {
             if (hSeq <= 0) return 0;
@@ -1337,7 +1337,7 @@ namespace Mecaota.Gunner
             if (RetirePlayer(player.playerId)) _Commit();
         }
 
-        // Owner: retires the records on a player (id < 0 = on every player who is no longer here). True = something changed.
+        // 持ち主: プレイヤーへの記録を引退させる(id < 0 = もういない全プレイヤーへの記録)。true = 何か変わった。
         private bool RetirePlayer(int id)
         {
             bool changed = false;
@@ -1367,18 +1367,18 @@ namespace Mecaota.Gunner
                 {
                     baselined = true;
                     EnsureSyncArrays();
-                    // What the previous owner had is already out; only what this client writes from now on is unsent.
+                    // 前の持ち主が持っていたものは送り済み。これからこの端末が書くものだけが未送信。
                     sentSeq = hSeq;
                     if (hSeq > headSeq) headSeq = hSeq;
                     bool send = false;
-                    // A stream nobody here started (its owner left, or this client took the rig to fire): stop it.
+                    // ここにいる誰も始めていない連射(持ち主が抜けた、またはこの端末が撃つために rig を取った): 止める。
                     if (streamOn && !streamMine)
                     {
                         streamOn = false;
                         streamWas = false;
                         send = true;
                     }
-                    // The old owner may have left before its own OnPlayerLeft cleanup ran: tidy records on absent players.
+                    // 古い持ち主は自分の OnPlayerLeft の後片付けの前に抜けたかもしれない: いないプレイヤーへの記録を片付ける。
                     if (RetirePlayer(-1)) dirty = true;
                     if (dirty) _Commit();
                     else if (send) SendNow();
@@ -1401,7 +1401,7 @@ namespace Mecaota.Gunner
             if (result.success) sentSeq = pendingSeq;
         }
 
-        // A joiner shoots only after its first state, so the owner sends one to every joiner (even an empty one).
+        // 入ってきた人は最初の状態の後でしか撃たないので、持ち主は入ってきた全員に送る(空でも)。
         public override void OnPlayerJoined(VRCPlayerApi player)
         {
             if (!initialized || !Utilities.IsValid(player) || player.isLocal || !Networking.IsOwner(gameObject)) return;
@@ -1409,11 +1409,11 @@ namespace Mecaota.Gunner
             else SendNow();
         }
 
-        // ================= Per frame =================
+        // ================= 毎フレーム =================
 
         private void Update()
         {
-            // Before this frame's particle simulation: on a stall the joined trails must lengthen first, or points are lost.
+            // このフレームの粒子のシミュレーションの前: 止まった時は、つないだトレイルを先に伸ばさないと点が失われる。
             if (streamBusy && stream != null) stream._PreSimulate(Time.time, Time.deltaTime);
         }
 
@@ -1423,7 +1423,7 @@ namespace Mecaota.Gunner
             float now = Time.time;
             bool owner = Networking.IsOwner(gameObject);
 
-            // 1. Mounts, bone link, aim: the emitters take this frame's pose. The owner's aim is the synced one for everyone else.
+            // 1. 付け替え、骨の連動、狙い: 射出口がこのフレームの姿勢を取る。持ち主の狙いは、ほかの全員には同期したもの。
             for (int i = 0; i < emitterCount; i++) ApplyMount(i);
             int mode = aimMode;
             Vector3 vec = aimVector;
@@ -1435,7 +1435,7 @@ namespace Mecaota.Gunner
             StepLinks(Time.deltaTime, mode, vec);
             ApplyAimAll(mode, vec);
 
-            // 2. Stream, then the throttled send (stream records and aim share it).
+            // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。
             if (stream != null) streamBusy = stream._Step(now, streamOn, owner, owner && collideOn);
             if (owner && AimSynced() && AimChanged())
             {
@@ -1445,11 +1445,11 @@ namespace Mecaota.Gunner
             }
             else if (owner && !AimSynced() && aimSyncMode != AimNone)
             {
-                // A stale aim (the old owner's, or one left by a stop that did not send it) would keep remote emitters turned.
+                // 古い狙い(前の持ち主のもの、または送らずに止めた時に残ったもの)は、ほかの人の射出口を回したままにしてしまう。
                 aimSyncMode = (byte)AimNone;
                 aimPending = true;
             }
-            // Records about to be overwritten before anyone got them go out at once (not waiting for the interval).
+            // 誰も受け取る前に上書きされそうな記録は、間隔を待たずにすぐ送る。
             bool urgent = dirty && WouldEvictUnsent();
             if (owner && (dirty || aimPending) && (now >= nextSendAt || urgent) && !Networking.IsClogged)
             {
@@ -1458,7 +1458,7 @@ namespace Mecaota.Gunner
                 else SendNow();
             }
 
-            // 3. Flights and arrivals.
+            // 3. 飛んでいる弾と着弾。
             float speed = Speed();
             for (int i = 0; i < emitterCount; i++)
             {
@@ -1480,7 +1480,7 @@ namespace Mecaota.Gunner
                 slotReplay[s] = false;
             }
 
-            // 4 and 5. End points, then the late-step receivers (skipped when none wants them).
+            // 4 と 5。端点、次に毎フレームの受け手(欲しがるものが無ければ飛ばす)。
             GunnerHitReceiver[] late = lateReceivers;
             if (late.Length == 0) return;
             for (int s = 0; s < slots; s++)
@@ -1496,7 +1496,7 @@ namespace Mecaota.Gunner
             for (int i = 0; i < late.Length; i++) if (late[i] != null) late[i]._OnGunnerLateStep(this);
         }
 
-        // Compared with the last value put in the synced fields (sent or waiting).
+        // 同期のフィールドに最後に入れた値(送った、または送る待ち)と比べる。
         private bool AimChanged()
         {
             if (aimMode != aimSyncMode) return true;
@@ -1506,7 +1506,7 @@ namespace Mecaota.Gunner
             return false;
         }
 
-        // ================= Aim and bone link =================
+        // ================= 狙いと骨の連動 =================
 
         private void ApplyMount(int i)
         {
@@ -1514,7 +1514,7 @@ namespace Mecaota.Gunner
             if (mount != null && emitters[i] != null) emitters[i].SetPositionAndRotation(mount.position, mount.rotation);
         }
 
-        // The direction (mode, vec) asks of emitter i, inside its cone, into wish. False = no aim.
+        // (mode, vec) が射出口 i に求める向きを、円錐の中に収めて wish へ。false = 狙いなし。
         private bool Wish(int mode, Vector3 vec, int i)
         {
             Vector3 w;
@@ -1534,7 +1534,7 @@ namespace Mecaota.Gunner
             return true;
         }
 
-        // Rest rotation in world, with a held linked bone taken as it would be without the aim turn.
+        // ワールドでの休みの回転。連動して持っている骨は、狙いで回していない時の姿勢として扱う。
         private Quaternion RestWorld(int i)
         {
             Transform r = restRef[i];
@@ -1546,8 +1546,8 @@ namespace Mecaota.Gunner
             return upRot * linkBase[b] * restRel[i];
         }
 
-        // Every client. The follow angle eases toward the aim; the bone takes a capped share of it. The inputs are the aim and the
-        // rest frame only (never the turned bone), so nothing drifts.
+        // 全員。追従の角度は狙いへ少しずつ寄り、骨はそのうち上限付きの割合を受け持つ。入力は狙いと
+        // 休みの座標系だけ(回した骨は使わない)なので、ずれがたまらない。
         private void StepLinks(float dt, int mode, Vector3 vec)
         {
             bool on = BoneOn();
@@ -1565,7 +1565,7 @@ namespace Mecaota.Gunner
                     followYaw[b] = 0f;
                     followPitch[b] = 0f;
                 }
-                else if (local != linkWritten[b]) linkBase[b] = local; // an Animator wrote it: that is the new base
+                else if (local != linkWritten[b]) linkBase[b] = local; // Animator が書いた: それを新しい基準にする
                 float ty = 0f;
                 float tp = 0f;
                 bool aimed = on && mode != AimNone && ValidEmitter(lead) && Wish(mode, vec, lead);
@@ -1600,7 +1600,7 @@ namespace Mecaota.Gunner
                 float k = Mathf.Clamp01(boneStrength);
                 turnYaw[b] = Mathf.Clamp(followYaw[b] * k, -boneYawMax, boneYawMax);
                 turnPitch[b] = Mathf.Clamp(followPitch[b] * k, -bonePitchDownMax, bonePitchUpMax);
-                // The turn is expressed in the lead emitter's rest frame, then moved into the bone's local space.
+                // 回転を先頭の射出口の休みの座標系で表し、骨のローカル空間へ移す。
                 Quaternion rel = restRel[lead];
                 bone.localRotation = linkBase[b] * rel * Quaternion.Euler(-turnPitch[b], turnYaw[b], 0f) * Quaternion.Inverse(rel);
                 linkWritten[b] = bone.localRotation;
@@ -1615,8 +1615,8 @@ namespace Mecaota.Gunner
             aimedOnce = any;
         }
 
-        // Linked emitters follow the eased angle (the shot leaves with the bone, not ahead of it); others point at once.
-        // True = the emitter is turned away from rest.
+        // 連動した射出口は寄せた角度に従う(弾は骨と一緒に出て、骨より先に行かない)。ほかはすぐに向く。
+        // true = 射出口が休みから回されている。
         private bool AimEmitter(int i, int mode, Vector3 vec)
         {
             Transform m = emitters[i];
@@ -1641,7 +1641,7 @@ namespace Mecaota.Gunner
 
         private bool BoneOn() { return boneMode == 0 ? boneFollow : boneMode == 2; }
 
-        // ================= Small helpers =================
+        // ================= 小さな補助 =================
 
         private bool ValidEmitter(int e) { return e >= 0 && e < emitterCount && emitters[e] != null; }
 

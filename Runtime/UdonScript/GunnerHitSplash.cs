@@ -3,19 +3,19 @@ using UnityEngine;
 
 namespace Mecaota.Gunner
 {
-    // Sample receiver: bursts a splash particle system where a hit lands (bullets, water). Knows nothing about the projectile.
+    // 受け手の見本: 着弾した所で飛び散りの粒子を弾けさせる(弾、水)。弾の中身は何も知らない。
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class GunnerHitSplash : GunnerHitReceiver
     {
-        public GunnerRig targetRig;                 // registers itself on Start (the editor may also list it in rig.receivers)
-        public ParticleSystem splash;         // World simulation space; +Z of its Transform = the splash direction
+        public GunnerRig targetRig;                 // Start で自分を登録する(エディタが rig.receivers に入れておいてもよい)
+        public ParticleSystem splash;         // World シミュレーション空間。Transform の +Z = 飛び散る向き
         public int burst = 12;
         public bool onWorld = true;
         public bool onMoving = true;
         public bool onPlayers = true;
-        public bool onStream = true;          // HitKeep streams arrive every interval: a sample may want only single shots
-        public AudioSource sound;             // optional, played at the hit
-        public float surfaceOffset = 0.02f;   // metres off the surface, so the burst is not born inside it
+        public bool onStream = true;          // HitKeep の連射は一定間隔で届く: 見本では単発だけにしたいこともある
+        public AudioSource sound;             // 任意。着弾で鳴らす
+        public float surfaceOffset = 0.02f;   // 面から離すメートル。面の中で弾けないように
 
         private const float NormalProbe = 0.3f;
 
@@ -26,7 +26,7 @@ namespace Mecaota.Gunner
 
         public override void _OnHit(GunnerRig rig)
         {
-            // A late joiner gets old hits restored: a splash for those would play long after the fact.
+            // 遅れて入った人には古い着弾が戻される: それに飛び散りを出すと、ずっと後に弾けてしまう。
             if (rig == null || rig.hitReplay || !rig.hitResolved || splash == null) return;
             if (rig.hitStream && !onStream) return;
             int kind = rig.hitKind;
@@ -41,7 +41,7 @@ namespace Mecaota.Gunner
                 Vector3 to = point - rig.emitters[rig.hitEmitter].position;
                 if (to.sqrMagnitude > 0.000001f) incoming = to.normalized;
             }
-            // Bounce off the surface when it can be found again here; a body or a miss of the probe splashes back along the shot.
+            // ここでまた面が見つかれば面で跳ね返す。体や探りが外れた時は、弾の来た向きへ飛び散らせる。
             Vector3 normal = -incoming;
             RaycastHit hit;
             if (kind != GunnerRig.KindPlayer

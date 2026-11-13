@@ -1,9 +1,14 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UdonSharp;
 using UdonSharpEditor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using VRC.Udon;
+using VRC.Udon.Common;
+using VRC.Udon.Common.Interfaces;
 using Object = UnityEngine.Object;
 
 namespace Mecaota.Gunner.EditorTools
@@ -22,11 +27,71 @@ namespace Mecaota.Gunner.EditorTools
             if (backing != null)
             {
                 Undo.RecordObject(backing, "Gunner");
+                // 配列は先に裏側へ直接書く。こうすると CopyProxyToUdon は裏側の項目(書いた複製の配列)を写す先にするので、
+                // プログラムの既定のヒープの配列(GetRealProgram のキャッシュ)へは写さない
+                SyncBackingArrays(proxy, backing);
                 UdonSharpEditorUtility.CopyProxyToUdon(proxy, ProxySerializationPolicy.RootOnly);
                 PrefabUtility.RecordPrefabInstancePropertyModifications(backing);
             }
             PrefabUtility.RecordPrefabInstancePropertyModifications(proxy);
             if (proxy.gameObject.scene.IsValid()) EditorSceneManager.MarkSceneDirty(proxy.gameObject.scene);
+        }
+
+        // 裏側へ直接書く値の配列の型(裏側の変数の型が C# の型と同じもの)
+        static readonly Type[] ValueArrayTypes =
+        {
+            typeof(int[]), typeof(float[]), typeof(bool[]), typeof(string[]),
+            typeof(Vector2[]), typeof(Vector3[]), typeof(Vector4[]), typeof(Color[]),
+        };
+
+        /// <summary>
+        /// プロキシの値の配列の欄(int・float・bool・string・ベクトル・色の配列)を、裏側の UdonBehaviour の変数と突き合わせ、
+        /// 裏側に変数が無い・中身が違う欄だけを裏側へ直接書く。書いた欄の数を返す。
+        /// 理由: U# の CopyProxyToUdon(ArraySerializer.Write)は、写す先の配列と長さが同じ時、その配列へ中身を写すだけで
+        /// 裏側の変数を書き直さない。裏側に変数が無い時の写す先は、プログラムの既定の値(ヒープ)の配列なので、裏側には何も残らない
+        /// (長さが違う・null の時は新しい配列を作って書くので残る)。実行時に効くのは裏側なので、ここで確実に書く。
+        /// CopyProxyToUdon より前に呼ぶ(前に呼べば、写す先が裏側の項目になり、既定のヒープの配列を書き換えない)。
+        /// 裏側からプロキシへは写さない(UpdateProxy・CopyUdonToProxy は使わない)。Undo は呼ぶ側の RecordObject に入る。
+        /// </summary>
+        public static int SyncBackingArrays(UdonSharpBehaviour proxy, UdonBehaviour backing)
+        {
+            if (proxy == null || backing == null || backing.publicVariables == null) return 0;
+            var vars = backing.publicVariables;
+            int written = 0;
+            const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            for (var t = proxy.GetType(); t != null && t != typeof(UdonSharpBehaviour); t = t.BaseType)
+            {
+                foreach (var f in t.GetFields(Flags))
+                {
+                    if (Array.IndexOf(ValueArrayTypes, f.FieldType) < 0) continue;
+                    // [System.NonSerialized] の印は 0x80(保存しない欄は裏側にも写らない)
+                    if (f.IsStatic || f.IsInitOnly || ((int)f.Attributes & 0x80) != 0) continue;
+                    if (!f.IsPublic && f.GetCustomAttribute<SerializeField>() == null) continue;
+                    var value = f.GetValue(proxy) as Array;
+                    if (value == null) continue;   // null は CopyProxyToUdon が書く
+                    if (vars.TryGetVariableValue(f.Name, out object now) && SameArray(now as Array, value)) continue;
+                    var copy = (Array)value.Clone();
+                    if (!vars.TrySetVariableValue(f.Name, copy))
+                    {
+                        var variable = (IUdonVariable)Activator.CreateInstance(typeof(UdonVariable<>).MakeGenericType(f.FieldType), f.Name, copy);
+                        if (!vars.TryAddVariable(variable) && !(vars.RemoveVariable(f.Name) && vars.TryAddVariable(variable)))
+                        {
+                            Debug.LogWarning("[Gunner] could not write the array '" + f.Name + "' to the UdonBehaviour", backing);
+                            continue;
+                        }
+                    }
+                    written++;
+                }
+            }
+            if (written > 0) EditorUtility.SetDirty(backing);
+            return written;
+        }
+
+        static bool SameArray(Array a, Array b)
+        {
+            if (a == null || b == null || a.GetType() != b.GetType() || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++) if (!Equals(a.GetValue(i), b.GetValue(i))) return false;
+            return true;
         }
 
         /// <summary>U# 部品を SerializedObject で編集し、プロキシを確定する。</summary>

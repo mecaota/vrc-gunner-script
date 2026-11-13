@@ -198,7 +198,11 @@ namespace Mecaota.Gunner
 
         // 全員、rig の PostLateUpdate から(狙いの後): 出す、経路を古くする、トレイルをつないだままにする。持ち主で
         // 当たり判定が on なら、経路が最初に当たった所を記録する。true = まだ動いている(連射中か粒子が飛んでいる)。
-        public bool _Step(float now, bool streaming, bool owner, bool collide)
+        public bool _Step(float now, bool streaming, bool owner, bool collide) { return _StepMasked(now, streaming, owner, collide, 0); }
+
+        // _Step と同じ。mask = 粒子を出す射出口の組(ビット e = 射出口 e。0 = 全部)。組の外の射出口は新しく出さないが、
+        // もう飛んでいる粒子は今までどおり進み、当たる。
+        public bool _StepMasked(float now, bool streaming, bool owner, bool collide, int mask)
         {
             if (!ready) return false;
             float dt = Mathf.Clamp(Time.deltaTime, 0f, FrameMax);
@@ -207,13 +211,15 @@ namespace Mecaota.Gunner
             for (int e = 0; e < count; e++)
             {
                 if (emitters[e] == null) continue;
-                if (streaming && flightOn[e]) nextEmitAt[e] = now; // 単発が粒子を使っている。追いつかずに再開する
-                else if (streaming)
+                bool emitHere = streaming && (mask == 0 || (mask & (1 << e)) != 0);
+                if (emitHere && flightOn[e]) nextEmitAt[e] = now; // 単発が粒子を使っている。追いつかずに再開する
+                else if (emitHere)
                 {
                     int k = 0;
                     while (now >= nextEmitAt[e] && k < CatchUpMax) { Emit(e, now); nextEmitAt[e] += interval; k++; }
                     if (now >= nextEmitAt[e]) nextEmitAt[e] = now + interval;
                 }
+                else if (streaming) nextEmitAt[e] = now; // 組の外: 組に戻った時に追いつきで続けて出さない
                 float maxGap = Age(e, now);
                 if (active[e]) busy = true;
                 if (active[e] && look[e] && join == JoinLine && !flightOn[e])

@@ -81,6 +81,7 @@ namespace Mecaota.Gunner.EditorTools
                 Field("excludeOwner");
                 Field("playerRadius");
                 Field("aimMaxAngle");
+                DrawAimAngles(rig);
                 Field("maxHits");
             }
 
@@ -107,7 +108,58 @@ namespace Mecaota.Gunner.EditorTools
                 Field("chainPitchDownLimit");
                 Field("boneSmooth");
                 Field("boneMinSpeed");
+                Field("boneMaxSpeed");
             }
+        }
+
+        // ---------------- 射出口ごとの狙える角度 ----------------
+
+        // 射出口ごとに角度の欄を1つ出す(0 = 可動域 aimMaxAngle を使う)。中身は aimMaxAngles(同じ番号が射出口)。
+        void DrawAimAngles(GunnerRig rig)
+        {
+            if (targets.Length != 1)
+            {
+                Field("aimMaxAngles");
+                return;
+            }
+            var emitters = rig.emitters ?? new Transform[0];
+            var angles = rig.aimMaxAngles ?? new float[0];
+            if (emitters.Length < 2 && angles.Length == 0)
+            {
+                // 射出口が1つなら可動域だけで足りる。欄は畳んだまま出す。
+                Field("aimMaxAngles");
+                return;
+            }
+            EditorGUILayout.LabelField(Label("GunnerRig.aimMaxAngles"));
+            EditorGUI.indentLevel++;
+            for (int e = 0; e < emitters.Length && e < GunnerRig.MaxEmitters; e++)
+            {
+                string name = emitters[e] != null ? emitters[e].name : "-";
+                float now = e < angles.Length ? angles[e] : 0f;
+                EditorGUI.BeginChangeCheck();
+                float next = EditorGUILayout.FloatField(new GUIContent(e + " (" + name + ")", T("GunnerRig.aimMaxAngles.row")), now);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    int index = e;
+                    int size = emitters.Length;
+                    float value = Mathf.Clamp(next, 0f, 180f);
+                    GunnerEditorUtil.Edit(rig, so =>
+                    {
+                        var arr = so.FindProperty("aimMaxAngles");
+                        if (arr.arraySize < size) arr.arraySize = size;
+                        arr.GetArrayElementAtIndex(index).floatValue = value;
+                    });
+                }
+            }
+            EditorGUI.indentLevel--;
+        }
+
+        // 射出口 i の狙える角度(rig の AimLimit と同じ決まり)。
+        internal static float EmitterLimit(GunnerRig rig, int i)
+        {
+            var angles = rig.aimMaxAngles;
+            if (angles != null && i < angles.Length && angles[i] > 0f) return angles[i];
+            return rig.aimMaxAngle;
         }
 
         // ---------------- 追加の連動ボーン ----------------
@@ -265,7 +317,7 @@ namespace Mecaota.Gunner.EditorTools
             Vector3 right = em.right;
             float size = HandleUtility.GetHandleSize(pos);
             float range = Mathf.Max(0f, rig.maxRange);
-            float angle = Mathf.Clamp(rig.aimMaxAngle, 0f, 180f);
+            float angle = Mathf.Clamp(EmitterLimit(rig, index), 0f, 180f);
             float fan = Mathf.Min(range, size * 1.5f);
 
             // 狙いは休み方向からここまで届く: 左右に扇を1つ、上下に1つ。
@@ -306,7 +358,7 @@ namespace Mecaota.Gunner.EditorTools
                 }
             }
 
-            // 射程と狙いの限度は rig のもの: 最初の射出口でだけ編集する。
+            // 射程と狙いの限度は rig のもの: 最初の射出口でだけ編集する(射出口ごとの角度はインスペクタで)。
             if (index != 0) return;
             Handles.color = RangeLine;
             EditorGUI.BeginChangeCheck();
@@ -327,7 +379,13 @@ namespace Mecaota.Gunner.EditorTools
                 if (flat.sqrMagnitude > 1e-8f)
                 {
                     float nextAngle = Mathf.Clamp(Vector3.Angle(fwd, flat), 1f, 180f);
-                    GunnerEditorUtil.Edit(rig, so => so.FindProperty("aimMaxAngle").floatValue = Mathf.Round(nextAngle));
+                    // 射出口0に自分の角度があればそれを、無ければ可動域を動かす(見えている扇と同じ値)。
+                    bool own0 = rig.aimMaxAngles != null && rig.aimMaxAngles.Length > 0 && rig.aimMaxAngles[0] > 0f;
+                    GunnerEditorUtil.Edit(rig, so =>
+                    {
+                        if (own0) so.FindProperty("aimMaxAngles").GetArrayElementAtIndex(0).floatValue = Mathf.Round(nextAngle);
+                        else so.FindProperty("aimMaxAngle").floatValue = Mathf.Round(nextAngle);
+                    });
                 }
             }
         }

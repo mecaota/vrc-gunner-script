@@ -31,6 +31,9 @@ check.rig.extra_not_ancestor	追加の連動ボーン {0} が連動ボーンの�
 check.rig.extra_duplicate	追加の連動ボーン {0} が重複しています	Extra linked bone {0} is listed twice
 check.rig.extra_shared	追加の連動ボーン {0} が別の連動にも使われています(回転が二重に書かれます)	Extra linked bone {0} is also used by another link (it would be turned twice)
 check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
+check.rig.angles_long	射出口ごとの狙える角度の欄が射出口より多くあります: {0}	More per-emitter aim limits than emitters: {0}
+check.rig.angle_over	射出口ごとの狙える角度が180度を超えています: {0}	A per-emitter aim limit is over 180 degrees: {0}
+check.rig.angle_link	狙える角度が170度を超えています。真後ろ近くで骨が跳ぶことがあるので、連動する射出口は170度までにしてください: {0}	Aim limit over 170 degrees. Bones can jump near straight back, so keep linked emitters at 170 degrees or less: {0}
 check.particle.not_world	粒子 {0} が World simulation space ではありません	Particles {0} are not in World simulation space
 check.particle.autoplay	粒子 {0} が自動で再生されます(Play On Awake / Looping)	Particles {0} play by themselves (Play On Awake / Looping)
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
@@ -40,6 +43,7 @@ check.hand.no_aim	スティックで狙えません(GunnerStickAim が未設定)
 check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
 check.hand.window_single	「離してから」は単発では効きません	"After release" has no effect on single shots
 check.hand.mask_hits_ball	弾が球に当たります(レイヤー {0} が当たり判定に入っています)	Shots can hit the ball (layer {0} is in the hit mask)
+check.hand.all_emitters	連射が全部の射出口({0}個)から出ます(狙う射出口の組が 0)	The stream comes out of all {0} emitters (emitter set is 0)
 check.input.no_controller	Controller が未設定です	No Controller set
 check.input.no_pickup	同じ GameObject に VRC Pickup がありません	No VRC Pickup on this GameObject
 check.input.pickup_elsewhere	Pickup の欄が別の物を指しています	The Pickup field points elsewhere
@@ -104,6 +108,9 @@ GunnerRig.playerRadius	体の太さ	Body radius
 GunnerRig.playerRadius.tip	目の高さに対する割合	Share of the eye height
 GunnerRig.aimMaxAngle	可動域	Aim limit
 GunnerRig.aimMaxAngle.tip	射出口が狙える角度の上限(度)。撃つ向きの初期値から測る。ボーン連動の上限より大きいと、骨が止まった先は射出口だけが向く	Limit of the emitter's aim (degrees), measured from the rest direction. If it is larger than the bone link limits, only the emitter turns past where the bones stop
+GunnerRig.aimMaxAngles	射出口ごとの可動域	Per-emitter aim limit
+GunnerRig.aimMaxAngles.tip	射出口ごとに狙える角度の上限(度)。0 か空の射出口は「可動域」を使う。どの射出口で狙うかを選ぶ時もこの値を使う。手に持つ球のスティックの狙いは「可動域」で切る	Aim limit for each emitter (degrees). 0 or empty uses Aim limit. Also used when choosing which emitter aims. The hand-held stick aim is limited by Aim limit
+GunnerRig.aimMaxAngles.row	0 なら「可動域」を使う	0 = use Aim limit
 GunnerRig.streamRate	連射の量	Stream rate
 GunnerRig.streamRate.tip	射出口ごとの毎秒の粒の数	Particles per second per emitter
 GunnerRig.streamWidth	線の太さ	Line width
@@ -133,9 +140,11 @@ GunnerRig.chainPitchUpLimit.tip	連動する骨全部を合わせた上向きの
 GunnerRig.chainPitchDownLimit	鎖の下向きの合計上限	Chain pitch down limit
 GunnerRig.chainPitchDownLimit.tip	連動する骨全部を合わせた下向きの曲がりの上限(度)。0 なら「下の上限 × 骨の数」。小さいほうが効く	Pitch-down limit for all linked bones together (degrees). 0 = pitch down limit × number of bones. The smaller wins
 GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
-GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか	Per second, share of the remaining angle closed
+GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか。大きいほど早く追いつき、小さいほどなめらか	Per second, share of the remaining angle closed. Higher catches up faster, lower is smoother
 GunnerRig.boneMinSpeed	最低の速さ	Minimum speed
 GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
+GunnerRig.boneMaxSpeed	最高の速さ	Maximum speed
+GunnerRig.boneMaxSpeed.tip	追従が回る速さの上限(度毎秒)。0 なら上限なし。入れると、相手が急に動いても上限の速さでなめらかに追い、速さの上がり方も0.25秒で上限に届く割合までに抑える	Upper limit of the follow turning speed (degrees per second). 0 = no limit. When set, sudden target moves are followed smoothly at this speed, and speeding up is limited so it reaches the limit in 0.25 s
 GunnerHandController.rig	GunnerRig	GunnerRig
 GunnerHandController.input	入力	Input
 GunnerHandController.aim	スティックの狙い	Stick aim
@@ -152,6 +161,8 @@ GunnerHandController.releaseWindow.tip	離してから当たれる最大の秒�
 GunnerHandController.followBone	ボーン連動を入れる	Turn bone link on
 GunnerHandController.followBone.tip	持っている間だけ rig のボーン連動を入れる	Bone link on while held
 GunnerHandController.resetAimOnEnd	終わったら狙いを戻す	Reset aim on end
+GunnerHandController.useEmitters	使う射出口の組	Emitter set
+GunnerHandController.useEmitters.tip	持っている間に狙い・連射・一斉射に使う射出口(ビット: 1 = 射出口0、2 = 射出口1、3 = 両方)。0 ならすべて(今までどおり)	Emitters used for aim, stream and volley while held (bits: 1 = emitter 0, 2 = emitter 1, 3 = both). 0 = all (as before)
 GunnerPickupInput.controller	Controller	Controller
 GunnerPickupInput.pickup	Pickup	Pickup
 GunnerPickupInput.pickup.tip	空ならこの GameObject の VRC Pickup	Empty = the VRC Pickup on this GameObject
@@ -216,3 +227,31 @@ GunnerSounds.cullDistance.tip	自分からこれより遠い音は鳴らさな�
 GunnerSounds.reach	届く距離	Reach
 GunnerSounds.reach.tip	メートル。「音源を整える」で全部の音源に当てる	Metres. "Set up sources" applies it to every source
 GunnerSounds.info.no_clip	クリップが未設定の音は鳴りません	Sounds with no clip set stay silent
+values.section	JSON(数値)	JSON (values)
+values.help	数値の欄を JSON に書き出し、JSON から読み込みます。参照(オブジェクト・Transform・音・マテリアル)、曲線、レイヤーは JSON に入りません。JSON に無い欄は今の値のままです。赤が1つでもあれば何も書きません。読み込んだ後はシーンを保存してください。	Exports number fields to JSON and imports them back. References (objects, Transforms, sounds, materials), curves and layers are not included. Fields missing from the JSON keep their values. Nothing is written if there is any error. Save the scene after importing.
+values.json	JSON	JSON
+values.json.tip	読み込む JSON。結び付けはこの端末のユーザー設定に控えます(シーンには入りません)。	The JSON to import. The link is kept in this machine's user settings, not in the scene.
+values.import	JSON から読み込む	Import from JSON
+values.export	JSON に書き出す	Export to JSON
+values.export_title	数値を JSON に書き出す	Export values to JSON
+values.import_title	数値を読み込む JSON	JSON to import values from
+values.outside_project	Assets の中の JSON を選んでください	Choose a JSON file inside Assets
+values.result.ok	読み込みました({0} 欄、黄 {1} 件)	Imported ({0} fields, {1} warnings)
+values.result.failed	赤が {0} 件あるので、何も書きませんでした	{0} errors, so nothing was written
+values.check.missing	結び付けた JSON が見つかりません(直すと結び付けを外します)	The linked JSON was not found (Fix removes the link)
+values.check.not_read	JSON を結び付けましたが、まだ読み込んでいません: {0}	A JSON is linked but not imported yet: {0}
+values.check.stale	読み込んだ後に JSON が変わりました。読み込み直してください: {0}	The JSON changed after it was imported. Import it again: {0}
+values.json.parse	JSON として読めません({0})	Not valid JSON ({0})
+values.json.not_object	いちばん外側が { } ではありません	The outermost value is not { }
+values.json.version	version は 1 にしてください(今: {0})	version must be 1 (now: {0})
+values.json.wrong_type	別の部品の JSON です(JSON / この部品: {0})	This JSON is for another component (JSON / this component: {0})
+values.json.no_values	values がありません	There is no values object
+values.json.unknown_key	知らないキーを飛ばしました: {0}	Skipped an unknown key: {0}
+values.json.bad_type	{0} の型が違います	{0} has the wrong type
+values.json.bad_value	{0} の値が使えません(無限大、または大きすぎる数)	{0} has an unusable value (infinite or too large)
+values.json.out_of_range	範囲の外です: {0}	Out of range: {0}
+values.json.clamped	範囲の外なので丸めました: {0}	Out of range, clamped: {0}
+values.json.rounded	整数の欄なので丸めました: {0}	Integer field, rounded: {0}
+values.json.length	配列の長さが違います: {0}	Wrong array length: {0}
+values.json.not_registered	この部品の型は JSON に対応していません: {0}	This component type does not support JSON: {0}
+values.json.no_file	JSON のファイルが見つかりません	The JSON file was not found

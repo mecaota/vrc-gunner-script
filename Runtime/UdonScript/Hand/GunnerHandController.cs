@@ -23,12 +23,16 @@ namespace Mecaota.Gunner
         public float releaseWindow = 3f;          // AfterRelease: 放した粒子がまだ当たってよい秒数の上限
         public bool followBone;                   // 持っている間は rig の骨の連動を on にする(終わったら戻す)
         public bool resetAimOnEnd = true;
+        // 持っている間に rig へ入れる「狙う射出口の組」(ビット i = 射出口 i。rig._SetAimEmitters)。0 = 触らない(今までどおり)。
+        // 終わったら全部に戻す。狙いの基準(スティックの角度)は今までどおり射出口0の休みの向き。
+        public int useEmitters;
 
         private bool active;
         private bool triggerDown;
         private bool streaming;
         private bool aimSent;
         private bool boneChanged;
+        private bool emittersChanged;
         private bool closePending;
         private float closeAt;
 
@@ -115,6 +119,11 @@ namespace Mecaota.Gunner
             aimSent = false;
             if (hold != null) hold._Hold();
             if (aim != null) aim._Reset();
+            if (useEmitters != 0)
+            {
+                rig._SetAimEmitters(useEmitters);
+                emittersChanged = true;
+            }
             if (followBone && !rig._IsBoneFollowing())
             {
                 rig._SetBoneFollow(true);
@@ -135,6 +144,11 @@ namespace Mecaota.Gunner
             if (rig == null) return;
             // 狙いを先に外す。下の停止と骨の連動 off が「狙いなし」を送り、ほかの人の画面の射出口が休みに戻る。
             if (resetAimOnEnd) rig.ResetAim();
+            if (emittersChanged)
+            {
+                emittersChanged = false;
+                rig._SetAimEmitters(-1);
+            }
             if (wasStreaming)
             {
                 StopOwnStream();

@@ -43,7 +43,7 @@ namespace Mecaota.Gunner.EditorTools
             for (int i = 0; i < emitters.Length; i++) if (emitters[i] == null) nullEmitter = true;
             if (nullEmitter)
                 into.Add(new GunnerCheck(E.Error, "check.rig.null_emitter", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "mounts", "linkBones"))));
+                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "mounts", "linkBones", "aimMaxAngles"))));
 
             var particles = rig.shotParticles ?? new ParticleSystem[0];
             for (int i = 0; i < emitters.Length && i < GunnerRig.MaxEmitters; i++)
@@ -85,6 +85,7 @@ namespace Mecaota.Gunner.EditorTools
 
             Receivers(rig, into);
             ExtraBones(rig, into);
+            AimAngles(rig, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -184,6 +185,53 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
+        // 射出口ごとの狙える角度: 射出口より長い配列と、180 度を超える値を黄で知らせる。
+        static void AimAngles(GunnerRig rig, List<GunnerCheck> into)
+        {
+            // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは回す軸が決まらず、骨が跳ぶ)。
+            // 180 度を超える値は下の点検が先に知らせるので、ここは 170 度を超え 180 度以下だけ。
+            const float LinkMax = 170f;
+            if (rig.aimMaxAngle > LinkMax && rig.aimMaxAngle <= 180f)
+                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_link", rig,
+                    () => GunnerEditorUtil.Edit(rig, so => so.FindProperty("aimMaxAngle").floatValue = LinkMax),
+                    "- (" + rig.aimMaxAngle.ToString("0.#") + ")"));
+            var angles = rig.aimMaxAngles;
+            if (angles == null || angles.Length == 0) return;
+            for (int i = 0; i < angles.Length; i++)
+            {
+                if (angles[i] <= LinkMax || angles[i] > 180f) continue;
+                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_link", rig, () => GunnerEditorUtil.Edit(rig, so =>
+                {
+                    var arr = so.FindProperty("aimMaxAngles");
+                    for (int k = 0; k < arr.arraySize; k++)
+                    {
+                        var el = arr.GetArrayElementAtIndex(k);
+                        if (el.floatValue > LinkMax && el.floatValue <= 180f) el.floatValue = LinkMax;
+                    }
+                }), i + " (" + angles[i].ToString("0.#") + ")"));
+                break;
+            }
+            int count = rig.emitters != null ? rig.emitters.Length : 0;
+            if (angles.Length > count)
+                into.Add(new GunnerCheck(E.Warning, "check.rig.angles_long", rig,
+                    () => GunnerEditorUtil.Edit(rig, so => so.FindProperty("aimMaxAngles").arraySize = count),
+                    angles.Length + " > " + count));
+            for (int i = 0; i < angles.Length; i++)
+            {
+                if (angles[i] <= 180f) continue;
+                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_over", rig, () => GunnerEditorUtil.Edit(rig, so =>
+                {
+                    var arr = so.FindProperty("aimMaxAngles");
+                    for (int k = 0; k < arr.arraySize; k++)
+                    {
+                        var el = arr.GetArrayElementAtIndex(k);
+                        if (el.floatValue > 180f) el.floatValue = 180f;
+                    }
+                }), i + " (" + angles[i].ToString("0.#") + ")"));
+                break;
+            }
+        }
+
         static void AddReceiver(GunnerRig rig, GunnerHitReceiver r)
         {
             GunnerEditorUtil.Edit(rig, so =>
@@ -233,6 +281,9 @@ namespace Mecaota.Gunner.EditorTools
                 if (hand.collideMode == GunnerHandController.CollideAfterRelease && rig.fireMode != GunnerRig.FireStream)
                     into.Add(new GunnerCheck(E.Warning, "check.hand.window_single", hand,
                         () => GunnerEditorUtil.Edit(hand, so => so.FindProperty("collideMode").intValue = GunnerHandController.CollideAlways)));
+                // 射出口が2つ以上の連射の rig で組を決めていない球は、全部の射出口から連射する。
+                if (hand.useEmitters == 0 && rig.fireMode == GunnerRig.FireStream && rig.emitters != null && rig.emitters.Length >= 2)
+                    into.Add(new GunnerCheck(E.Warning, "check.hand.all_emitters", hand, null, rig.emitters.Length.ToString()));
                 var ball = hand.input != null ? hand.input.GetComponent<Collider>() : null;
                 if (ball != null && GunnerEditorUtil.InMask(rig.hitMask, ball.gameObject.layer))
                 {

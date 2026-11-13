@@ -37,6 +37,9 @@ namespace Mecaota.Gunner.EditorTools
                 foreach (var t in targets) GunnerEditorUtil.CommitProxy(t as UdonSharpBehaviour);
             }
 
+            // JSON に出し入れできる型(GunnerValueSchemas に登録した型)だけ、「JSON(数値)」の節を出す
+            if (targets.Length == 1) GunnerValueGUI.Draw(target as Component);
+
             DrawMissingRow();
             EditorGUILayout.Space();
             GunnerL10n.DrawLanguagePopup();

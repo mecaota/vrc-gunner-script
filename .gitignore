@@ -6,6 +6,8 @@ desktop.ini
 *.bak
 *.swp
 *~
+# Keep Tools~ (verify scripts; Unity does not import it)
+!Tools~/
 .vs/
 .vscode/
 .idea/

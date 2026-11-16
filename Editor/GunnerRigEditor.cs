@@ -92,7 +92,10 @@ namespace Mecaota.Gunner.EditorTools
                 DrawStreamWidthScales(rig);
                 Field("streamTaper");
                 Field("streamJoin");
-                Field("streamHitMode");
+                var hitMode = Field("streamHitMode");
+                // 当たった時に消すかは「1回で止める」の時だけ効く(当たり続ける時は薄く出す)
+                using (new EditorGUI.DisabledScope(hitMode != null && !hitMode.hasMultipleDifferentValues && hitMode.intValue != GunnerStream.HitOnce))
+                    Field("streamClearOnHit");
                 Field("streamHitInterval");
                 Field("streamCollide");
             }

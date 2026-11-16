@@ -10,8 +10,8 @@ namespace Mecaota.Gunner
     {
         public const int JoinParticles = 0;
         public const int JoinLine = 1;
-        // HitOnce: 最初の接触で着弾を1つ記録し、その射出口の飛んでいる粒子を消す。その射出口は、連射をやり直すか
-        // 当たり判定をもう一度 on にするまで記録しない。トリガーを押している間は出し続ける。
+        // HitOnce: 最初の接触で着弾を1つ記録し、その射出口の飛んでいる粒子を消す(rig.streamClearOnHit が偽なら消さない)。
+        // その射出口は、連射をやり直すか当たり判定をもう一度 on にするまで記録しない。トリガーを押している間は出し続ける。
         public const int HitOnce = 0;
         public const int HitKeep = 1;
 
@@ -299,7 +299,8 @@ namespace Mecaota.Gunner
             if (hitMode == HitOnce)
             {
                 latched[e] = true;
-                _Clear(e);
+                // 消さない設定なら、出ている線はそのまま(次の粒が来るまで線が途切れない)。記録は上で 1 つだけ
+                if (rig.streamClearOnHit) _Clear(e);
             }
             else
             {

@@ -87,6 +87,7 @@ namespace Mecaota.Gunner.EditorTools
             ExtraBones(rig, into);
             AimAngles(rig, into);
             StreamWidthScales(rig, into);
+            StreamClearOnHit(rig, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -248,6 +249,15 @@ namespace Mecaota.Gunner.EditorTools
                 arr.arraySize = count;
                 for (int k = old; k < count; k++) arr.GetArrayElementAtIndex(k).floatValue = 0f;
             }), scales.Length + " / " + count));
+        }
+
+        // 当たった時に消さない設定(streamClearOnHit が偽)は「1回で止める」の時だけ効く。当たり続ける時は効かないので黄。
+        // 直すボタンは既定の真に戻す(当たり続ける時は値を読まないので、見た目も当たり方も変わらない)
+        static void StreamClearOnHit(GunnerRig rig, List<GunnerCheck> into)
+        {
+            if (rig.streamClearOnHit || rig.streamHitMode == GunnerStream.HitOnce) return;
+            into.Add(new GunnerCheck(E.Warning, "check.rig.clear_on_hit_unused", rig,
+                () => GunnerEditorUtil.Edit(rig, so => so.FindProperty("streamClearOnHit").boolValue = true)));
         }
 
         static void AddReceiver(GunnerRig rig, GunnerHitReceiver r)

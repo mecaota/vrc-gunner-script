@@ -20,5 +20,6 @@ namespace Mecaota.Gunner.Tests
         [Test] public void Swing() => Pass(SwingTest.Run());
         [Test] public void Switch() => Pass(SwitchTest.Run());
         [Test] public void StreamWidth() => Pass(StreamWidthTest.Run());
+        [Test] public void StreamClear() => Pass(StreamClearTest.Run());
     }
 }

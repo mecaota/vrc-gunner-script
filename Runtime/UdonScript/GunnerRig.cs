@@ -112,6 +112,10 @@ namespace Mecaota.Gunner
         public AnimationCurve streamTaper;        // 1本のトレイルに沿った幅(空 = 一定)
         public int streamJoin = GunnerStream.JoinLine;
         public int streamHitMode = GunnerStream.HitOnce;
+        // HitOnce: 最初の当たりで、その射出口の飛んでいる粒子とトレイルを消すか(真 = 今までどおり消す)。
+        // 偽なら当たりを 1 つ記録するだけで、出ている線はそのまま残る(出し続ける線が当たった瞬間に途切れない)。
+        // 持ち主の端末(GunnerStream.Collide)と、記録を受け取った端末(OnDeserialization)の両方が、当たるたびにその時の値を読む。
+        public bool streamClearOnHit = true;
         public float streamHitInterval = 0.25f;   // HitKeep: 射出口ごとの記録の間隔(秒)
         public bool streamCollide = true;         // 開始時の当たり判定(持ち主の端末だけ。_SetCollision で変わる)
 
@@ -1612,9 +1616,9 @@ namespace Mecaota.Gunner
                 else if (MetaInstant(kMeta[s]))
                 {
                     arriveAt[s] = now;
-                    // 持ち主の連射がここに当たった: この射出口の連射の粒子もここで終わる(HitOnce)。
+                    // 持ち主の連射がここに当たった: この射出口の連射の粒子もここで終わる(HitOnce で streamClearOnHit が真の時)。
                     int em = MetaEmitter(kMeta[s]);
-                    if (!first && stream != null && streamHitMode == GunnerStream.HitOnce && ValidEmitter(em)) stream._Clear(em);
+                    if (!first && stream != null && streamHitMode == GunnerStream.HitOnce && streamClearOnHit && ValidEmitter(em)) stream._Clear(em);
                 }
                 else Launch(s);
             }

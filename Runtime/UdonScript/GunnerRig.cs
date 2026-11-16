@@ -106,6 +106,9 @@ namespace Mecaota.Gunner
 
         public float streamRate = 12f;            // 射出口ごとの1秒あたりの粒子数
         public float streamWidth = 0.02f;         // つないだ線の幅(メートル)
+        // 任意: 射出口ごとの、つないだ線の幅の倍率(streamWidth に掛ける。同じ番号が射出口)。空・短い・0 以下の射出口は 1。
+        // GunnerStream._Init が 1 回だけ読む(実行中に書き換えても反映しない。ほかの stream の欄と同じ)。
+        public float[] streamWidthScales;
         public AnimationCurve streamTaper;        // 1本のトレイルに沿った幅(空 = 一定)
         public int streamJoin = GunnerStream.JoinLine;
         public int streamHitMode = GunnerStream.HitOnce;

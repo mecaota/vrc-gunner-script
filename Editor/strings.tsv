@@ -32,6 +32,7 @@ check.rig.extra_duplicate	追加の連動ボーン {0} が重複しています	
 check.rig.extra_shared	追加の連動ボーン {0} が別の連動にも使われています(回転が二重に書かれます)	Extra linked bone {0} is also used by another link (it would be turned twice)
 check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
 check.rig.angles_long	射出口ごとの狙える角度の欄が射出口より多くあります: {0}	More per-emitter aim limits than emitters: {0}
+check.rig.width_scales_length	射出口ごとの線の太さの欄の数が射出口の数と違います(足りない射出口は 1 倍): {0}	Per-emitter line width count differs from the emitter count (missing emitters use 1x): {0}
 check.rig.angle_over	射出口ごとの狙える角度が180度を超えています: {0}	A per-emitter aim limit is over 180 degrees: {0}
 check.rig.angle_link	狙える角度が170度を超えています。真後ろ近くで骨が跳ぶことがあるので、連動する射出口は170度までにしてください: {0}	Aim limit over 170 degrees. Bones can jump near straight back, so keep linked emitters at 170 degrees or less: {0}
 check.particle.not_world	粒子 {0} が World simulation space ではありません	Particles {0} are not in World simulation space
@@ -114,6 +115,9 @@ GunnerRig.aimMaxAngles.row	0 なら「可動域」を使う	0 = use Aim limit
 GunnerRig.streamRate	連射の量	Stream rate
 GunnerRig.streamRate.tip	射出口ごとの毎秒の粒の数	Particles per second per emitter
 GunnerRig.streamWidth	線の太さ	Line width
+GunnerRig.streamWidthScales	射出口ごとの線の太さ	Per-emitter line width
+GunnerRig.streamWidthScales.tip	射出口ごとに「線の太さ」に掛ける倍率。0 か空の射出口は 1(線の太さのまま)。連射を始める前に1回だけ読む	Multiplier on Line width for each emitter. 0 or empty = 1 (Line width as is). Read once before the first stream
+GunnerRig.streamWidthScales.row	0 なら 1 倍	0 = 1x
 GunnerRig.streamTaper	線の太さの変化	Line taper
 GunnerRig.streamTaper.tip	空なら一定	Empty = flat
 GunnerRig.streamJoin	連射の見た目	Stream look

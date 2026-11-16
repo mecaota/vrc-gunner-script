@@ -40,6 +40,7 @@ namespace Mecaota.Gunner
         private float life;
         private float interval;
         private float width;
+        private float[] widths;                // 射出口ごとの、つないだ線の幅(streamWidth × streamWidthScales。_Init で 1 回だけ作る)
         private float hitInterval;
         private AnimationCurve taper;
         private int join;
@@ -81,6 +82,15 @@ namespace Mecaota.Gunner
             hitMode = rig.streamHitMode;
             hitInterval = Mathf.Max(rig.streamHitInterval, 0.02f);
             cap = Mathf.Clamp(Mathf.CeilToInt(life / interval) + 2, 4, 128);
+
+            // 射出口ごとの幅: streamWidthScales の空・短い・0 以下の所は倍率 1(既定では今までと同じ太さ)。下限も今までと同じ
+            float[] scales = rig.streamWidthScales;
+            widths = new float[count];
+            for (int e = 0; e < count; e++)
+            {
+                float scale = scales != null && e < scales.Length && scales[e] > 0f ? scales[e] : 1f;
+                widths[e] = Mathf.Max(rig.streamWidth * scale, 0.0005f);
+            }
 
             reach = new float[count];
             span = new float[count];
@@ -335,8 +345,9 @@ namespace Mecaota.Gunner
             if (join != JoinLine) return;
             // トレイルごとに幅は一定: 短いトレイルごとに根元から先へ細くすると、くさびをつないだ鎖に見える。
             ParticleSystem.TrailModule trails = ps.trails;
-            if (taper != null && taper.length >= 2) trails.widthOverTrail = new ParticleSystem.MinMaxCurve(width, taper);
-            else trails.widthOverTrail = new ParticleSystem.MinMaxCurve(width);
+            float w = e < widths.Length ? widths[e] : width;
+            if (taper != null && taper.length >= 2) trails.widthOverTrail = new ParticleSystem.MinMaxCurve(w, taper);
+            else trails.widthOverTrail = new ParticleSystem.MinMaxCurve(w);
         }
 
         // つないだトレイル1本が覆うべき秒数: 1つ前の粒子まで + フレームに基づく重なり。止まった時は古い方の

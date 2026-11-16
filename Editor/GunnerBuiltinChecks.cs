@@ -43,7 +43,7 @@ namespace Mecaota.Gunner.EditorTools
             for (int i = 0; i < emitters.Length; i++) if (emitters[i] == null) nullEmitter = true;
             if (nullEmitter)
                 into.Add(new GunnerCheck(E.Error, "check.rig.null_emitter", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "mounts", "linkBones", "aimMaxAngles"))));
+                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "mounts", "linkBones", "aimMaxAngles", "streamWidthScales"))));
 
             var particles = rig.shotParticles ?? new ParticleSystem[0];
             for (int i = 0; i < emitters.Length && i < GunnerRig.MaxEmitters; i++)
@@ -86,6 +86,7 @@ namespace Mecaota.Gunner.EditorTools
             Receivers(rig, into);
             ExtraBones(rig, into);
             AimAngles(rig, into);
+            StreamWidthScales(rig, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -230,6 +231,23 @@ namespace Mecaota.Gunner.EditorTools
                 }), i + " (" + angles[i].ToString("0.#") + ")"));
                 break;
             }
+        }
+
+        // 射出口ごとの線の太さの倍率: 空なら何もしない(全部 1 倍)。空でなく、数が射出口の数と違う時に黄。
+        // 直すボタンは数を射出口の数に合わせる(足した所は 0 = 1 倍。余る所は落とす)
+        static void StreamWidthScales(GunnerRig rig, List<GunnerCheck> into)
+        {
+            var scales = rig.streamWidthScales;
+            if (scales == null || scales.Length == 0) return;
+            int count = rig.emitters != null ? rig.emitters.Length : 0;
+            if (scales.Length == count) return;
+            into.Add(new GunnerCheck(E.Warning, "check.rig.width_scales_length", rig, () => GunnerEditorUtil.Edit(rig, so =>
+            {
+                var arr = so.FindProperty("streamWidthScales");
+                int old = arr.arraySize;
+                arr.arraySize = count;
+                for (int k = old; k < count; k++) arr.GetArrayElementAtIndex(k).floatValue = 0f;
+            }), scales.Length + " / " + count));
         }
 
         static void AddReceiver(GunnerRig rig, GunnerHitReceiver r)

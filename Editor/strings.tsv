@@ -66,6 +66,7 @@ GunnerRig.section.receivers	受け手	Receivers
 GunnerRig.section.shot	射撃	Shooting
 GunnerRig.section.stream	連射	Stream
 GunnerRig.section.bone	ボーン連動	Bone link
+GunnerRig.section.sound	効果音	Sounds
 GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
 GunnerRig.emitters	射出口	Emitters
@@ -158,6 +159,32 @@ GunnerRig.boneMinSpeed	最低の速さ	Minimum speed
 GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
 GunnerRig.boneMaxSpeed	最高の速さ	Maximum speed
 GunnerRig.boneMaxSpeed.tip	追従が回る速さの上限(度毎秒)。0 なら上限なし。入れると、相手が急に動いても上限の速さでなめらかに追い、速さの上がり方も0.25秒で上限に届く割合までに抑える	Upper limit of the follow turning speed (degrees per second). 0 = no limit. When set, sudden target moves are followed smoothly at this speed, and speeding up is limited so it reaches the limit in 0.25 s
+GunnerRig.fireClip	発射音	Fire sound
+GunnerRig.fireClip.tip	撃った射出口の位置で鳴らす。空なら鳴らさない。GunnerSounds にもクリップを入れると2重に鳴る	Played at the emitter that fired. Empty = silent. Setting a clip on a GunnerSounds too plays it twice
+GunnerRig.impactClip	着弾音	Impact sound
+GunnerRig.impactClip.tip	当たった点で鳴らす。空なら鳴らさない。GunnerSounds にもクリップを入れると2重に鳴る	Played at the hit point. Empty = silent. Setting a clip on a GunnerSounds too plays it twice
+GunnerRig.fireVolume	発射音の音量	Fire volume
+GunnerRig.fireVolume.tip	発射音を鳴らす音源の音量(0〜1)	Source volume for fire sounds (0-1)
+GunnerRig.impactVolume	着弾音の音量	Impact volume
+GunnerRig.impactVolume.tip	着弾音を鳴らす音源の音量(0〜1)	Source volume for impact sounds (0-1)
+GunnerRig.pitchJitter	高さの揺れ	Pitch jitter
+GunnerRig.pitchJitter.tip	鳴らすたびに音の高さを少し変える。0 で切	Varies the pitch a little each time. 0 = off
+GunnerRig.fireVoices	発射音の音源	Fire sources
+GunnerRig.fireVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
+GunnerRig.impactVoices	着弾音の音源	Impact sources
+GunnerRig.impactVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
+GunnerRig.fireMinInterval	発射音の間引き	Fire min interval
+GunnerRig.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
+GunnerRig.impactMinInterval	着弾音の間引き	Impact min interval
+GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)	Impact sounds closer together than this are dropped (seconds)
+GunnerRig.soundOnPlayers	人	Players
+GunnerRig.soundOnPlayers.tip	人への着弾で着弾音を鳴らす	Impact sound on hits on players
+GunnerRig.soundOnWorld	壁や床	World
+GunnerRig.soundOnWorld.tip	壁や床への着弾で着弾音を鳴らす	Impact sound on hits on the world
+GunnerRig.soundOnMoving	動く物	Moving objects
+GunnerRig.soundOnMoving.tip	動く物への着弾で着弾音を鳴らす	Impact sound on hits on moving objects
+GunnerRig.soundCullDistance	鳴らす距離	Cull distance
+GunnerRig.soundCullDistance.tip	自分からこれより遠い音は鳴らさない(メートル)。0 なら音源の届く距離	Sounds farther than this from you are not played (metres). 0 = the sources' reach
 GunnerHandController.rig	GunnerRig	GunnerRig
 GunnerHandController.rig.tip	この球で撃つ rig	The rig this ball shoots
 GunnerHandController.input	入力	Input

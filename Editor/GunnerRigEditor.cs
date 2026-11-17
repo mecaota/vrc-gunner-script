@@ -114,6 +114,23 @@ namespace Mecaota.Gunner.EditorTools
                 Field("boneMinSpeed");
                 Field("boneMaxSpeed");
             }
+
+            if (Foldout("GunnerRig.section.sound"))
+            {
+                Field("fireClip");
+                Field("impactClip");
+                Field("fireVolume");
+                Field("impactVolume");
+                Field("pitchJitter");
+                Field("fireVoices");
+                Field("impactVoices");
+                Field("fireMinInterval");
+                Field("impactMinInterval");
+                Field("soundOnPlayers");
+                Field("soundOnWorld");
+                Field("soundOnMoving");
+                Field("soundCullDistance");
+            }
         }
 
         // ---------------- 射出口ごとの狙える角度 ----------------

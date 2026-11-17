@@ -6,8 +6,9 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Synced hit records (world, moving objects, players) delivered to hit receivers
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 - Streams can keep their line unbroken on the first hit (`streamClearOnHit`, on by default = clear as before)
+- Built-in fire and impact sounds on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.5.0). APIs will change.
+Status: early (0.6.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -81,6 +82,59 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 
 `streamRate`, `streamWidth`, `streamWidthScales`, `streamTaper`, `streamJoin` and `streamHitMode` are read once when the rig starts; changing them at runtime has no effect. `streamClearOnHit` is read at every hit. `streamWidth`, `streamWidthScales` and `streamTaper` only take effect when `streamJoin` is "Joined line".
 
+### Built-in sounds
+
+`GunnerRig` can play a fire sound and an impact sound by itself (the **Sounds** section of its inspector). Every device plays them from the fire and hit events; nothing extra is synced.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `fireClip` / `impactClip` | empty | Empty = silent (the same as before 0.6.0). |
+| `fireVolume` / `impactVolume` | 1 / 1 | Source volume (0-1). |
+| `pitchJitter` | 0.05 | Random pitch change per sound. 0 = off. |
+| `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
+| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). |
+| `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound. |
+| `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
+
+- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound plays at the hit point. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent.
+- The repeated fire sound during a stream (`GunnerSounds.streamFireInterval`) is not built in. Use `GunnerSounds` for that.
+- Udon cannot add `VRC_SpatialAudioSource` at runtime. Add one to every AudioSource in the editor and match its Far to the AudioSource's Max Distance. The Check Window does not check the rig's sources.
+- `GunnerSounds` still works and is unchanged. **If both the rig and a `GunnerSounds` on it have clips, every sound plays twice.** Use one or the other.
+
+## Auto aim (`GunnerAutoAim`)
+
+`GunnerAutoAim` makes a rig aim at and shoot players inside a box.
+
+Setup:
+
+1. Make an empty GameObject (for example `SenseZone`, a child of the rig is fine). Do not use the rig's own GameObject.
+2. Add a `BoxCollider` with **Is Trigger** on, and `GunnerAutoAim` on the **same GameObject** (the trigger events only reach scripts on the collider's GameObject). Use a layer that collides with Player and PlayerLocal (Default does). Set the size with the BoxCollider's Size rather than the Transform scale.
+3. **Place the box so it contains the players' feet, and extend its bottom below the floor.** The position recheck uses each player's feet (`GetPosition()`); a box that floats above the floor, or whose bottom is exactly at floor level, can count a standing player as outside.
+4. Set `rig`. Leave `zone` empty to use the BoxCollider on the same GameObject.
+5. If the zone moves with an animated object, add a kinematic Rigidbody to it.
+6. **Use a rig that only `GunnerAutoAim` drives.** If something else (a hand-held controller, another script) takes ownership of the rig, `GunnerAutoAim` on that device starts aiming and shooting automatically.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `rig` | empty | The `GunnerRig` to drive. |
+| `zone` | empty = the BoxCollider on this GameObject | The box. |
+| `interval` | 0.2 | Seconds between target and aim updates. |
+| `fireInterval` | 3 | Seconds between shots. |
+| `aimHeight` | 0.7 | Aim height as a share of the target's eye height. |
+| `switchWait` | 0.5 | After switching emitters, seconds before it may switch again. |
+| `recheckInterval` | 1 | Seconds between position rechecks of the list. 0 = no periodic recheck. |
+
+How it works:
+
+- Every device keeps the list of players in the zone: `OnPlayerTriggerEnter` adds, `OnPlayerTriggerExit` and `OnPlayerLeft` remove.
+- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). Every `interval` it picks the listed player nearest to the zone centre, then the emitter nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)`, `_SetAimTarget(point)` and, every `fireInterval`, `_FireWith(emitter, 0)`. With nobody listed it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest.
+- When this device becomes the rig's owner, it rechecks the list once, waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
+- Teleporting, respawning, joining and sitting in a station can skip the enter and exit events. Every `recheckInterval` seconds each device fixes its list from positions: a listed player whose feet are more than 0.75 m outside the box is removed, and a player whose feet are inside the box is added. The margin is only for removing, because the trigger counts a player as inside as soon as the body capsule touches the box.
+- Respawn: `OnPlayerRespawn` only reaches the player who respawned, and that device removes the player at once. On the other devices (including the rig's owner) the player is removed by `OnPlayerTriggerExit` if it arrives; if it does not, the recheck removes them within `recheckInterval`, and only when the respawn point is more than 0.75 m outside the box. With `recheckInterval` 0, other devices do not remove them in that case.
+- A seated player whose feet are inside the box is added back by the recheck and can be targeted.
+- With the rig's `excludeOwner` on, the rig's owner is never hit, so `GunnerAutoAim` does not choose the owner (the local player on the owner's device) as a target. Turn `excludeOwner` off if the owner should be targeted and hit too.
+- The aim is synced only while the rig syncs it (bone follow on with linked bones, or a stream started on this device). With bone follow off, other devices see the emitters stay at rest; the shots still fly to the recorded points.
+
 ## Quick start
 
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
@@ -128,6 +182,11 @@ All three are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnL
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
+
+## Changes in 0.6.0
+
+- `GunnerAutoAim`: aim at and shoot players inside a trigger box (see "Auto aim").
+- Built-in fire and impact sounds on `GunnerRig` (see "Built-in sounds"). Empty clips = silent, the same as before. `GunnerSounds` is unchanged; clips on both play twice.
 
 ## Changes in 0.5.0
 

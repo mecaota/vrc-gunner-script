@@ -4,6 +4,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.6.0] - unreleased / 未公開
+
+### Added / 追加
+
+- `GunnerAutoAim`: a new component that makes a rig aim at and shoot players inside a trigger `BoxCollider`. Put it on the same GameObject as the collider (Is Trigger on), not on the rig's GameObject. Every device keeps the list of players in the zone; only the rig's owner picks the target (the player nearest to the zone centre), picks the emitter nearest to the aim point, aims and fires (`_SetAimEmitters` → `_SetAimTarget` → `_FireWith`). Fields: `rig`, `zone`, `interval` (0.2), `fireInterval` (3), `aimHeight` (0.7), `switchWait` (0.5), `recheckInterval` (1). It has no sync, no network events and no public methods.
+- Built-in sounds on `GunnerRig`: `fireClip`, `impactClip`, `fireVolume`, `impactVolume`, `pitchJitter`, `fireVoices`, `impactVoices`, `fireMinInterval`, `impactMinInterval`, `soundOnPlayers`, `soundOnWorld`, `soundOnMoving`, `soundCullDistance`. They play the fire sound at the emitter and the impact sound at the hit point, like `GunnerSounds`. The repeated fire sound during a stream is not included.
+- `GunnerAutoAim`: トリガーの `BoxCollider` の中にいる人を、rig に狙わせて撃たせる新しいコンポーネントです。コライダーと同じ GameObject(Is Trigger 入)に付け、rig の GameObject には付けません。範囲内の一覧はどの端末も持ち、狙う相手(範囲の中心に一番近い人)と射出口(狙う点に一番近いもの)を選んで向けて撃つのは rig の持ち主だけです(`_SetAimEmitters` → `_SetAimTarget` → `_FireWith`)。欄: `rig`、`zone`、`interval`(0.2)、`fireInterval`(3)、`aimHeight`(0.7)、`switchWait`(0.5)、`recheckInterval`(1)。同期、ネットワークイベント、公開メソッドは持ちません。
+- `GunnerRig` に効果音を内蔵しました: `fireClip`、`impactClip`、`fireVolume`、`impactVolume`、`pitchJitter`、`fireVoices`、`impactVoices`、`fireMinInterval`、`impactMinInterval`、`soundOnPlayers`、`soundOnWorld`、`soundOnMoving`、`soundCullDistance`。`GunnerSounds` と同じく、発射音は射出口で、着弾音は当たった点で鳴ります。連射中の発射音の繰り返しは入っていません。
+
+### Changed / 変更
+
+- Nothing existing changes. With the clips empty, a rig makes no sound, as before. `GunnerSounds` is unchanged; if both the rig and a `GunnerSounds` have clips, the sound plays twice.
+- 既存の動きは変わりません。クリップが空なら、これまでどおり rig は音を鳴らしません。`GunnerSounds` は変えていません。rig と `GunnerSounds` の両方にクリップを入れると、音が 2 重に鳴ります。
+
 ## [0.5.0] - 2026-11-17
 
 First public release. Versions before 0.5.0 were not published.

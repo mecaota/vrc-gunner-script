@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0   # 履歴の検査(--history)に使う
 
       - name: Check Package
         run: node .github/scripts/check-package.mjs .

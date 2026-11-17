@@ -58,6 +58,7 @@ namespace Mecaota.Gunner
 
         private const int PlayerLayers = (1 << 9) | (1 << 10);
         private const int CastBuffer = 32;
+        private const float PreFireTimeout = 3f;    // 撃つ前のアニメの合図(_AnimFire)を待つ秒数。過ぎたら撃たずにやめる
         private const float SendInterval = 0.2f;   // 間引いて送るもの(連射の着弾、狙い)は1秒に5回まで
         private const float AimSyncAngle = 2f;
         private const float AimSyncMove = 0.05f;
@@ -150,6 +151,7 @@ namespace Mecaota.Gunner
         public bool soundOnWorld = true;
         public bool soundOnMoving = true;
         public float soundCullDistance = 0f;      // 0 = 音源の maxDistance。遠い音で近い音の枠を奪わないように
+        public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。入れたら、全部の射出口に bool GunnerPre0, GunnerPre1, ... が要る
 
         // ---------------- 同期(Manual) ----------------
 
@@ -219,6 +221,9 @@ namespace Mecaota.Gunner
         private bool baselined;
         private int slots;
         private int emitterCount;
+        private int preEmitter = -1;    // 持ち主: 撃つ前のアニメの合図を待っている射出口。-1 = 待っていない
+        private int prePayload;
+        private float preUntil;
         private int used;               // maxHits を範囲に収めたもの: この端末が持つ新しい記録の数
         private int headSeq;            // ここで知っている最新の seq: 最後に受け取った hSeq、またはこの端末が最後に書いたもの
         private int sentSeq;            // この端末が実際に最後にシリアライズした hSeq(そこまでの記録は送り済み)
@@ -804,8 +809,37 @@ namespace Mecaota.Gunner
             }
             Init();
             if (!ValidEmitter(emitter)) return;
+            if (fireAnimator != null)
+            {
+                // 撃つ前のアニメを流し、その合図(_AnimFire)で撃つ。待つのは1度に1つ。
+                if (preEmitter >= 0 || !TakeOwnership()) return;
+                preEmitter = emitter;
+                prePayload = payload;
+                preUntil = Time.time + PreFireTimeout;
+                fireAnimator.SetBool("GunnerPre" + emitter, true);
+                return;
+            }
             if (!TakeOwnership()) return;
             if (Shoot(emitter, payload, null)) _Commit();
+        }
+
+        // 撃つ前のアニメの Animation Event(SendCustomEvent)から呼ぶ。アニメを流した全端末に届くが、撃つのは待っている持ち主の端末だけ。
+        public void _AnimFire()
+        {
+            if (preEmitter < 0 || !Networking.IsOwner(gameObject)) return;
+            int e = preEmitter;
+            int p = prePayload;
+            ClearPreFire();
+            if (Shoot(e, p, null)) _Commit();
+        }
+
+        /// <summary>撃つ前のアニメの合図を待っている間は真。</summary>
+        public bool _IsPreFiring() { return preEmitter >= 0; }
+
+        private void ClearPreFire()
+        {
+            fireAnimator.SetBool("GunnerPre" + preEmitter, false);
+            preEmitter = -1;
         }
 
         // 一斉射を引数で決めて撃つ。rig の欄は何も書き換えない(撃った後に戻すものは無い)。
@@ -1893,6 +1927,8 @@ namespace Mecaota.Gunner
             if (!initialized) return;
             float now = Time.time;
             bool owner = Networking.IsOwner(gameObject);
+            // 撃つ前のアニメの合図が来ないまま期限が過ぎた、または持ち主でなくなった: 撃たずにやめる。
+            if (preEmitter >= 0 && (!owner || now >= preUntil)) ClearPreFire();
 
             // 1. 付け替え、骨の連動、狙い: 射出口がこのフレームの姿勢を取る。持ち主の狙いは、ほかの全員には同期したもの。
             for (int i = 0; i < emitterCount; i++) ApplyMount(i);

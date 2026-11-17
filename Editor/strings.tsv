@@ -96,6 +96,8 @@ GunnerRig.fireMode	撃ち方	Fire mode
 GunnerRig.fireMode.opt	単発|連射	Single|Stream
 GunnerRig.fireMode.tip	TriggerDown / TriggerUp の動き。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	What TriggerDown / TriggerUp do. Single: one shot per press. Stream: keeps shooting while held
 GunnerRig.maxHits	記録数	Hit records
+GunnerRig.fireAnimator	撃つ前のアニメ	Pre-fire animator
+GunnerRig.fireAnimator.tip	空なら、すぐ撃つ。入れると、撃つ前にアニメを流し、その終わりの合図(_AnimFire)で撃つ。全部の射出口に bool パラメーター GunnerPre0, GunnerPre1, ... が要る。rig は Animator と同じ GameObject に置く	Empty: shoot at once. Set: play an animation first and shoot on its end signal (_AnimFire). Every emitter needs a bool parameter GunnerPre0, GunnerPre1, ... Put the rig on the same GameObject as the Animator
 GunnerRig.maxHits.tip	この端末で使う着弾の数(1〜16)。同期は常に16件なので、Android で減らしても PC と食い違わない	Hits this device uses (1-16). The sync always holds 16, so a lower value on Android stays compatible with PC
 GunnerRig.shotSpeed	弾の速さ	Shot speed
 GunnerRig.shotSpeed.tip	メートル毎秒	Metres per second

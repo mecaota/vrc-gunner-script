@@ -83,6 +83,7 @@ namespace Mecaota.Gunner.EditorTools
                 Field("aimMaxAngle");
                 DrawAimAngles(rig);
                 Field("maxHits");
+                Field("fireAnimator");
             }
 
             if (Foldout("GunnerRig.section.stream"))

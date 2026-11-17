@@ -25,6 +25,7 @@ namespace Mecaota.Gunner
         public float fireInterval = 3f;           // 撃つ間隔(秒)
         public float aimHeight = 0.7f;            // 狙う高さ(相手の目の高さに対する割合)
         public float switchWait = 0.5f;           // 射出口を替えてから、次に替えてよくなるまでの秒数
+        public int[] firePayloads;                // 射出口ごとに撃つ時に渡す整数。空・短い所は 0
         public float recheckInterval = 1f;        // 一覧を位置から直す間隔(秒)。0 以下 = 直さない(持ち主になった時の1回だけ)
 
         // ---------------- 端末ごとの状態 ----------------
@@ -200,6 +201,8 @@ namespace Mecaota.Gunner
 
         private void Step(float now)
         {
+            // 撃つ前のアニメを待っている間は、射出口を替えず、撃たない。
+            if (rig._IsPreFiring()) return;
             // 1. 一覧の中で、範囲の中心に一番近い人。rig の excludeOwner が真なら、この端末の本人(= rig の持ち主)は
             //    弾が当たらないので選ばない。
             Vector3 center = ZoneCenter();
@@ -245,7 +248,7 @@ namespace Mecaota.Gunner
             aiming = true;
             if (now - lastFireAt < fireInterval) return;
             lastFireAt = now;
-            rig._FireWith(e, 0);
+            rig._FireWith(e, firePayloads != null && e < firePayloads.Length ? firePayloads[e] : 0);
         }
 
         private int NearestEmitter(Vector3 point)

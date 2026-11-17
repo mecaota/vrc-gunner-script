@@ -4,6 +4,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.7.0] - unreleased / 未公開
+
+### Added / 追加
+
+- `GunnerRig.fireAnimator`: an optional Animator that plays a pre-fire animation. Single shots from `_FireWith(emitter, payload)` then wait: the rig sets the bool `GunnerPre<e>` (e = emitter index) and shoots when an Animation Event calls `_AnimFire` (SendCustomEvent). It gives up after 3 seconds, and when the owner changes, without shooting and clears the bool. Only one shot waits at a time; volleys and streams do not wait. New public methods: `_AnimFire`, `_IsPreFiring`.
+- `GunnerAutoAim.firePayloads`: the integer passed to `_FireWith` for each emitter (empty or short = 0). It does nothing while `_IsPreFiring()` is true.
+- `GunnerRig.fireAnimator`: 撃つ前のアニメを流す Animator(任意)です。入れると `_FireWith(emitter, payload)` の単発は、すぐには撃たず、bool `GunnerPre<e>`(e = 射出口の番号)を真にして待ち、Animation Event が `_AnimFire`(SendCustomEvent)を呼んだ時に撃ちます。3 秒待っても合図が来ない時と、持ち主が替わった時は、撃たずにやめて bool を戻します。待つのは 1 度に 1 つで、一斉射と連射は待ちません。公開メソッドが増えました: `_AnimFire`、`_IsPreFiring`。
+- `GunnerAutoAim.firePayloads`: 射出口ごとに `_FireWith` へ渡す整数です(空・短い所は 0)。`_IsPreFiring()` が真の間は何もしません。
+
+### Changed / 変更
+
+- Nothing existing changes. With `fireAnimator` empty, behaviour is the same as 0.6.0.
+- 既存の動きは変わりません。`fireAnimator` が空なら 0.6.0 と同じ動きです。
+
 ## [0.6.0] - unreleased / 未公開
 
 ### Added / 追加

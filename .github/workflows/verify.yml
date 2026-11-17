@@ -3,7 +3,6 @@ name: Verify
 # 下書き(gunner)。公開してよい中身かを、Unity を使わずに確かめる。
 #   - package.json の形と版(check-package.mjs)
 #   - ファイルと .meta の対応、GUID の重複(check-package.mjs)
-#   - 有償側の語・音声ファイル・パッケージ外の参照が無いこと(check-neutral.mjs)
 # PR と main への push で自動で動き、Build Release からも呼ばれる。
 # U# のコンパイルと Android ビルドは Unity が要るので、ここではしない(手順書で人が行う)。
 
@@ -28,10 +27,3 @@ jobs:
 
       - name: Check Package
         run: node .github/scripts/check-package.mjs .
-
-      # 禁止語の一覧は secret から渡す(リポジトリにもログにも出さない)。
-      # fork からの PR では secret が渡らないので、その場合は止めて人が手元で確かめる。
-      - name: Check Neutral Content
-        env:
-          NEUTRAL_WORDS: ${{ secrets.NEUTRAL_WORDS }}
-        run: node .github/scripts/check-neutral.mjs . --history

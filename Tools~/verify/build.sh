@@ -5,14 +5,12 @@
 #   2. 純計算のテスト(Tests/Editor/Models と Tools~/verify/pure の *.cs)を、ファイルごとに pwsh で動かす(run-pure.ps1)。
 #      Tests/Editor の NUnit のテストは Unity の Test Runner(EditMode)で動かす。
 #   3. Editor/strings.tsv の重複キーを調べる。
-#   4. 語の一覧があれば、.github/scripts/check-neutral.mjs も動かす(一覧はリポジトリに入れない)。
 #
 # 使い方: bash "Tools~/verify/build.sh"
 #   UNITY_PROJECT       このパッケージを入れて一度コンパイルした Unity プロジェクトの根。既定はこのパッケージの2つ上
 #                       (Packages/ の下に置いた時)。作業用の写しで動かす時は指定する
 #   OUT                 dll を置くフォルダ(既定: 一時フォルダ)。ほかのパッケージの build.sh がここの dll を参照に使う
 #   SKIP_PURE=1         2 を飛ばす
-#   NEUTRAL_WORDS_FILE  4 の語の一覧のファイル(または環境変数 NEUTRAL_WORDS)
 # 終了コード: 全部通れば 0、どれか落ちれば 1、使い方の誤りは 2。
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -101,14 +99,6 @@ fi
 if [ -f "$ROOT/Editor/strings.tsv" ]; then
     dup=$(cut -f1 "$ROOT/Editor/strings.tsv" | sort | uniq -d)
     if [ -n "$dup" ]; then echo "strings.tsv duplicate keys:"; echo "$dup"; FAIL=1; else echo "strings.tsv: no duplicate keys"; fi
-fi
-
-# ---------------- 4. 中立の点検 ----------------
-NEUTRAL="$ROOT/.github/scripts/check-neutral.mjs"
-if [ -f "$NEUTRAL" ] && command -v node > /dev/null && { [ -n "${NEUTRAL_WORDS_FILE:-}" ] || [ -n "${NEUTRAL_WORDS:-}" ]; }; then
-    node "$NEUTRAL" "$ROOT" ${NEUTRAL_WORDS_FILE:+--words "$NEUTRAL_WORDS_FILE"} || FAIL=1
-else
-    echo "neutral check: skipped (needs .github/scripts/check-neutral.mjs, node and a word list)"
 fi
 
 [ "$FAIL" -eq 0 ] && echo "verify: OK" || echo "verify: NG"

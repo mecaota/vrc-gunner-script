@@ -1,0 +1,95 @@
+name: Build Repo Listing
+
+# Builds the VPM repository listing (index.json) from the GitHub Releases and the
+# landing page (index.html) from README.md, then deploys both to GitHub Pages.
+# LISTING_URL must be the public URL of index.json, including the custom domain
+# configured for GitHub Pages.
+#
+# Releases created by the "Build Release" workflow are picked up through the
+# workflow_run trigger. Releases created or edited by hand do not trigger this
+# workflow (and a release event would run on the tag ref, which the github-pages
+# environment cannot deploy from), so run it manually with "Run workflow" on main.
+#
+# 下書き(gunner): 複製元の workflow からの変更点は3つ。
+#   1. LISTING_URL を gunner の URL にした(Pages が github.pito.run の下に出ることは、初回の公開後に確かめる)。
+#   2. paths をリポジトリの根 = パッケージの根の形に合わせた。
+#   3. 配布ページの雛形を Website/ から .github/website/ へ移した。Website/ を根に置くと、
+#      Unity がパッケージの一部として取り込み .meta を作り、zip にも入ってしまうため。
+#      読み先の変更は .github/scripts/build.mjs の先頭の注釈を参照。
+# 実行の失敗で Release が listing に載らなかったときは、main で手動実行する(人の操作)。
+env:
+  LISTING_URL: https://github.pito.run/vrc-gunner-scripts/index.json
+  SITE_DIR: _site
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - package.json
+      - .github/website/**
+      - .github/scripts/**
+      - .github/workflows/build-listing.yml
+  workflow_run:
+    workflows: [Build Release]
+    types:
+      - completed
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent run per ref: runs on main (the only ref that deploys) are
+# serialized, while a test run on another branch does not cancel a main deployment.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # Build the VPM listing and the website
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build dependencies
+        working-directory: .github/scripts
+        run: npm ci
+
+      - name: Build listing and website
+        run: node .github/scripts/build.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_NAME: ${{ vars.PACKAGE_NAME }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ env.SITE_DIR }}
+
+  # Deploy the uploaded website to GitHub Pages.
+  # The github-pages environment only accepts deployments from the default branch,
+  # so runs on other branches (e.g. workflow_dispatch for testing) build only.
+  deploy:
+    name: deploy
+    needs: build
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

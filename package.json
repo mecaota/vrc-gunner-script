@@ -16,7 +16,10 @@
     "gimmick",
     "projectile"
   ],
+  "documentationUrl": "https://github.com/mecaota/vrc-gunner-scripts",
+  "changelogUrl": "https://github.com/mecaota/vrc-gunner-scripts/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/mecaota/vrc-gunner-scripts/blob/main/LICENSE",
   "vpmDependencies": {
-    "com.vrchat.worlds": ">=3.8.1"
+    "com.vrchat.worlds": ">=3.10.0"
   }
 }

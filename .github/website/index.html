@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{DISPLAY_NAME}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="favicon.ico">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="eyebrow">VPM Package <span class="version">v{{VERSION}}</span></p>
+      <h1>{{DISPLAY_NAME}}</h1>
+      <p class="description">{{DESCRIPTION}}</p>
+
+      <div class="vcc">
+        <a class="button primary" href="{{VCC_URL}}">Add to VCC</a>
+        <div class="url-box">
+          <input id="listing-url" type="text" readonly value="{{LISTING_URL}}" aria-label="VPMリポジトリURL">
+          <button type="button" class="button" id="copy-button" data-copied-label="Copied!" aria-live="polite">Copy</button>
+        </div>
+      </div>
+      <p class="hint">ボタンが反応しない場合は、URLをコピーしてVCCのSettings → Packages → Add Repositoryに貼り付けてください。</p>
+
+      <nav class="links" aria-label="関連リンク">
+        <a href="{{REPO_URL}}">GitHub</a>
+        <a href="{{RELEASES_URL}}">Releases</a>
+        <a href="{{LISTING_URL}}">index.json</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="markdown-body">
+{{README_HTML}}
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Published by <a href="{{AUTHOR_URL}}">{{AUTHOR_NAME}}</a> / License: {{LICENSE}} / {{PACKAGE_NAME}}</p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var button = document.getElementById('copy-button');
+      var input = document.getElementById('listing-url');
+      if (!button || !input) return;
+      var label = button.textContent;
+      var showCopied = function () {
+        button.textContent = button.getAttribute('data-copied-label') || 'Copied!';
+        setTimeout(function () { button.textContent = label; }, 1500);
+      };
+      button.addEventListener('click', function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(input.value).then(showCopied, function () { input.select(); });
+        } else {
+          input.select();
+          try { document.execCommand('copy'); showCopied(); } catch (e) { /* ignore */ }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

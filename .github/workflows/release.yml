@@ -1,0 +1,116 @@
+name: Build Release
+
+# 下書き(gunner)。複製元の release.yml を、リポジトリの根 = パッケージの根の形に直したもの。
+# main で "Run workflow" を押すと、package.json の version を名前にしたタグと Release を作り、
+# zip と unitypackage と package.json を添付する。完了すると Build Repo Listing が動く。
+# 実行するのは人(タグと Release の公開は取り消しにくいため)。
+#
+# 複製元からの主な変更:
+#   - 検証のジョブ(verify)を先に走らせ、通らなければ何も公開しない。
+#   - zip と unitypackage は git archive で取り出した中身から作る。.github/ や .gitignore は入れない。
+#     (Tools~/ は追跡されているので入る。Unity は取り込まない)
+#   - unitypackage は Packages/<PACKAGE_NAME>/ に展開される形で作る。
+#   - 同じ版のタグが既にあれば止める(上書きしない)。main 以外では動かさない。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  verify:
+    uses: ./.github/workflows/verify.yml
+    secrets: inherit
+
+  build:
+    needs: verify
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PACKAGE_NAME: ${{ vars.PACKAGE_NAME }}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # 版の取得と、タグの重複の確認
+      - name: Read Version
+        run: |
+          if [ -z "$PACKAGE_NAME" ]; then
+            echo "::error::リポジトリ変数 PACKAGE_NAME を設定してください(com.mecaota.gunner)"
+            exit 1
+          fi
+          name="$(jq -r .name package.json)"
+          version="$(jq -r .version package.json)"
+          if [ "$name" != "$PACKAGE_NAME" ]; then
+            echo "::error::package.json の name($name)と PACKAGE_NAME($PACKAGE_NAME)が違います"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/$version" >/dev/null; then
+            echo "::error::タグ $version がもうあります。Bump Version で版を上げてから実行してください"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_ENV"
+          echo "zipFile=$PACKAGE_NAME-$version.zip" >> "$GITHUB_ENV"
+          echo "unityPackage=$PACKAGE_NAME-$version.unitypackage" >> "$GITHUB_ENV"
+
+      # 配布する中身を取り出す。追跡されているファイルだけが入る。
+      # 作業フォルダの Packages/<PACKAGE_NAME>/ に置き、複製元と同じく、
+      # create-unitypackage がリポジトリの根(= 作業フォルダ)から読む形にする。
+      # (この workflow は commit も push もしないので、作業フォルダに作ってよい)
+      - name: Stage Package
+        run: |
+          dest="Packages/$PACKAGE_NAME"
+          if [ -e Packages ]; then
+            echo "::error::リポジトリに Packages/ があります。取り出し先と重なるので止めます"
+            exit 1
+          fi
+          mkdir -p "$dest"
+          git archive HEAD | tar -x -C "$dest"
+          rm -rf "$dest/.github" "$dest/.gitignore" "$dest/.gitattributes"
+
+      - name: Create Package Zip
+        working-directory: Packages/${{ env.PACKAGE_NAME }}
+        run: zip -r "$GITHUB_WORKSPACE/$zipFile" .
+
+      # フォルダの .meta も含めて一覧にする(create-unitypackage はフォルダの .meta も要る)
+      - name: Track Package Meta Files
+        run: find "Packages/$PACKAGE_NAME/" -name '*.meta' > metaList
+
+      # include-files は、一覧のファイルのパス(作業フォルダから)。一覧の中身は project-folder
+      # (既定 ./ = 作業フォルダ)からの相対。どちらも複製元と同じ使い方。
+      - name: Create UnityPackage
+        uses: pCYSl5EDgo/create-unitypackage@b5c57408698b1fab8b3a84d4b67f767b8b7c0be9 # v1.2.3
+        with:
+          package-path: ${{ env.unityPackage }}
+          include-files: metaList
+
+      # 作った zip の中身を確かめる(package.json が根にあり、版が一致する)
+      - name: Check Zip
+        run: |
+          unzip -p "$zipFile" package.json | jq -e --arg v "$version" '.version == $v' >/dev/null \
+            || { echo "::error::zip の package.json が読めないか、版が違います"; exit 1; }
+          if unzip -l "$zipFile" | grep -E '\.github/|(^|/)\.git' ; then
+            echo "::error::zip に .github か .git の物が入っています"; exit 1
+          fi
+          sha256sum "$zipFile" "$unityPackage" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Create Tag
+        uses: rickstaa/action-create-tag@a1c7777fcb2fee4f19b0f283ba888afa11678b72 # v1.7.2
+        with:
+          tag: ${{ env.version }}
+
+      - name: Make Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: |
+            ${{ env.zipFile }}
+            ${{ env.unityPackage }}
+            package.json
+          tag_name: ${{ env.version }}

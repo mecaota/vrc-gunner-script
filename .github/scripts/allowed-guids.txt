@@ -1,0 +1,12 @@
+5136146375e9a0a498a72a0091b40cc1  # Packages/com.vrchat.worlds/Integrations/UdonSharp/Editor/UdonSharpAssemblyDefinition.cs
+661092b4961be7145bfbe56e1e62337b  # Packages/com.vrchat.worlds/Runtime/VRCSDK/Plugins/VRCSDK3.dll
+45115577ef41a5b4ca741ed302693907  # Packages/com.vrchat.worlds/Runtime/Udon/UdonBehaviour.cs
+c333ccfdd0cbdbc4ca30cef2dd6e6b9b  # Packages/com.vrchat.worlds/Integrations/UdonSharp/Editor/UdonSharpProgramAsset.cs
+566cc00e27d5822449529a3785eae366  # Packages/com.vrchat.worlds/Samples/UdonExampleScene/UdonProgramSources/AvatarScalingSettings.asset
+17830d157f00b09408e9c38c2091a851  # Packages/com.vrchat.worlds/Samples/VRCQualitySettings/Scripts/WorldQualitySettings.asset
+1c987494452b85f4ab4cac3322415907  # Packages/com.vrchat.worlds/Samples/UdonExampleScene/SampleAssetsSet/Materials/SampleAssets_matte.mat
+c815f7613a04b724089c206857e57c6a  # Packages/com.vrchat.base/Runtime/VRCSDK/Sample Assets/Materials/MirrorReflection.mat
+fd20e45036ef323459e8286e9c23c02c  # Packages/com.vrchat.worlds/Samples/UdonExampleScene/SampleAssetsSet/Materials/GridFloor_udon.mat
+4ecd63eff847044b68db9453ce219299  # Packages/com.vrchat.base/Runtime/VRCSDK/Plugins/VRCCore-Editor.dll
+b61264f8086a88d4dbacaaabd2a7587d  # Packages/com.vrchat.worlds/Samples/VRCQualitySettings/Scripts/WorldQualitySettings.cs
+c8df303ceb45ae84f85a11591f741734  # Packages/com.vrchat.worlds/Samples/UdonExampleScene/UdonProgramSources/VRCWorldSettings.asset

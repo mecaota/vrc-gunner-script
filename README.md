@@ -9,7 +9,19 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 
 Status: early (0.5.0). APIs will change.
 
-Requires VRChat Worlds SDK 3.8.1 or later.
+Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
+
+## Install
+
+### From VCC (VRChat Creator Companion) / ALCOM
+
+1. Open the [distribution page](https://github.pito.run/vrc-gunner-scripts/) and click "Add to VCC" at the top to add the repository.
+   - If the button does nothing, open VCC `Settings` → `Packages` → `Add Repository` and paste `https://github.pito.run/vrc-gunner-scripts/index.json`.
+2. Open your world project with "Manage Project" and add "Gunner".
+
+### Manual install
+
+Download `com.mecaota.gunner-x.y.z.zip` from [Releases](https://github.com/mecaota/vrc-gunner-scripts/releases) and extract it to `Packages/com.mecaota.gunner/` in your Unity project (a `.unitypackage` is also available).
 
 ## How shooting works
 
@@ -112,6 +124,10 @@ All three are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnL
 - `GunnerChecks.Register(IGunnerCheckProvider)`: add checks for your components. They show in the inspectors and the Check Window.
 - `GunnerValueSchemas.Register(typeof(MyComponent), customize)`: allow JSON export and import for a component type (exact type match). `customize` can exclude fields and add ranges or lengths.
 - `GunnerL10n.AddTable("Packages/<your.package>/Editor/strings.tsv")`: add your own text table (tab-separated columns `key`, `ja`, `en`; `<key>.tip` is the tooltip). Later tables override earlier keys.
+
+## Changes
+
+See [CHANGELOG.md](CHANGELOG.md) for every version.
 
 ## Changes in 0.5.0
 

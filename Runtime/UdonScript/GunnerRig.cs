@@ -595,6 +595,7 @@ namespace Mecaota.Gunner
 
         // ================= 受け手 =================
 
+        /// <summary>実行中に受け手を receivers に足す(同じ受け手は二重に足さない)。</summary>
         public void _Register(GunnerHitReceiver receiver)
         {
             if (receiver == null) return;
@@ -607,6 +608,7 @@ namespace Mecaota.Gunner
             RecountLate();
         }
 
+        /// <summary>受け手を receivers から外す。登録していなければ何もしない。</summary>
         public void _Unregister(GunnerHitReceiver receiver)
         {
             if (receiver == null || receivers == null) return;
@@ -670,8 +672,10 @@ namespace Mecaota.Gunner
 
         // ================= 公開の操作 =================
 
+        /// <summary>単発の一斉射(狙う射出口の組の全部。payload は 0)。</summary>
         public void Fire() { _FireWith(-1, 0); }
 
+        /// <summary>射出口 emitter から単発を1発撃つ(payload は 0)。</summary>
         public void _FireFrom(int emitter) { _FireWith(emitter, 0); }
 
         // emitter < 0 = 一斉射(狙う射出口の組の全部。既定は全部の射出口)。emitter >= 0 は組の外の射出口でも撃つ
@@ -706,8 +710,10 @@ namespace Mecaota.Gunner
             if (any) _Commit();
         }
 
+        /// <summary>連射を始める(payload は 0)。stream が空なら何もしない。</summary>
         public void StartStream() { _StartStreamWith(0); }
 
+        /// <summary>payload 付きで連射を始める(rig を取る)。もう連射中なら payload と狙いだけを送り直す。</summary>
         public void _StartStreamWith(int payload)
         {
             Init();
@@ -783,6 +789,7 @@ namespace Mecaota.Gunner
             _Commit();
         }
 
+        /// <summary>届いた着弾も飛んでいる弾も、記録を全部消す(rig を取る)。</summary>
         public void ClearHits()
         {
             Init();
@@ -825,6 +832,7 @@ namespace Mecaota.Gunner
             else Fire();
         }
 
+        /// <summary>連射: 止める。単発: 何もしない。</summary>
         public void TriggerUp()
         {
             if (fireMode == FireStream) StopStream();
@@ -838,14 +846,19 @@ namespace Mecaota.Gunner
             collideOn = on;
         }
 
+        /// <summary>連射中なら true(誰が始めたかは問わない。同期した値)。</summary>
         public bool _IsStreaming() { return streamOn; }
 
+        /// <summary>この端末で、連射の当たり判定が on なら true。</summary>
         public bool _IsCollisionOn() { return collideOn; }
 
+        /// <summary>連射の粒子がまだ射程の中を飛んでいれば true。</summary>
         public bool _IsStreamInFlight() { return initialized && stream != null && stream._InFlight(Time.time); }
 
+        /// <summary>骨の連動が今 on なら true。</summary>
         public bool _IsBoneFollowing() { return BoneOn(); }
 
+        /// <summary>この端末で、届いて残っている着弾の数。</summary>
         public int _LiveHitCount()
         {
             if (!initialized) return 0;
@@ -857,12 +870,16 @@ namespace Mecaota.Gunner
         // 自分で枠をたどる受け手のための記録の読み出し(この端末の写し)。
         public bool _SlotUsed(int slot) { return initialized && slot >= 0 && slot < slots && slotSeq[slot] != 0; }
 
+        /// <summary>枠の記録の種類(KindWorld / KindMoving / KindPlayer)。空の枠は KindNone。</summary>
         public int _SlotKind(int slot) { return _SlotUsed(slot) ? MetaKind(kMeta[slot]) : KindNone; }
 
+        /// <summary>枠の記録の的の番号(動く物の番号か playerId)。空の枠は -1。</summary>
         public int _SlotIndex(int slot) { return _SlotUsed(slot) ? MetaIndex(kMeta[slot]) : -1; }
 
+        /// <summary>枠の記録の payload。空の枠は 0。</summary>
         public int _SlotPayload(int slot) { return _SlotUsed(slot) ? kPayload[slot] : 0; }
 
+        /// <summary>たどれる枠の数(いつも SyncSlots。maxHits で減らしても変わらない)。</summary>
         public int _SlotCount() { return slots; }
 
         // その点に届く射出口(射程内、円錐の中、間に何も無い)のうち、休みの向きからの角度が一番小さいもの。-1 = なし。
@@ -969,6 +986,7 @@ namespace Mecaota.Gunner
         // 狙っても rig は取らない。持ち主の狙いは、連射中か骨の連動が on の間は同期する。ほかの人の
         // 狙いは、その人の画面の射出口だけを回す。
 
+        /// <summary>ワールドの向きで狙う(長さ 0 の向きは無視する)。</summary>
         public void _SetAimDirection(Vector3 worldDir)
         {
             Init();
@@ -977,6 +995,7 @@ namespace Mecaota.Gunner
             aimVector = worldDir.normalized;
         }
 
+        /// <summary>ワールドの点を狙う。射出口ごとにその点へ向く。</summary>
         public void _SetAimTarget(Vector3 worldPoint)
         {
             Init();
@@ -992,6 +1011,7 @@ namespace Mecaota.Gunner
             aimVector = new Vector3(yaw, pitch, 0f);
         }
 
+        /// <summary>狙いを外す。射出口は休みの向きに戻る。</summary>
         public void ResetAim()
         {
             Init();
@@ -1013,10 +1033,13 @@ namespace Mecaota.Gunner
             aimEmitters = m;
         }
 
+        /// <summary>骨の連動を on にする(_SetBoneFollow(true))。</summary>
         public void BoneFollowOn() { _SetBoneFollow(true); }
 
+        /// <summary>骨の連動を off にする(_SetBoneFollow(false))。</summary>
         public void BoneFollowOff() { _SetBoneFollow(false); }
 
+        /// <summary>骨の連動を切り替える。rig を取り、全員に同期する。</summary>
         public void _SetBoneFollow(bool on)
         {
             Init();
@@ -2201,6 +2224,7 @@ namespace Mecaota.Gunner
 
         private float Speed() { return Mathf.Max(shotSpeed, 0.01f); }
 
+        /// <summary>使う射出口の数(emitters の長さ。最大 MaxEmitters)。</summary>
         public int _EmitterCount() { return emitterCount; }
     }
 }

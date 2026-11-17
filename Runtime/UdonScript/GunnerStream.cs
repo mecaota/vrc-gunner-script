@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Mecaota.Gunner
 {
     // 1つの GunnerRig の連射: 連射の粒子を出し、その経路を持ち、当たる所を見つけ(持ち主)、トレイルをつなぐ。
-    // rig からだけ動かされる(Update → _PreSimulate、PostLateUpdate → _Step)。自分のイベントは持たない。
+    // rig からだけ動かされる(Update → _PreSimulate、PostLateUpdate → _StepMasked。_Step は組なしの版)。自分のイベントは持たない。
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class GunnerStream : UdonSharpBehaviour
     {

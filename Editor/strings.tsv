@@ -93,6 +93,7 @@ GunnerRig.stream	連射	Stream
 GunnerRig.stream.tip	連射モードで使う GunnerStream	The GunnerStream used in stream mode
 GunnerRig.fireMode	撃ち方	Fire mode
 GunnerRig.fireMode.opt	単発|連射	Single|Stream
+GunnerRig.fireMode.tip	TriggerDown / TriggerUp の動き。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	What TriggerDown / TriggerUp do. Single: one shot per press. Stream: keeps shooting while held
 GunnerRig.maxHits	記録数	Hit records
 GunnerRig.maxHits.tip	この端末で使う着弾の数(1〜16)。同期は常に16件なので、Android で減らしても PC と食い違わない	Hits this device uses (1-16). The sync always holds 16, so a lower value on Android stays compatible with PC
 GunnerRig.shotSpeed	弾の速さ	Shot speed
@@ -104,6 +105,7 @@ GunnerRig.castRadius.tip	当たり判定の太さ(メートル)	Hit test thickne
 GunnerRig.hitMask	当たるレイヤー	Hit layers
 GunnerRig.hitMask.tip	プレイヤーのレイヤーはここでは見ない。人は「人に当たる」で決める	Player layers are ignored here; "Hit players" decides
 GunnerRig.hitPlayers	人に当たる	Hit players
+GunnerRig.hitPlayers.tip	弾が人に当たるか。人に当たるかは「当たるレイヤー」ではなくここで決める	Whether shots hit players. Players are decided here, not by Hit layers
 GunnerRig.excludeOwner	自分には当てない	Skip own body
 GunnerRig.excludeOwner.tip	この端末の本人には当たらない(撃つ人が自分の弾に当たらない)。罠の場合は、rig を持っている人にも当たらない	The player on this device is never hit (shooters don't hit themselves). For a trap, its rig's owner is not hit either
 GunnerRig.playerRadius	体の太さ	Body radius
@@ -111,20 +113,23 @@ GunnerRig.playerRadius.tip	目の高さに対する割合	Share of the eye heigh
 GunnerRig.aimMaxAngle	可動域	Aim limit
 GunnerRig.aimMaxAngle.tip	射出口が狙える角度の上限(度)。撃つ向きの初期値から測る。ボーン連動の上限より大きいと、骨が止まった先は射出口だけが向く	Limit of the emitter's aim (degrees), measured from the rest direction. If it is larger than the bone link limits, only the emitter turns past where the bones stop
 GunnerRig.aimMaxAngles	射出口ごとの可動域	Per-emitter aim limit
-GunnerRig.aimMaxAngles.tip	射出口ごとに狙える角度の上限(度)。0 か空の射出口は「可動域」を使う。どの射出口で狙うかを選ぶ時もこの値を使う。手に持つ球のスティックの狙いは「可動域」で切る	Aim limit for each emitter (degrees). 0 or empty uses Aim limit. Also used when choosing which emitter aims. The hand-held stick aim is limited by Aim limit
+GunnerRig.aimMaxAngles.tip	射出口ごとに狙える角度の上限(度)。0 か空の射出口は「可動域」を使う。どの射出口で狙うかを選ぶ時もこの値を使う。角度での狙い(手に持つ球のスティックなど)は、この値と「可動域」の小さいほうで切る	Aim limit for each emitter (degrees). 0 or empty uses Aim limit. Also used when choosing which emitter aims. Angle aim (such as the hand-held stick) is limited by the smaller of this value and Aim limit
 GunnerRig.aimMaxAngles.row	0 なら「可動域」を使う	0 = use Aim limit
 GunnerRig.streamRate	連射の量	Stream rate
 GunnerRig.streamRate.tip	射出口ごとの毎秒の粒の数	Particles per second per emitter
 GunnerRig.streamWidth	線の太さ	Line width
+GunnerRig.streamWidth.tip	線につないだ時の太さ(メートル)。既定は 0.02。「線につなぐ」の時だけ効く。起動時に1回だけ読む	Width of the joined line (metres). Default 0.02. Used only with Joined line. Read once at start
 GunnerRig.streamWidthScales	射出口ごとの線の太さ	Per-emitter line width
-GunnerRig.streamWidthScales.tip	射出口ごとに「線の太さ」に掛ける倍率。0 か空の射出口は 1(線の太さのまま)。連射を始める前に1回だけ読む	Multiplier on Line width for each emitter. 0 or empty = 1 (Line width as is). Read once before the first stream
+GunnerRig.streamWidthScales.tip	射出口ごとに「線の太さ」に掛ける倍率。0 か空の射出口は 1(線の太さのまま)。起動時に1回だけ読む。「線につなぐ」の時だけ効く	Multiplier on Line width for each emitter. 0 or empty = 1 (Line width as is). Read once at start. Used only when Join is "Joined line"
 GunnerRig.streamWidthScales.row	0 なら 1 倍	0 = 1x
 GunnerRig.streamTaper	線の太さの変化	Line taper
-GunnerRig.streamTaper.tip	空なら一定	Empty = flat
+GunnerRig.streamTaper.tip	1本のトレイルに沿った太さの倍率。キーが2つ以上ある時だけ効く。それ以外は一定。「線につなぐ」の時だけ効く	Width multiplier along each trail. Used only when the curve has 2 or more keys; otherwise flat. Used only when Join is "Joined line"
 GunnerRig.streamJoin	連射の見た目	Stream look
 GunnerRig.streamJoin.opt	粒のまま|線につなぐ	Particles|Joined line
+GunnerRig.streamJoin.tip	粒のまま: 粒子だけを出す。線につなぐ: 粒子のトレイルをつないで1本の線に見せる(粒子にトレイルが要る)	Particles: particles only. Joined line: particle trails are joined into one line (the particles need trails)
 GunnerRig.streamHitMode	連射の当たり方	Stream hits
 GunnerRig.streamHitMode.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
+GunnerRig.streamHitMode.tip	1回で止める: 射出口ごとに最初の当たりを1つだけ記録する。連射をやり直すか、当たり判定を入れ直すまで次は記録しない。当たり続ける: 「当たりの間隔」ごとに記録する	Stop at first hit: each emitter records only its first hit, until the stream restarts or collision is turned back on. Keep hitting: records once per Hit interval
 GunnerRig.streamClearOnHit	当たったら線を消す	Clear line on hit
 GunnerRig.streamClearOnHit.tip	「1回で止める」の時、最初の当たりでその射出口の飛んでいる粒子とトレイルを消す。切ると当たりを1つ記録するだけで、出し続けている線は途切れない	Stop at first hit: clear that emitter's flying particles and trails on the first hit. Off = record one hit only and keep the running line unbroken
 GunnerRig.streamHitInterval	当たりの間隔	Hit interval
@@ -134,6 +139,7 @@ GunnerRig.streamCollide.tip	開始時の値。球などが実行中に切り替�
 GunnerRig.boneFollow	ボーン連動	Bone link
 GunnerRig.boneFollow.tip	狙いに合わせてボーンを回す	Turn the bone with the aim
 GunnerRig.boneStrength	連動の割合	Link share
+GunnerRig.boneStrength.tip	狙いの角度のうち、骨が受け持つ割合(0〜1)。残りは射出口だけが向く	Share of the aim angle the bones take (0-1). The emitter turns the rest by itself
 GunnerRig.boneYawMax	左右の上限	Yaw limit
 GunnerRig.boneYawMax.tip	骨1本あたりの左右の曲がりの上限(度)。追加の骨があると、鎖全体ではこの値 × 骨の数まで曲がる	Yaw limit per bone (degrees). With extra bones, the whole chain turns up to this value × the number of bones
 GunnerRig.bonePitchUpMax	上の上限	Pitch up limit
@@ -153,9 +159,13 @@ GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
 GunnerRig.boneMaxSpeed	最高の速さ	Maximum speed
 GunnerRig.boneMaxSpeed.tip	追従が回る速さの上限(度毎秒)。0 なら上限なし。入れると、相手が急に動いても上限の速さでなめらかに追い、速さの上がり方も0.25秒で上限に届く割合までに抑える	Upper limit of the follow turning speed (degrees per second). 0 = no limit. When set, sudden target moves are followed smoothly at this speed, and speeding up is limited so it reaches the limit in 0.25 s
 GunnerHandController.rig	GunnerRig	GunnerRig
+GunnerHandController.rig.tip	この球で撃つ rig	The rig this ball shoots
 GunnerHandController.input	入力	Input
+GunnerHandController.input.tip	同じ球の GunnerPickupInput。持つ手とトリガーを読む	The GunnerPickupInput on this ball. Reads the hand and the trigger
 GunnerHandController.aim	スティックの狙い	Stick aim
+GunnerHandController.aim.tip	任意。空ならスティックで狙わない	Optional. Empty = no stick aim
 GunnerHandController.hold	移動ロック	Move hold
+GunnerHandController.hold.tip	任意。空なら撃つ間も歩ける	Optional. Empty = the player can walk while shooting
 GunnerHandController.emitter	射出口の番号	Emitter index
 GunnerHandController.emitter.tip	単発で使う射出口。-1 ならすべて	Emitter for single shots. -1 = all
 GunnerHandController.payload	payload	Payload
@@ -168,9 +178,11 @@ GunnerHandController.releaseWindow.tip	離してから当たれる最大の秒�
 GunnerHandController.followBone	ボーン連動を入れる	Turn bone link on
 GunnerHandController.followBone.tip	持っている間だけ rig のボーン連動を入れる	Bone link on while held
 GunnerHandController.resetAimOnEnd	終わったら狙いを戻す	Reset aim on end
+GunnerHandController.resetAimOnEnd.tip	持ち終えたら rig の狙いを外し、射出口を休みの向きに戻す	When holding ends, clear the rig's aim so the emitters return to rest
 GunnerHandController.useEmitters	使う射出口の組	Emitter set
 GunnerHandController.useEmitters.tip	持っている間に狙い・連射・一斉射に使う射出口(ビット: 1 = 射出口0、2 = 射出口1、3 = 両方)。0 ならすべて(今までどおり)	Emitters used for aim, stream and volley while held (bits: 1 = emitter 0, 2 = emitter 1, 3 = both). 0 = all (as before)
 GunnerPickupInput.controller	Controller	Controller
+GunnerPickupInput.controller.tip	入力を渡す GunnerHandController	The GunnerHandController that receives the input
 GunnerPickupInput.pickup	Pickup	Pickup
 GunnerPickupInput.pickup.tip	空ならこの GameObject の VRC Pickup	Empty = the VRC Pickup on this GameObject
 GunnerPickupInput.hand	撃てる手	Shooting hand
@@ -178,17 +190,22 @@ GunnerPickupInput.hand.opt	左手|右手|どちらでも	Left|Right|Either
 GunnerPickupInput.hand.tip	VR だけ。デスクトップは持つだけで撃てる	VR only. On desktop holding is enough
 GunnerPickupInput.desktopStick	デスクトップの狙い	Desktop aim keys
 GunnerPickupInput.desktopStick.opt	WASD|矢印キー	WASD|Arrow keys
+GunnerPickupInput.desktopStick.tip	デスクトップで狙いに使うキー	Keys used to aim on desktop
 GunnerPickupInput.invertVertical	上下を逆にする	Invert vertical
+GunnerPickupInput.invertVertical.tip	スティックの上下の向きを逆にして狙う	Aim with the stick's up and down swapped
 GunnerStickAim.mode	狙い方	Aim mode
 GunnerStickAim.mode.opt	倒した分だけ回る|倒した位置が角度	Rate|Position
+GunnerStickAim.mode.tip	倒した分だけ回る: 倒すと狙いが回り、離すとその向きに残る。倒した位置が角度: 倒した量がそのまま角度になる	Rate: tilting turns the aim, and it stays when released. Position: the tilt is the angle
 GunnerStickAim.turnSpeed	回る速さ	Turn speed
 GunnerStickAim.turnSpeed.tip	いっぱいに倒したときの度毎秒	Degrees per second at full tilt
 GunnerStickAim.range	範囲	Range
 GunnerStickAim.range.tip	左右・上下それぞれの角度(度)	Degrees each way
 GunnerStickAim.deadZone	遊び	Dead zone
+GunnerStickAim.deadZone.tip	スティックの中央付近で無視する傾き(0〜0.95)	Tilt ignored near the stick centre (0-0.95)
 GunnerStickAim.positionEase	追いつく速さ	Ease
 GunnerStickAim.positionEase.tip	位置が角度のとき。0 ですぐ	Position mode. 0 = at once
 GunnerMoveHold.holdWhileActive	撃つ間は動けなくする	Hold still while shooting
+GunnerMoveHold.holdWhileActive.tip	撃つ間、自分をその場に留める(歩く速さは変えない)	Keeps the local player in place while shooting (walk speed is not changed)
 GunnerMoveHold.releaseBlocked	解除を止める	Block release
 GunnerMoveHold.releaseBlocked.tip	真の間は解除しない(座席や罠が押さえているとき)	While true, never releases (a seat or trap holds the player)
 GunnerHitSplash.targetRig	GunnerRig	GunnerRig
@@ -196,11 +213,17 @@ GunnerHitSplash.targetRig.tip	開始時にこの rig へ自分を登録する	Re
 GunnerHitSplash.splash	しぶきの粒子	Splash particles
 GunnerHitSplash.splash.tip	World simulation space。+Z がしぶきの向き	World simulation space. +Z = splash direction
 GunnerHitSplash.burst	粒の数	Burst
+GunnerHitSplash.burst.tip	1回の着弾で出す粒の数(最低1)	Particles per hit (at least 1)
 GunnerHitSplash.onWorld	壁や床	World
+GunnerHitSplash.onWorld.tip	壁や床への着弾でしぶきを出す	Splash on hits on the world
 GunnerHitSplash.onMoving	動く物	Moving objects
+GunnerHitSplash.onMoving.tip	動く物への着弾でしぶきを出す	Splash on hits on moving objects
 GunnerHitSplash.onPlayers	人	Players
+GunnerHitSplash.onPlayers.tip	人への着弾でしぶきを出す	Splash on hits on players
 GunnerHitSplash.onStream	連射の着弾	Stream hits
+GunnerHitSplash.onStream.tip	連射の着弾でもしぶきを出す。切ると単発だけ	Splash on stream hits too. Off = single shots only
 GunnerHitSplash.sound	音	Sound
+GunnerHitSplash.sound.tip	任意。着弾した所で鳴らす音源	Optional. Played at the hit point
 GunnerHitSplash.surfaceOffset	面からの浮き	Surface offset
 GunnerHitSplash.surfaceOffset.tip	メートル	Metres
 GunnerHitReceiver.wantsLateStep	毎フレーム呼ぶ	Late step
@@ -212,7 +235,9 @@ GunnerSounds.fireClip.tip	空なら鳴らさない	Empty = silent
 GunnerSounds.impactClip	着弾音	Impact sound
 GunnerSounds.impactClip.tip	空なら鳴らさない	Empty = silent
 GunnerSounds.fireVolume	発射音の音量	Fire volume
+GunnerSounds.fireVolume.tip	発射音を鳴らす音源の音量(0〜1)	Source volume for fire sounds (0-1)
 GunnerSounds.impactVolume	着弾音の音量	Impact volume
+GunnerSounds.impactVolume.tip	着弾音を鳴らす音源の音量(0〜1)	Source volume for impact sounds (0-1)
 GunnerSounds.pitchJitter	高さの揺れ	Pitch jitter
 GunnerSounds.pitchJitter.tip	鳴らすたびに音の高さを少し変える。0 で切	Varies the pitch a little each time. 0 = off
 GunnerSounds.fireVoices	発射音の音源	Fire sources
@@ -226,9 +251,13 @@ GunnerSounds.impactMinInterval.tip	これより短い間隔の着弾音は鳴ら
 GunnerSounds.streamFireInterval	連射中の発射音の間隔	Stream fire interval
 GunnerSounds.streamFireInterval.tip	秒。0 なら撃ち始めの1回だけ	Seconds. 0 = once when the stream starts
 GunnerSounds.impactOnStream	連射の着弾	Stream hits
+GunnerSounds.impactOnStream.tip	連射の着弾でも着弾音を鳴らす。切ると単発だけ	Impact sounds for stream hits too. Off = single shots only
 GunnerSounds.onWorld	壁や床	World
+GunnerSounds.onWorld.tip	壁や床への着弾で着弾音を鳴らす	Impact sound on hits on the world
 GunnerSounds.onMoving	動く物	Moving objects
+GunnerSounds.onMoving.tip	動く物への着弾で着弾音を鳴らす	Impact sound on hits on moving objects
 GunnerSounds.onPlayers	人	Players
+GunnerSounds.onPlayers.tip	人への着弾で着弾音を鳴らす	Impact sound on hits on players
 GunnerSounds.cullDistance	鳴らす距離	Cull distance
 GunnerSounds.cullDistance.tip	自分からこれより遠い音は鳴らさない(メートル)。0 なら音源の届く距離	Sounds farther than this from you are not played (metres). 0 = the sources' reach
 GunnerSounds.reach	届く距離	Reach

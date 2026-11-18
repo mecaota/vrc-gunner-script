@@ -87,7 +87,7 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
 | `impactParticles` | empty | Particles burst at the hit point (World simulation space, +Z = splash direction). The particle system decides the look and lifetime. Empty = none. |
 | `impactBurst` | 12 | Particles per hit (at least 1). |
-| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). `impactMinInterval` also drops impact particles. |
+| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). Impact particles are not dropped. |
 | `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound and burst the impact particles. |
 | `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
 
@@ -178,7 +178,7 @@ See [CHANGELOG.md](CHANGELOG.md) for every version.
 
 ## Changes in 0.9.0
 
-The hit splash receiver is merged into `GunnerRig`: set `impactParticles` and `impactBurst` in the **Sounds and particles** section. It follows the impact sound's filters (`soundOn*`, `impactMinInterval`). See CHANGELOG.md.
+The hit splash receiver is merged into `GunnerRig`: set `impactParticles` and `impactBurst` in the **Sounds and particles** section. It follows the impact sound's filters (`soundOn*`), but `impactMinInterval` drops only the sound. See CHANGELOG.md.
 
 ## Changes in 0.8.0
 

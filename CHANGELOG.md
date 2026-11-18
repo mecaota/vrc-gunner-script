@@ -12,20 +12,18 @@ The hit splash receiver is merged into the rig. It shares the impact sound's fil
 
 ### Added / 追加
 
-- `GunnerRig.impactParticles` and `impactBurst`: particles burst at the hit point (World simulation space, +Z = splash direction). The particle system decides the look and lifetime. Empty = none. They use the impact sound's filters: `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`, `hitReplay`, `hitResolved` and `impactMinInterval`.
+- `GunnerRig.impactParticles` and `impactBurst`: particles burst at the hit point (World simulation space, +Z = splash direction). The particle system decides the look and lifetime. Empty = none. They use the impact sound's filters: `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`, `hitReplay` and `hitResolved`. `impactMinInterval` drops only the sound, not the particles.
 - The Check Window reports `impactParticles` that are not in World simulation space.
-- `GunnerRig.impactParticles` と `impactBurst`。当たった点で粒子を弾けさせます(World simulation space、+Z が飛び散る向き)。粒の見た目と寿命は粒子の側で決めます。空なら出しません。絞り込みは着弾音と同じです: `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`、`hitReplay`、`hitResolved`、`impactMinInterval`。
+- `GunnerRig.impactParticles` と `impactBurst`。当たった点で粒子を弾けさせます(World simulation space、+Z が飛び散る向き)。粒の見た目と寿命は粒子の側で決めます。空なら出しません。絞り込みは着弾音と同じです: `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`、`hitReplay`、`hitResolved`。`impactMinInterval` が間引くのは音だけで、粒子は間引きません。
 - 点検ウィンドウが、World simulation space でない `impactParticles` を知らせます。
 
 ### Changed / 変更
 
 - `impactClip` may be empty while `impactParticles` is set (particles only), and the other way round (sound only).
-- `impactMinInterval` now drops impact particles too, and it starts counting when a hit passes the filters, even if the sound is then not played (for example, too far from the listener).
-- Stream hits always burst the particles (the splash's `onStream` switch is gone). Use `impactMinInterval` if they are too many.
+- Stream hits always burst the particles (the splash's `onStream` switch is gone). To show fewer, lower `impactBurst`.
 - The inspector section **Sounds** is now **Sounds and particles**. `Prefab/GunnerRig.prefab` and `Scene/Gunner.unity` use the rig's new fields instead of a `GunnerHitSplash`.
 - `impactClip` が空で `impactParticles` だけ(粒子だけ)、その逆(音だけ)にできます。
-- `impactMinInterval` は着弾の粒子も間引きます。数え始めは、着弾が絞り込みを通った時です(その後、聞く人から遠いなどで音が鳴らなくても数えます)。
-- 連射の着弾でも、いつも粒子を出します(しぶきの `onStream` はなくなりました)。多すぎる時は `impactMinInterval` で間引いてください。
+- 連射の着弾でも、いつも粒子を出します(しぶきの `onStream` はなくなりました)。多すぎる時は `impactBurst` を減らしてください。
 - インスペクタの節 **効果音** は **効果音と粒子** になりました。`Prefab/GunnerRig.prefab` と `Scene/Gunner.unity` は、`GunnerHitSplash` の代わりに rig の新しい欄を使います。
 
 ### Removed / 削除

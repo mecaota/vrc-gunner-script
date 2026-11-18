@@ -132,7 +132,7 @@ namespace Mecaota.Gunner
         public AudioSource[] fireVoices;
         public AudioSource[] impactVoices;
         // 任意: 着弾した所で弾けさせる粒子(World simulation space。+Z = 飛び散る向き)。空なら出さない。
-        // 粒の見た目と寿命は粒子の側で決める。出すかどうかは着弾音と同じ絞り込み(soundOn* と impactMinInterval)に従う。
+        // 粒の見た目と寿命は粒子の側で決める。出すかどうかは着弾音と同じ絞り込み(soundOn*)に従う。間引かない(impactMinInterval は音だけ)。
         public ParticleSystem impactParticles;
         public int impactBurst = 12;
         public float fireMinInterval = 0.05f;     // 同じフレームの一斉射撃を1回にまとめる
@@ -685,7 +685,7 @@ namespace Mecaota.Gunner
             if (PlaySound(fireVoices, fireVoiceStarted, fireClip, fireVolume, emitters[at].position)) lastFireSound = Time.time;
         }
 
-        // 着弾音と着弾の粒子は当たった点で出す。LoadHit の後(hit* が埋まっている時)に呼ぶ。
+        // 着弾音と着弾の粒子は当たった点で出す。粒は着弾のたびに出し、間引くのは音だけ。LoadHit の後(hit* が埋まっている時)に呼ぶ。
         // 遅れて入った人に戻される古い記録や、相手が見つからない記録では出さない。クリップと粒子はどちらも空でよい。
         private void PlayImpact()
         {
@@ -693,10 +693,9 @@ namespace Mecaota.Gunner
             if (hitKind == KindWorld && !soundOnWorld) return;
             if (hitKind == KindMoving && !soundOnMoving) return;
             if (hitKind == KindPlayer && !soundOnPlayers) return;
-            if (Time.time - lastImpact < impactMinInterval) return;
-            lastImpact = Time.time;
-            PlaySound(impactVoices, impactVoiceStarted, impactClip, impactVolume, hitPoint);
             EmitImpactParticles();
+            if (Time.time - lastImpact < impactMinInterval) return;
+            if (PlaySound(impactVoices, impactVoiceStarted, impactClip, impactVolume, hitPoint)) lastImpact = Time.time;
         }
 
         // 面の向きを短い Raycast で取り直し、面から少し浮かせて弾けさせる。人や面が見つからない時は、弾の来た向きへ飛び散らせる。

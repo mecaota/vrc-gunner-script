@@ -148,7 +148,7 @@ GunnerRig.impactBurst.tip	1回の着弾で出す粒の数(最低1)	Particles per
 GunnerRig.fireMinInterval	発射音の間引き	Fire min interval
 GunnerRig.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
 GunnerRig.impactMinInterval	着弾音の間引き	Impact min interval
-GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音と着弾の粒子は出さない(秒)	Impact sounds and particles closer together than this are dropped (seconds)
+GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)。着弾の粒子は間引かない	Impact sounds closer together than this are dropped (seconds). Impact particles are not dropped
 GunnerRig.soundOnPlayers	人	Players
 GunnerRig.soundOnPlayers.tip	人への着弾で着弾音と着弾の粒子を出す	Impact sound and particles on hits on players
 GunnerRig.soundOnWorld	壁や床	World

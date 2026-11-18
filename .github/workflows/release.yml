@@ -22,17 +22,13 @@ on:
 permissions:
   contents: read
 
-# 続けて走った run が、先の run の作ったタグを見てから判定するように
-concurrency:
-  group: release
-  cancel-in-progress: false
-
 jobs:
 
   check:
     runs-on: ubuntu-latest
     outputs:
       released: ${{ steps.check.outputs.released }}
+      version: ${{ steps.check.outputs.version }}
     steps:
 
       - name: Checkout
@@ -45,6 +41,7 @@ jobs:
           tag="$(git ls-remote --tags --refs origin "refs/tags/$version")"
           if [ -n "$tag" ]; then released=true; else released=false; fi
           echo "released=$released" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
   verify:
     needs: check
@@ -53,8 +50,12 @@ jobs:
     secrets: inherit
 
   build:
-    needs: verify
+    needs: [check, verify]
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    # 同じ版の build は順に走らせ、後の run は先の run が作ったタグで止まる
+    concurrency:
+      group: release-${{ needs.check.outputs.version }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -3,7 +3,7 @@ name: Bump Version
 # Run this workflow from "Run workflow" on the default branch (main) and enter the version
 # to release next.
 # It rewrites the version in the package.json to that value and opens a pull request from
-# bump-version/<version> with the change. Merge it, then run "Build Release" to publish.
+# bump-version/<version> with the change. Merging it publishes the release through "Build Release".
 # The branch and the pull request are handled by peter-evans/create-pull-request, which
 # reuses and updates them when the workflow runs again for the same version.
 # Opening the pull request needs "Allow GitHub Actions to create and approve pull requests"
@@ -132,7 +132,7 @@ jobs:
             process.exit(1);
           }
           if (updated === text) {
-            console.log(`::notice::package.json はすでに ${version} です。そのまま Build Release を実行してください`);
+            console.log(`::notice::package.json はすでに ${version} です。PR は作らないので、Build Release を手で実行してください`);
           }
           fs.writeFileSync(file, updated);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${updated !== text}\n`);
@@ -179,7 +179,7 @@ jobs:
           add-paths: package.json
           commit-message: "chore: バージョンを ${{ env.version }} にする"
           title: "chore: バージョンを ${{ env.version }} にする"
-          body: package.json の version を ${{ env.version }} にします。マージしたら Build Release を実行してください。
+          body: package.json の version を ${{ env.version }} にします。マージすると Build Release が自動でリリースします。
 
       # When the pull request could not be opened (most often because the repository setting
       # above is off), point to where it can be opened by hand

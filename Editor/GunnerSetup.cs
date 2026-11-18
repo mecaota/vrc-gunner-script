@@ -84,17 +84,6 @@ namespace Mecaota.Gunner.EditorTools
         [MenuItem(Root + "Place Hand Controller", true)]
         static bool CanPlaceHand() => RigFor(Selection.activeGameObject) != null;
 
-        [MenuItem(Root + "Add Hit Splash", false, Priority + 21)]
-        static void MenuAddSplash(MenuCommand command)
-        {
-            var rig = RigFor(Target(command));
-            if (rig == null) return;
-            Selection.activeObject = AddSplash(rig).gameObject;
-        }
-
-        [MenuItem(Root + "Add Hit Splash", true)]
-        static bool CanAddSplash() => RigFor(Selection.activeGameObject) != null;
-
         [MenuItem("Tools/Gunner/Check Window", false, 0)]
         static void MenuCheckWindow() => GunnerCheckWindow.Open();
 
@@ -209,43 +198,6 @@ namespace Mecaota.Gunner.EditorTools
             // 玉は撃つ人のすぐそばに持たれる: 弾が玉で止まってはいけない。
             if (GunnerEditorUtil.InMask(rig.hitMask, PickupLayer)) ExcludeLayer(rig, PickupLayer);
             return hand;
-        }
-
-        public static GunnerHitSplash AddSplash(GunnerRig rig)
-        {
-            var parts = Parts(rig);
-            var go = GunnerEditorUtil.CreateChild(parts, GunnerEditorUtil.UniqueChildName(parts, "HitSplash"));
-            var psGo = GunnerEditorUtil.CreateChild(go.transform, "Splash");
-            var ps = Undo.AddComponent<ParticleSystem>(psGo);
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = ps.main;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.playOnAwake = false;
-            main.loop = false;
-            // 確認しやすい既定値: 大きく明るく長持ちさせ、遠くからのスクリーンショットでも弾けた様子が写るようにする。
-            main.startLifetime = 1.5f;
-            main.startSpeed = 3f;
-            main.startSize = 0.2f;
-            main.gravityModifier = 0.5f;
-            var emission = ps.emission;
-            emission.rateOverTime = 0f;
-            var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 35f;
-            shape.radius = 0.01f;
-            var renderer = psGo.GetComponent<ParticleSystemRenderer>();
-            var mat = AssetDatabase.LoadAssetAtPath<Material>("Packages/com.mecaota.gunner/Material/GunnerSampleSplashDebug.mat");
-            if (mat == null) mat = GunnerEditorUtil.DefaultParticleMaterial();
-            if (renderer != null && mat != null) renderer.sharedMaterial = mat;
-
-            var splash = GunnerEditorUtil.AddUdon<GunnerHitSplash>(go);
-            GunnerEditorUtil.Edit(splash, so =>
-            {
-                so.FindProperty("targetRig").objectReferenceValue = rig;
-                so.FindProperty("splash").objectReferenceValue = ps;
-                so.FindProperty("burst").intValue = 30;
-            });
-            return splash;
         }
 
         public static void ExcludeLayer(GunnerRig rig, int layer)

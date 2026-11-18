@@ -53,14 +53,6 @@ namespace Mecaota.Gunner.EditorTools
             {
                 Field("receivers");
                 Field("stream");
-                using (new EditorGUI.DisabledScope(targets.Length != 1))
-                {
-                    if (GUILayout.Button(T("button.add_splash")))
-                    {
-                        GunnerSetup.AddSplash(rig);
-                        GUIUtility.ExitGUI();
-                    }
-                }
             }
 
             if (Foldout("GunnerRig.section.shot"))
@@ -109,6 +101,8 @@ namespace Mecaota.Gunner.EditorTools
                 Field("pitchJitter");
                 Field("fireVoices");
                 Field("impactVoices");
+                Field("impactParticles");
+                Field("impactBurst");
                 Field("fireMinInterval");
                 Field("impactMinInterval");
                 Field("soundOnPlayers");

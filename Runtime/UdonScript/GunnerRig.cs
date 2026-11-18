@@ -63,6 +63,8 @@ namespace Mecaota.Gunner
         private const float AimSyncMove = 0.05f;
         private const float BodyRadiusMin = 0.08f;  // メートル。小さいアバターにも当たるように
         private const float BodyRadiusMax = 0.5f;   // メートル。大きいアバターが近くの弾を全部吸い込まないように
+        private const float ImpactProbe = 0.3f;     // メートル。着弾の粒子の向きを決める面を、着弾点の前後これだけ探す
+        private const float ImpactLift = 0.02f;     // メートル。着弾の粒子を面から浮かせる(面の中で弾けないように)
         // 暴れ止め: 休みの向きから上下にこの角度(度)を超える狙いでは、左右の角度を前の値のまま保つ。
         // 狙える角度がこれ以下の射出口では起きないので、既定の rig(60 度)は今までと同じ。
         private const float FlipPitch = 80f;
@@ -129,6 +131,10 @@ namespace Mecaota.Gunner
         // 音源は発射用と着弾用で分け、それぞれ複数持てる。Udon は実行時に VRC_SpatialAudioSource を足せないので、エディタで付けておく
         public AudioSource[] fireVoices;
         public AudioSource[] impactVoices;
+        // 任意: 着弾した所で弾けさせる粒子(World simulation space。+Z = 飛び散る向き)。空なら出さない。
+        // 粒の見た目と寿命は粒子の側で決める。出すかどうかは着弾音と同じ絞り込み(soundOn* と impactMinInterval)に従う。
+        public ParticleSystem impactParticles;
+        public int impactBurst = 12;
         public float fireMinInterval = 0.05f;     // 同じフレームの一斉射撃を1回にまとめる
         public float impactMinInterval = 0.08f;   // 当たり続ける連射で鳴りすぎないように
         public bool soundOnPlayers = true;
@@ -300,7 +306,7 @@ namespace Mecaota.Gunner
         private float[] fireVoiceStarted;
         private float[] impactVoiceStarted;
         private float lastFireSound = -1000f;
-        private float lastImpactSound = -1000f;
+        private float lastImpact = -1000f;
 
         // ================= 起動と終了 =================
 
@@ -626,7 +632,7 @@ namespace Mecaota.Gunner
         // どのループも始めた時の配列をたどる: 受け手がコールバックの中で登録することがあるため。
         private void NotifyHit()
         {
-            PlayImpactSound();
+            PlayImpact();
             GunnerHitReceiver[] list = receivers;
             for (int i = 0; i < list.Length; i++) if (list[i] != null) list[i]._OnHit(this);
         }
@@ -679,16 +685,41 @@ namespace Mecaota.Gunner
             if (PlaySound(fireVoices, fireVoiceStarted, fireClip, fireVolume, emitters[at].position)) lastFireSound = Time.time;
         }
 
-        // 着弾音は当たった点で鳴らす。LoadHit の後(hit* が埋まっている時)に呼ぶ。
-        // 遅れて入った人に戻される古い記録や、相手が見つからない記録では鳴らさない。
-        private void PlayImpactSound()
+        // 着弾音と着弾の粒子は当たった点で出す。LoadHit の後(hit* が埋まっている時)に呼ぶ。
+        // 遅れて入った人に戻される古い記録や、相手が見つからない記録では出さない。クリップと粒子はどちらも空でよい。
+        private void PlayImpact()
         {
-            if (impactClip == null || impactVoiceStarted == null || hitReplay || !hitResolved) return;
+            if (hitReplay || !hitResolved) return;
             if (hitKind == KindWorld && !soundOnWorld) return;
             if (hitKind == KindMoving && !soundOnMoving) return;
             if (hitKind == KindPlayer && !soundOnPlayers) return;
-            if (Time.time - lastImpactSound < impactMinInterval) return;
-            if (PlaySound(impactVoices, impactVoiceStarted, impactClip, impactVolume, hitPoint)) lastImpactSound = Time.time;
+            if (Time.time - lastImpact < impactMinInterval) return;
+            lastImpact = Time.time;
+            PlaySound(impactVoices, impactVoiceStarted, impactClip, impactVolume, hitPoint);
+            EmitImpactParticles();
+        }
+
+        // 面の向きを短い Raycast で取り直し、面から少し浮かせて弾けさせる。人や面が見つからない時は、弾の来た向きへ飛び散らせる。
+        private void EmitImpactParticles()
+        {
+            if (impactParticles == null) return;
+            Vector3 point = hitPoint;
+            Vector3 incoming = Vector3.forward;
+            if (ValidEmitter(hitEmitter))
+            {
+                Vector3 to = point - emitters[hitEmitter].position;
+                if (to.sqrMagnitude > 0.000001f) incoming = to.normalized;
+            }
+            Vector3 normal = -incoming;
+            RaycastHit hit;
+            if (hitKind != KindPlayer
+                && Physics.Raycast(point - incoming * ImpactProbe, incoming, out hit, ImpactProbe * 2f, hitMask.value & ~PlayerLayers, QueryTriggerInteraction.Ignore))
+            {
+                normal = hit.normal;
+                point = hit.point;
+            }
+            impactParticles.transform.SetPositionAndRotation(point + normal * ImpactLift, Quaternion.LookRotation(normal));
+            impactParticles.Emit(Mathf.Max(1, impactBurst));
         }
 
         // 鳴っていない音源を先に使い、全部鳴っていればいちばん古い音を止めて使う。

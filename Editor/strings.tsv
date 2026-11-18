@@ -7,7 +7,6 @@ button.fix	直す	Fix
 button.recheck	再点検	Recheck
 button.add_emitter	射出口を足す	Add emitter
 button.place_hand	球を置く	Place hand ball
-button.add_splash	しぶきの受け手を足す	Add hit splash
 check.all_ok	問題は見つかりませんでした。	No problems found.
 check.l10n.missing	文字列の抜け: {0}	Missing text: {0}
 check.rig.no_emitter	射出口がありません	No emitter
@@ -46,15 +45,13 @@ check.input.no_pickup	同じ GameObject に VRC Pickup がありません	No VRC
 check.input.pickup_elsewhere	Pickup の欄が別の物を指しています	The Pickup field points elsewhere
 check.input.autohold	AutoHold が Yes でないため、トリガーが届きません	AutoHold is not Yes, so the trigger never arrives
 check.input.no_object_sync	VRC Object Sync がなく、ほかの人には球が動いて見えません	No VRC Object Sync: others will not see the ball move
-check.splash.no_particle	しぶきの粒子が未設定です	No splash particles set
-check.receiver.no_rig	どの GunnerRig にも登録されていません	Not registered on any GunnerRig
 check.stream.unused	どの GunnerRig からも使われていません	Not used by any GunnerRig
 GunnerRig.section.emitters	射出口	Emitters
 GunnerRig.section.receivers	受け手	Receivers
 GunnerRig.section.shot	射撃	Shooting
 GunnerRig.section.stream	連射	Stream
 GunnerRig.section.bone	ボーン連動	Bone link
-GunnerRig.section.sound	効果音	Sounds
+GunnerRig.section.sound	効果音と粒子	Sounds and particles
 GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
 GunnerRig.emitters	射出口	Emitters
@@ -144,16 +141,20 @@ GunnerRig.fireVoices	発射音の音源	Fire sources
 GunnerRig.fireVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
 GunnerRig.impactVoices	着弾音の音源	Impact sources
 GunnerRig.impactVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
+GunnerRig.impactParticles	着弾の粒子	Impact particles
+GunnerRig.impactParticles.tip	当たった点で弾けさせる。World simulation space。+Z が飛び散る向き。粒の見た目と寿命は粒子の側で決める。空なら出さない	Burst at the hit point. World simulation space. +Z = splash direction. The particle system decides the look and lifetime. Empty = none
+GunnerRig.impactBurst	粒の数	Burst
+GunnerRig.impactBurst.tip	1回の着弾で出す粒の数(最低1)	Particles per hit (at least 1)
 GunnerRig.fireMinInterval	発射音の間引き	Fire min interval
 GunnerRig.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
 GunnerRig.impactMinInterval	着弾音の間引き	Impact min interval
-GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)	Impact sounds closer together than this are dropped (seconds)
+GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音と着弾の粒子は出さない(秒)	Impact sounds and particles closer together than this are dropped (seconds)
 GunnerRig.soundOnPlayers	人	Players
-GunnerRig.soundOnPlayers.tip	人への着弾で着弾音を鳴らす	Impact sound on hits on players
+GunnerRig.soundOnPlayers.tip	人への着弾で着弾音と着弾の粒子を出す	Impact sound and particles on hits on players
 GunnerRig.soundOnWorld	壁や床	World
-GunnerRig.soundOnWorld.tip	壁や床への着弾で着弾音を鳴らす	Impact sound on hits on the world
+GunnerRig.soundOnWorld.tip	壁や床への着弾で着弾音と着弾の粒子を出す	Impact sound and particles on hits on the world
 GunnerRig.soundOnMoving	動く物	Moving objects
-GunnerRig.soundOnMoving.tip	動く物への着弾で着弾音を鳴らす	Impact sound on hits on moving objects
+GunnerRig.soundOnMoving.tip	動く物への着弾で着弾音と着弾の粒子を出す	Impact sound and particles on hits on moving objects
 GunnerRig.soundCullDistance	鳴らす距離	Cull distance
 GunnerRig.soundCullDistance.tip	自分からこれより遠い音は鳴らさない(メートル)。0 なら音源の届く距離	Sounds farther than this from you are not played (metres). 0 = the sources' reach
 GunnerHandController.rig	GunnerRig	GunnerRig
@@ -206,24 +207,6 @@ GunnerMoveHold.holdWhileActive	撃つ間は動けなくする	Hold still while s
 GunnerMoveHold.holdWhileActive.tip	撃つ間、自分をその場に留める(歩く速さは変えない)	Keeps the local player in place while shooting (walk speed is not changed)
 GunnerMoveHold.releaseBlocked	解除を止める	Block release
 GunnerMoveHold.releaseBlocked.tip	真の間は解除しない(座席や罠が押さえているとき)	While true, never releases (a seat or trap holds the player)
-GunnerHitSplash.targetRig	GunnerRig	GunnerRig
-GunnerHitSplash.targetRig.tip	開始時にこの rig へ自分を登録する	Registers itself on this rig at start
-GunnerHitSplash.splash	しぶきの粒子	Splash particles
-GunnerHitSplash.splash.tip	World simulation space。+Z がしぶきの向き	World simulation space. +Z = splash direction
-GunnerHitSplash.burst	粒の数	Burst
-GunnerHitSplash.burst.tip	1回の着弾で出す粒の数(最低1)	Particles per hit (at least 1)
-GunnerHitSplash.onWorld	壁や床	World
-GunnerHitSplash.onWorld.tip	壁や床への着弾でしぶきを出す	Splash on hits on the world
-GunnerHitSplash.onMoving	動く物	Moving objects
-GunnerHitSplash.onMoving.tip	動く物への着弾でしぶきを出す	Splash on hits on moving objects
-GunnerHitSplash.onPlayers	人	Players
-GunnerHitSplash.onPlayers.tip	人への着弾でしぶきを出す	Splash on hits on players
-GunnerHitSplash.onStream	連射の着弾	Stream hits
-GunnerHitSplash.onStream.tip	連射の着弾でもしぶきを出す。切ると単発だけ	Splash on stream hits too. Off = single shots only
-GunnerHitSplash.sound	音	Sound
-GunnerHitSplash.sound.tip	任意。着弾した所で鳴らす音源	Optional. Played at the hit point
-GunnerHitSplash.surfaceOffset	面からの浮き	Surface offset
-GunnerHitSplash.surfaceOffset.tip	メートル	Metres
 GunnerHitReceiver.wantsLateStep	毎フレーム呼ぶ	Late step
 GunnerHitReceiver.wantsLateStep.tip	着弾の端点を毎フレーム受け取る	Receive hit end points every frame
 values.section	JSON(数値)	JSON (values)

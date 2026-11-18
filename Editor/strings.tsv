@@ -8,8 +8,6 @@ button.recheck	再点検	Recheck
 button.add_emitter	射出口を足す	Add emitter
 button.place_hand	球を置く	Place hand ball
 button.add_splash	しぶきの受け手を足す	Add hit splash
-button.add_sounds	効果音の受け手を足す	Add sounds
-button.setup_voices	音源を整える	Set up sources
 check.all_ok	問題は見つかりませんでした。	No problems found.
 check.l10n.missing	文字列の抜け: {0}	Missing text: {0}
 check.rig.no_emitter	射出口がありません	No emitter
@@ -23,17 +21,14 @@ check.rig.many_hits	記録数が {0} を超えています({0} 件までしか�
 check.rig.object_sync	VRC Object Sync と同じ GameObject には置けません(子へ移してください)	Cannot share a GameObject with VRC Object Sync (move it to a child)
 check.rig.null_mover	動く物の欄に空きがあります	A moving object slot is empty
 check.rig.null_receiver	受け手の欄に空きがあります	A receiver slot is empty
-check.rig.projectile_unlisted	発射物が受け手の一覧にありません(着弾が届きません)	The projectile is not in the receivers list (it will not hear hits)
 check.rig.receiver_unlisted	受け手の登録漏れ: {0}	Receiver not registered: {0}
 check.rig.extra_null	追加の連動ボーンの欄に空きがあります	An extra linked bone slot is empty
-check.rig.extra_no_link	追加の連動ボーン {0} の射出口に連動ボーンがありません(付け替え中、または番号の誤り)	Extra linked bone {0}: its emitter has no linked bone (mounted, or a wrong index)
+check.rig.extra_no_link	追加の連動ボーン {0} の射出口に連動ボーンがありません(番号の誤り)	Extra linked bone {0}: its emitter has no linked bone (wrong index)
 check.rig.extra_not_ancestor	追加の連動ボーン {0} が連動ボーンの祖先ではありません(使われません)	Extra linked bone {0} is not an ancestor of the linked bone (ignored)
 check.rig.extra_duplicate	追加の連動ボーン {0} が重複しています	Extra linked bone {0} is listed twice
 check.rig.extra_shared	追加の連動ボーン {0} が別の連動にも使われています(回転が二重に書かれます)	Extra linked bone {0} is also used by another link (it would be turned twice)
 check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
 check.rig.angles_long	射出口ごとの狙える角度の欄が射出口より多くあります: {0}	More per-emitter aim limits than emitters: {0}
-check.rig.clear_on_hit_unused	「当たったら線を消す」を切っていますが、連射の当たり方が「当たり続ける」なので効きません	The "Clear line on hit" option is off, but it has no effect while Stream hits is "Keep hitting"
-check.rig.width_scales_length	射出口ごとの線の太さの欄の数が射出口の数と違います(足りない射出口は 1 倍): {0}	Per-emitter line width count differs from the emitter count (missing emitters use 1x): {0}
 check.rig.angle_over	射出口ごとの狙える角度が180度を超えています: {0}	A per-emitter aim limit is over 180 degrees: {0}
 check.rig.angle_link	狙える角度が170度を超えています。真後ろ近くで骨が跳ぶことがあるので、連動する射出口は170度までにしてください: {0}	Aim limit over 170 degrees. Bones can jump near straight back, so keep linked emitters at 170 degrees or less: {0}
 check.particle.not_world	粒子 {0} が World simulation space ではありません	Particles {0} are not in World simulation space
@@ -54,26 +49,18 @@ check.input.no_object_sync	VRC Object Sync がなく、ほかの人には球が�
 check.splash.no_particle	しぶきの粒子が未設定です	No splash particles set
 check.receiver.no_rig	どの GunnerRig にも登録されていません	Not registered on any GunnerRig
 check.stream.unused	どの GunnerRig からも使われていません	Not used by any GunnerRig
-check.sounds.null_rig	GunnerRig の欄に空きがあります	A GunnerRig slot is empty
-check.sounds.no_voices	クリップがあるのに「{0}」が空で、音が鳴りません	A clip is set but "{0}" is empty, so nothing plays
-check.sounds.null_voice	「{0}」の欄に空きがあります	A slot in "{0}" is empty
-check.sounds.no_spatial	音源 {0} に VRC Spatial Audio Source がありません	Source {0} has no VRC Spatial Audio Source
-check.sounds.reach_mismatch	音源 {0} の Max Distance が VRC Spatial Audio Source の Far と違い、遠い音の間引きが効きません	Source {0}: Max Distance differs from the VRC Spatial Audio Source Far, so far sounds are not culled
-check.sounds.double	GunnerRig {0} がほかの GunnerSounds にも登録され、音が二重に鳴ります	GunnerRig {0} is also on another GunnerSounds, so its sounds play twice
-check.sounds.splash_sound	しぶき {0} にも音があり、着弾音が二重に鳴ります	Splash {0} also has a sound, so impacts play twice
 GunnerRig.section.emitters	射出口	Emitters
 GunnerRig.section.receivers	受け手	Receivers
 GunnerRig.section.shot	射撃	Shooting
 GunnerRig.section.stream	連射	Stream
 GunnerRig.section.bone	ボーン連動	Bone link
+GunnerRig.section.sound	効果音	Sounds
 GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
 GunnerRig.emitters	射出口	Emitters
 GunnerRig.emitters.tip	+Z が撃つ向き。最大16	+Z is the shooting direction. Up to 16
 GunnerRig.shotParticles	粒子	Particles
 GunnerRig.shotParticles.tip	射出口と同じ番号。World simulation space にする	Same index as the emitters. Use World simulation space
-GunnerRig.mounts	追従先	Mounts
-GunnerRig.mounts.tip	任意。射出口が毎フレームこの姿勢になる	Optional. The emitter takes this pose every frame
 GunnerRig.linkBones	連動ボーン	Linked bones
 GunnerRig.linkBones.tip	任意。狙いで回すボーン。空なら射出口の親	Optional. The bone the aim turns. Empty = the emitter's parent
 GunnerRig.linkExtraBones	追加の連動ボーン	Extra linked bones
@@ -85,8 +72,6 @@ GunnerRig.extra.orphan	連動の無い射出口を指す骨	Bones pointing at an
 button.add_parent_bones	親の骨を {0} 個足す	Add {0} parent bone(s)
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
-GunnerRig.projectile	発射物	Projectile
-GunnerRig.projectile.tip	着弾ごとの値(payload)を書き足せる受け手1つ	The one receiver that may rewrite each hit's payload
 GunnerRig.receivers	受け手	Receivers
 GunnerRig.receivers.tip	着弾を知らせる相手	Notified of every hit
 GunnerRig.stream	連射	Stream
@@ -95,6 +80,8 @@ GunnerRig.fireMode	撃ち方	Fire mode
 GunnerRig.fireMode.opt	単発|連射	Single|Stream
 GunnerRig.fireMode.tip	TriggerDown / TriggerUp の動き。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	What TriggerDown / TriggerUp do. Single: one shot per press. Stream: keeps shooting while held
 GunnerRig.maxHits	記録数	Hit records
+GunnerRig.fireAnimator	撃つ前のアニメ	Pre-fire animator
+GunnerRig.fireAnimator.tip	空なら、すぐ撃つ。入れると、撃つ前にアニメを流し、その終わりの合図(_AnimFire)で撃つ。全部の射出口に bool パラメーター GunnerPre0, GunnerPre1, ... が要る。rig は Animator と同じ GameObject に置く	Empty: shoot at once. Set: play an animation first and shoot on its end signal (_AnimFire). Every emitter needs a bool parameter GunnerPre0, GunnerPre1, ... Put the rig on the same GameObject as the Animator
 GunnerRig.maxHits.tip	この端末で使う着弾の数(1〜16)。同期は常に16件なので、Android で減らしても PC と食い違わない	Hits this device uses (1-16). The sync always holds 16, so a lower value on Android stays compatible with PC
 GunnerRig.shotSpeed	弾の速さ	Shot speed
 GunnerRig.shotSpeed.tip	メートル毎秒	Metres per second
@@ -117,21 +104,12 @@ GunnerRig.aimMaxAngles.tip	射出口ごとに狙える角度の上限(度)。0 �
 GunnerRig.aimMaxAngles.row	0 なら「可動域」を使う	0 = use Aim limit
 GunnerRig.streamRate	連射の量	Stream rate
 GunnerRig.streamRate.tip	射出口ごとの毎秒の粒の数	Particles per second per emitter
-GunnerRig.streamWidth	線の太さ	Line width
-GunnerRig.streamWidth.tip	線につないだ時の太さ(メートル)。既定は 0.02。「線につなぐ」の時だけ効く。起動時に1回だけ読む	Width of the joined line (metres). Default 0.02. Used only with Joined line. Read once at start
-GunnerRig.streamWidthScales	射出口ごとの線の太さ	Per-emitter line width
-GunnerRig.streamWidthScales.tip	射出口ごとに「線の太さ」に掛ける倍率。0 か空の射出口は 1(線の太さのまま)。起動時に1回だけ読む。「線につなぐ」の時だけ効く	Multiplier on Line width for each emitter. 0 or empty = 1 (Line width as is). Read once at start. Used only when Join is "Joined line"
-GunnerRig.streamWidthScales.row	0 なら 1 倍	0 = 1x
-GunnerRig.streamTaper	線の太さの変化	Line taper
-GunnerRig.streamTaper.tip	1本のトレイルに沿った太さの倍率。キーが2つ以上ある時だけ効く。それ以外は一定。「線につなぐ」の時だけ効く	Width multiplier along each trail. Used only when the curve has 2 or more keys; otherwise flat. Used only when Join is "Joined line"
 GunnerRig.streamJoin	連射の見た目	Stream look
 GunnerRig.streamJoin.opt	粒のまま|線につなぐ	Particles|Joined line
-GunnerRig.streamJoin.tip	粒のまま: 粒子だけを出す。線につなぐ: 粒子のトレイルをつないで1本の線に見せる(粒子にトレイルが要る)	Particles: particles only. Joined line: particle trails are joined into one line (the particles need trails)
+GunnerRig.streamJoin.tip	粒のまま: 粒子だけを出す。線につなぐ: 粒子のトレイルをつないで1本の線に見せる(粒子にトレイルが要る。線の太さは粒子の Trails > Width over Trail で決める)	Particles: particles only. Joined line: particle trails are joined into one line (the particles need trails; the line width is the particles' Trails > Width over Trail)
 GunnerRig.streamHitMode	連射の当たり方	Stream hits
 GunnerRig.streamHitMode.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
 GunnerRig.streamHitMode.tip	1回で止める: 射出口ごとに最初の当たりを1つだけ記録する。連射をやり直すか、当たり判定を入れ直すまで次は記録しない。当たり続ける: 「当たりの間隔」ごとに記録する	Stop at first hit: each emitter records only its first hit, until the stream restarts or collision is turned back on. Keep hitting: records once per Hit interval
-GunnerRig.streamClearOnHit	当たったら線を消す	Clear line on hit
-GunnerRig.streamClearOnHit.tip	「1回で止める」の時、最初の当たりでその射出口の飛んでいる粒子とトレイルを消す。切ると当たりを1つ記録するだけで、出し続けている線は途切れない	Stop at first hit: clear that emitter's flying particles and trails on the first hit. Off = record one hit only and keep the running line unbroken
 GunnerRig.streamHitInterval	当たりの間隔	Hit interval
 GunnerRig.streamHitInterval.tip	当たり続ける時の、射出口ごとの記録の間隔(秒)	Keep hitting: seconds between records per emitter
 GunnerRig.streamCollide	連射の当たり判定	Stream collision
@@ -146,18 +124,38 @@ GunnerRig.bonePitchUpMax	上の上限	Pitch up limit
 GunnerRig.bonePitchUpMax.tip	骨1本あたりの上向きの曲がりの上限(度)。鎖全体ではこの値 × 骨の数まで	Pitch-up limit per bone (degrees). The whole chain goes up to this value × the number of bones
 GunnerRig.bonePitchDownMax	下の上限	Pitch down limit
 GunnerRig.bonePitchDownMax.tip	骨1本あたりの下向きの曲がりの上限(度)。鎖全体ではこの値 × 骨の数まで	Pitch-down limit per bone (degrees). The whole chain goes down to this value × the number of bones
-GunnerRig.chainYawLimit	鎖の左右の合計上限	Chain yaw limit
-GunnerRig.chainYawLimit.tip	連動する骨全部を合わせた左右の曲がりの上限(度)。0 なら「左右の上限 × 骨の数」。骨1本あたりの上限も同時に効く(小さいほう)	Yaw limit for all linked bones together (degrees). 0 = yaw limit × number of bones. The per-bone limit also applies (the smaller wins)
-GunnerRig.chainPitchUpLimit	鎖の上向きの合計上限	Chain pitch up limit
-GunnerRig.chainPitchUpLimit.tip	連動する骨全部を合わせた上向きの曲がりの上限(度)。0 なら「上の上限 × 骨の数」。小さいほうが効く	Pitch-up limit for all linked bones together (degrees). 0 = pitch up limit × number of bones. The smaller wins
-GunnerRig.chainPitchDownLimit	鎖の下向きの合計上限	Chain pitch down limit
-GunnerRig.chainPitchDownLimit.tip	連動する骨全部を合わせた下向きの曲がりの上限(度)。0 なら「下の上限 × 骨の数」。小さいほうが効く	Pitch-down limit for all linked bones together (degrees). 0 = pitch down limit × number of bones. The smaller wins
 GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
 GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか。大きいほど早く追いつき、小さいほどなめらか	Per second, share of the remaining angle closed. Higher catches up faster, lower is smoother
 GunnerRig.boneMinSpeed	最低の速さ	Minimum speed
 GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
 GunnerRig.boneMaxSpeed	最高の速さ	Maximum speed
 GunnerRig.boneMaxSpeed.tip	追従が回る速さの上限(度毎秒)。0 なら上限なし。入れると、相手が急に動いても上限の速さでなめらかに追い、速さの上がり方も0.25秒で上限に届く割合までに抑える	Upper limit of the follow turning speed (degrees per second). 0 = no limit. When set, sudden target moves are followed smoothly at this speed, and speeding up is limited so it reaches the limit in 0.25 s
+GunnerRig.fireClip	発射音	Fire sound
+GunnerRig.fireClip.tip	撃った射出口の位置で鳴らす。空なら鳴らさない	Played at the emitter that fired. Empty = silent
+GunnerRig.impactClip	着弾音	Impact sound
+GunnerRig.impactClip.tip	当たった点で鳴らす。空なら鳴らさない	Played at the hit point. Empty = silent
+GunnerRig.fireVolume	発射音の音量	Fire volume
+GunnerRig.fireVolume.tip	発射音を鳴らす音源の音量(0〜1)	Source volume for fire sounds (0-1)
+GunnerRig.impactVolume	着弾音の音量	Impact volume
+GunnerRig.impactVolume.tip	着弾音を鳴らす音源の音量(0〜1)	Source volume for impact sounds (0-1)
+GunnerRig.pitchJitter	高さの揺れ	Pitch jitter
+GunnerRig.pitchJitter.tip	鳴らすたびに音の高さを少し変える。0 で切	Varies the pitch a little each time. 0 = off
+GunnerRig.fireVoices	発射音の音源	Fire sources
+GunnerRig.fireVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
+GunnerRig.impactVoices	着弾音の音源	Impact sources
+GunnerRig.impactVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
+GunnerRig.fireMinInterval	発射音の間引き	Fire min interval
+GunnerRig.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
+GunnerRig.impactMinInterval	着弾音の間引き	Impact min interval
+GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)	Impact sounds closer together than this are dropped (seconds)
+GunnerRig.soundOnPlayers	人	Players
+GunnerRig.soundOnPlayers.tip	人への着弾で着弾音を鳴らす	Impact sound on hits on players
+GunnerRig.soundOnWorld	壁や床	World
+GunnerRig.soundOnWorld.tip	壁や床への着弾で着弾音を鳴らす	Impact sound on hits on the world
+GunnerRig.soundOnMoving	動く物	Moving objects
+GunnerRig.soundOnMoving.tip	動く物への着弾で着弾音を鳴らす	Impact sound on hits on moving objects
+GunnerRig.soundCullDistance	鳴らす距離	Cull distance
+GunnerRig.soundCullDistance.tip	自分からこれより遠い音は鳴らさない(メートル)。0 なら音源の届く距離	Sounds farther than this from you are not played (metres). 0 = the sources' reach
 GunnerHandController.rig	GunnerRig	GunnerRig
 GunnerHandController.rig.tip	この球で撃つ rig	The rig this ball shoots
 GunnerHandController.input	入力	Input
@@ -169,7 +167,7 @@ GunnerHandController.hold.tip	任意。空なら撃つ間も歩ける	Optional. 
 GunnerHandController.emitter	射出口の番号	Emitter index
 GunnerHandController.emitter.tip	単発で使う射出口。-1 ならすべて	Emitter for single shots. -1 = all
 GunnerHandController.payload	payload	Payload
-GunnerHandController.payload.tip	rig へそのまま渡す整数。意味は発射物が決める	Integer passed to the rig as is; the projectile decides what it means
+GunnerHandController.payload.tip	rig へそのまま渡す整数。意味は受け手が決める	Integer passed to the rig as is; the receivers decide what it means
 GunnerHandController.collideMode	当たるとき	When it hits
 GunnerHandController.collideMode.opt	いつも|離してから	Always|After release
 GunnerHandController.collideMode.tip	離してから: 押している間は素通りし、離した後に最初に触れた所へ1回だけ当たる	After release: passes through while held, then hits the first thing touched once
@@ -228,41 +226,6 @@ GunnerHitSplash.surfaceOffset	面からの浮き	Surface offset
 GunnerHitSplash.surfaceOffset.tip	メートル	Metres
 GunnerHitReceiver.wantsLateStep	毎フレーム呼ぶ	Late step
 GunnerHitReceiver.wantsLateStep.tip	着弾の端点を毎フレーム受け取る	Receive hit end points every frame
-GunnerSounds.rigs	GunnerRig	GunnerRig
-GunnerSounds.rigs.tip	開始時にこの全部へ自分を登録する。1つで複数の rig を受け持てる	Registers itself on all of these at start. One can serve several rigs
-GunnerSounds.fireClip	発射音	Fire sound
-GunnerSounds.fireClip.tip	空なら鳴らさない	Empty = silent
-GunnerSounds.impactClip	着弾音	Impact sound
-GunnerSounds.impactClip.tip	空なら鳴らさない	Empty = silent
-GunnerSounds.fireVolume	発射音の音量	Fire volume
-GunnerSounds.fireVolume.tip	発射音を鳴らす音源の音量(0〜1)	Source volume for fire sounds (0-1)
-GunnerSounds.impactVolume	着弾音の音量	Impact volume
-GunnerSounds.impactVolume.tip	着弾音を鳴らす音源の音量(0〜1)	Source volume for impact sounds (0-1)
-GunnerSounds.pitchJitter	高さの揺れ	Pitch jitter
-GunnerSounds.pitchJitter.tip	鳴らすたびに音の高さを少し変える。0 で切	Varies the pitch a little each time. 0 = off
-GunnerSounds.fireVoices	発射音の音源	Fire sources
-GunnerSounds.fireVoices.tip	同時に鳴る数の上限。メニューが子に作る	How many can play at once. The menu creates them as children
-GunnerSounds.impactVoices	着弾音の音源	Impact sources
-GunnerSounds.impactVoices.tip	同時に鳴る数の上限。メニューが子に作る	How many can play at once. The menu creates them as children
-GunnerSounds.fireMinInterval	発射音の間引き	Fire min interval
-GunnerSounds.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
-GunnerSounds.impactMinInterval	着弾音の間引き	Impact min interval
-GunnerSounds.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)	Impact sounds closer together than this are dropped (seconds)
-GunnerSounds.streamFireInterval	連射中の発射音の間隔	Stream fire interval
-GunnerSounds.streamFireInterval.tip	秒。0 なら撃ち始めの1回だけ	Seconds. 0 = once when the stream starts
-GunnerSounds.impactOnStream	連射の着弾	Stream hits
-GunnerSounds.impactOnStream.tip	連射の着弾でも着弾音を鳴らす。切ると単発だけ	Impact sounds for stream hits too. Off = single shots only
-GunnerSounds.onWorld	壁や床	World
-GunnerSounds.onWorld.tip	壁や床への着弾で着弾音を鳴らす	Impact sound on hits on the world
-GunnerSounds.onMoving	動く物	Moving objects
-GunnerSounds.onMoving.tip	動く物への着弾で着弾音を鳴らす	Impact sound on hits on moving objects
-GunnerSounds.onPlayers	人	Players
-GunnerSounds.onPlayers.tip	人への着弾で着弾音を鳴らす	Impact sound on hits on players
-GunnerSounds.cullDistance	鳴らす距離	Cull distance
-GunnerSounds.cullDistance.tip	自分からこれより遠い音は鳴らさない(メートル)。0 なら音源の届く距離	Sounds farther than this from you are not played (metres). 0 = the sources' reach
-GunnerSounds.reach	届く距離	Reach
-GunnerSounds.reach.tip	メートル。「音源を整える」で全部の音源に当てる	Metres. "Set up sources" applies it to every source
-GunnerSounds.info.no_clip	クリップが未設定の音は鳴りません	Sounds with no clip set stay silent
 values.section	JSON(数値)	JSON (values)
 values.help	数値の欄を JSON に書き出し、JSON から読み込みます。参照(オブジェクト・Transform・音・マテリアル)、曲線、レイヤーは JSON に入りません。JSON に無い欄は今の値のままです。赤が1つでもあれば何も書きません。読み込んだ後はシーンを保存してください。	Exports number fields to JSON and imports them back. References (objects, Transforms, sounds, materials), curves and layers are not included. Fields missing from the JSON keep their values. Nothing is written if there is any error. Save the scene after importing.
 values.json	JSON	JSON

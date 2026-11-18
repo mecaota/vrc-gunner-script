@@ -5,9 +5,9 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Emitters, aiming, single shots and streams
 - Synced hit records (world, moving objects, players) delivered to hit receivers
 - Receivers derive from `GunnerHitReceiver` and override only what they need
-- Streams can keep their line unbroken on the first hit (`streamClearOnHit`, on by default = clear as before)
+- Built-in fire and impact sounds on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.5.0). APIs will change.
+Status: early (0.8.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -27,8 +27,8 @@ Download `com.mecaota.gunner-x.y.z.zip` from [Releases](https://github.com/mecao
 
 1. **Emitters.** An emitter is a `Transform`. Its +Z axis is the shooting direction (the rest direction when nothing aims it). A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticles` (same index, World simulation space) for the visible shot.
 2. **The rig.** `GunnerRig` owns everything else: aiming, hit tests, the synced hit records and the receiver list. It uses Manual sync, so it cannot share a GameObject with VRC Object Sync (put it on a child). Shooting takes ownership of the rig.
-3. **Single shots.** `Fire()` shoots once from every emitter in the aim set (all by default). `_FireFrom(emitter)` shoots from one emitter, `_FireWith(emitter, payload)` adds an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at `shotSpeed`; receivers hear about the hit when it arrives.
-4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started; `_ForceStopStream()` stops any stream.
+3. **Single shots.** `Fire()` shoots once from every emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots from one emitter with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at `shotSpeed`; receivers hear about the hit when it arrives.
+4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started.
 5. **Trigger helpers.** `TriggerDown()` / `TriggerUp()` follow `fireMode`: in Single mode `TriggerDown()` calls `Fire()`; in Stream mode it starts the stream and `TriggerUp()` stops it.
 6. **Hit records.** Each hit becomes a record that the rig syncs to everyone. The sync always holds 16 records (`SyncSlots`, a ring); `maxHits` (1-16) only limits how many this device uses, so Android can use fewer and still match PC. Receivers read the current hit from the rig's `hit*` fields: `hitKind` (`KindWorld`, `KindMoving`, `KindPlayer`), `hitIndex` (moving object index or playerId), `hitBone`, `hitPoint`, `hitLocal`, `hitEmitter`, `hitPayload`, `hitStream`, `hitReplay` (restored for a late joiner; skip effects) and `hitResolved`.
 
@@ -41,14 +41,12 @@ Derive from `GunnerHitReceiver`, override only what you need, and add the receiv
 | `_OnFire(rig)` | everyone | A single shot leaves an emitter, or a stream starts. Read `fireEmitter`, `fireStream`, `fireReplay`, `firePayload`. |
 | `_OnHit(rig)` | everyone | A hit arrives. Read the `hit*` fields. |
 | `_OnHitGone(rig)` | everyone | An arrived hit was retired, cleared or overwritten. |
-| `_OnOwnerHit(rig)` | owner, projectile only | Just before a record is written. May change `rig.hitPayload`. |
-| `_OnOwnerCommit(rig)` | owner, projectile only | Just before records are sent. |
 | `_OnGunnerLateStep(rig)` | everyone | Every frame, only when `wantsLateStep` is on. `hitStart`, `hitWorld`, `hitLive` are filled for it. |
 | `_OnGunnerOwner(rig)` | everyone | The rig's owner changed. |
 
-The `projectile` field holds the one receiver that may rewrite each hit's payload. The rig never reads the payload itself.
+The rig never reads the payload itself; receivers decide what it means.
 
-Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hits), `ClearHits()` (clear every record), `_SetAimDirection` / `_SetAimTarget` / `_SetAimAngles` / `ResetAim`, `_SetAimEmitters(mask)`, `BoneFollowOn` / `BoneFollowOff`, `_SetMount(emitter, transform)`, `_SetCollision(on)`, and the `_SolveFor` / `_SolveWithin` / `_SolveFrom` / `_SolveNearest` helpers that find which emitter can reach a point.
+Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hits), `ClearHits()` (clear every record), `_SetAimTarget` / `_SetAimAngles` / `ResetAim`, `_SetAimEmitters(mask)`, `BoneFollowOn` / `BoneFollowOff` and `_SetCollision(on)`. To make an emitter follow another Transform, make it a child of that Transform or use a VRC Parent Constraint.
 
 ### Main fields and defaults
 
@@ -66,12 +64,8 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `aimMaxAngle` | 60 | Aim limit in degrees from the rest direction. |
 | `aimMaxAngles` | empty | Per-emitter aim limit (0 or empty = `aimMaxAngle`). |
 | `streamRate` | 12 | Particles per second per emitter. |
-| `streamWidth` | 0.02 | Joined line width in metres. The sample prefab uses 0.08 so the line is easy to see. |
-| `streamWidthScales` | empty | Per-emitter multiplier on `streamWidth` (0 or empty = 1x). |
-| `streamTaper` | empty | Width along each trail. Used when the curve has 2 or more keys. |
 | `streamJoin` | Joined line | Particles, or particles joined into a line by their trails. |
-| `streamHitMode` | Stop at first hit | Stop at first hit, or Keep hitting. |
-| `streamClearOnHit` | on | Stop at first hit: clear the emitter's flying particles on the first hit. |
+| `streamHitMode` | Stop at first hit | Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
 | `streamHitInterval` | 0.25 | Keep hitting: seconds between records per emitter. |
 | `streamCollide` | on | Initial stream collision state. |
 | `boneFollow` | off | Turn linked bones with the aim. |
@@ -79,13 +73,65 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
 | `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
 
-`streamRate`, `streamWidth`, `streamWidthScales`, `streamTaper`, `streamJoin` and `streamHitMode` are read once when the rig starts; changing them at runtime has no effect. `streamClearOnHit` is read at every hit. `streamWidth`, `streamWidthScales` and `streamTaper` only take effect when `streamJoin` is "Joined line".
+`streamRate`, `streamJoin` and `streamHitMode` are read once when the rig starts; changing them at runtime has no effect. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+
+### Built-in sounds
+
+`GunnerRig` can play a fire sound and an impact sound by itself (the **Sounds** section of its inspector). Every device plays them from the fire and hit events; nothing extra is synced.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `fireClip` / `impactClip` | empty | Empty = silent (the same as before 0.6.0). |
+| `fireVolume` / `impactVolume` | 1 / 1 | Source volume (0-1). |
+| `pitchJitter` | 0.05 | Random pitch change per sound. 0 = off. |
+| `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
+| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). |
+| `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound. |
+| `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
+
+- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound plays at the hit point. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent.
+- There is no repeated fire sound during a stream; only the stream start plays the fire sound.
+- Udon cannot add `VRC_SpatialAudioSource` at runtime. Add one to every AudioSource in the editor and match its Far to the AudioSource's Max Distance. The Check Window does not check the rig's sources.
+
+## Auto aim (`GunnerAutoAim`)
+
+`GunnerAutoAim` makes a rig aim at and shoot players inside a box.
+
+Setup:
+
+1. Make an empty GameObject (for example `SenseZone`, a child of the rig is fine). Do not use the rig's own GameObject.
+2. Add a `BoxCollider` with **Is Trigger** on, and `GunnerAutoAim` on the **same GameObject** (the trigger events only reach scripts on the collider's GameObject). Use a layer that collides with Player and PlayerLocal (Default does). Set the size with the BoxCollider's Size rather than the Transform scale.
+3. **Place the box so it contains the players' feet, and extend its bottom below the floor.** The position recheck uses each player's feet (`GetPosition()`); a box that floats above the floor, or whose bottom is exactly at floor level, can count a standing player as outside.
+4. Set `rig`. Leave `zone` empty to use the BoxCollider on the same GameObject.
+5. If the zone moves with an animated object, add a kinematic Rigidbody to it.
+6. **Use a rig that only `GunnerAutoAim` drives.** If something else (a hand-held controller, another script) takes ownership of the rig, `GunnerAutoAim` on that device starts aiming and shooting automatically.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `rig` | empty | The `GunnerRig` to drive. |
+| `zone` | empty = the BoxCollider on this GameObject | The box. |
+| `interval` | 0.2 | Seconds between target and aim updates. |
+| `fireInterval` | 3 | Seconds between shots. |
+| `aimHeight` | 0.7 | Aim height as a share of the target's eye height. |
+| `switchWait` | 0.5 | After switching emitters, seconds before it may switch again. |
+| `recheckInterval` | 1 | Seconds between position rechecks of the list. 0 = no periodic recheck. |
+
+How it works:
+
+- Every device keeps the list of players in the zone: `OnPlayerTriggerEnter` adds, `OnPlayerTriggerExit` and `OnPlayerLeft` remove.
+- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). Every `interval` it picks the listed player nearest to the zone centre, then the emitter nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)`, `_SetAimTarget(point)` and, every `fireInterval`, `_FireWith(emitter, 0)`. With nobody listed it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest.
+- When this device becomes the rig's owner, it rechecks the list once, waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
+- Teleporting, respawning, joining and sitting in a station can skip the enter and exit events. Every `recheckInterval` seconds each device fixes its list from positions: a listed player whose feet are more than 0.75 m outside the box is removed, and a player whose feet are inside the box is added. The margin is only for removing, because the trigger counts a player as inside as soon as the body capsule touches the box.
+- Respawn: `OnPlayerRespawn` only reaches the player who respawned, and that device removes the player at once. On the other devices (including the rig's owner) the player is removed by `OnPlayerTriggerExit` if it arrives; if it does not, the recheck removes them within `recheckInterval`, and only when the respawn point is more than 0.75 m outside the box. With `recheckInterval` 0, other devices do not remove them in that case.
+- A seated player whose feet are inside the box is added back by the recheck and can be targeted.
+- With the rig's `excludeOwner` on, the rig's owner is never hit, so `GunnerAutoAim` does not choose the owner (the local player on the owner's device) as a target. Turn `excludeOwner` off if the owner should be targeted and hit too.
+- The aim is synced only while the rig syncs it (bone follow on with linked bones, or a stream started on this device). With bone follow off, other devices see the emitters stay at rest; the shots still fly to the recorded points.
 
 ## Quick start
 
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
 2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
-3. Add a receiver: **Add Hit Splash** (particles at the hit point), **Add Gunner Sounds** (fire and impact sounds), or your own `GunnerHitReceiver`.
+3. Add a receiver: **Add Hit Splash** (particles at the hit point) or your own `GunnerHitReceiver`. For sounds, set the clips in the rig's **Sounds** section.
 4. Call `TriggerDown()` / `TriggerUp()` from your own script, or use **Place Hand Controller** for a ready-made hand-held ball.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
 
@@ -100,7 +146,6 @@ Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 - **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator).
 - **Place Hand Controller**: a hand-held ball with VRC Pickup, VRC Object Sync, `GunnerPickupInput`, `GunnerStickAim`, `GunnerMoveHold` and `GunnerHandController`.
 - **Add Hit Splash**: a `GunnerHitSplash` under the rig's `Parts` child.
-- **Add Gunner Sounds**: a `GunnerSounds` with its audio sources (also in `Tools/Gunner/`).
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 
@@ -128,6 +173,15 @@ All three are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnL
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
+
+## Changes in 0.8.0
+
+Removals and clean-up (see CHANGELOG.md for the full list). `GunnerSounds` is removed; use the rig's built-in sounds. The stream line width fields are removed; set each particle system's Trails > Width over Trail instead.
+
+## Changes in 0.6.0
+
+- `GunnerAutoAim`: aim at and shoot players inside a trigger box (see "Auto aim").
+- Built-in fire and impact sounds on `GunnerRig` (see "Built-in sounds"). Empty clips = silent, the same as before. `GunnerSounds` is unchanged; clips on both play twice.
 
 ## Changes in 0.5.0
 

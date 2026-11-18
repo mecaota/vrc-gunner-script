@@ -9,12 +9,6 @@ namespace Mecaota.Gunner
         // 着弾に反応するだけの受け手しかない rig は、毎フレームの端点の計算をしない。
         public bool wantsLateStep;
 
-        // 持ち主だけ、rig の弾の受け手だけ: 記録を書く直前。rig.hitPayload を変えてよい。
-        public virtual void _OnOwnerHit(GunnerRig rig) { }
-
-        // 持ち主だけ、弾の受け手だけ: 記録を送る直前(_RetireHit + _Commit の後にも呼ぶ)。
-        public virtual void _OnOwnerCommit(GunnerRig rig) { }
-
         // 全員: 着弾が届いた(rig.hitReplay = 遅れて入った人のために戻したもの。効果も音も出さない)。
         public virtual void _OnHit(GunnerRig rig) { }
 

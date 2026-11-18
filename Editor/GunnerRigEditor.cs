@@ -21,7 +21,6 @@ namespace Mecaota.Gunner.EditorTools
             {
                 Field("emitters");
                 Field("shotParticles");
-                Field("mounts");
                 Field("linkBones");
                 DrawExtraBones(rig);
                 Field("movers");
@@ -52,7 +51,6 @@ namespace Mecaota.Gunner.EditorTools
 
             if (Foldout("GunnerRig.section.receivers"))
             {
-                Field("projectile");
                 Field("receivers");
                 Field("stream");
                 using (new EditorGUI.DisabledScope(targets.Length != 1))
@@ -60,11 +58,6 @@ namespace Mecaota.Gunner.EditorTools
                     if (GUILayout.Button(T("button.add_splash")))
                     {
                         GunnerSetup.AddSplash(rig);
-                        GUIUtility.ExitGUI();
-                    }
-                    if (GUILayout.Button(T("button.add_sounds")))
-                    {
-                        Selection.activeObject = GunnerSetup.AddSounds(rig).gameObject;
                         GUIUtility.ExitGUI();
                     }
                 }
@@ -83,19 +76,14 @@ namespace Mecaota.Gunner.EditorTools
                 Field("aimMaxAngle");
                 DrawAimAngles(rig);
                 Field("maxHits");
+                Field("fireAnimator");
             }
 
             if (Foldout("GunnerRig.section.stream"))
             {
                 Field("streamRate");
-                Field("streamWidth");
-                DrawStreamWidthScales(rig);
-                Field("streamTaper");
                 Field("streamJoin");
-                var hitMode = Field("streamHitMode");
-                // 当たった時に消すかは「1回で止める」の時だけ効く(当たり続ける時は薄く出す)
-                using (new EditorGUI.DisabledScope(hitMode != null && !hitMode.hasMultipleDifferentValues && hitMode.intValue != GunnerStream.HitOnce))
-                    Field("streamClearOnHit");
+                Field("streamHitMode");
                 Field("streamHitInterval");
                 Field("streamCollide");
             }
@@ -107,12 +95,26 @@ namespace Mecaota.Gunner.EditorTools
                 Field("boneYawMax");
                 Field("bonePitchUpMax");
                 Field("bonePitchDownMax");
-                Field("chainYawLimit");
-                Field("chainPitchUpLimit");
-                Field("chainPitchDownLimit");
                 Field("boneSmooth");
                 Field("boneMinSpeed");
                 Field("boneMaxSpeed");
+            }
+
+            if (Foldout("GunnerRig.section.sound"))
+            {
+                Field("fireClip");
+                Field("impactClip");
+                Field("fireVolume");
+                Field("impactVolume");
+                Field("pitchJitter");
+                Field("fireVoices");
+                Field("impactVoices");
+                Field("fireMinInterval");
+                Field("impactMinInterval");
+                Field("soundOnPlayers");
+                Field("soundOnWorld");
+                Field("soundOnMoving");
+                Field("soundCullDistance");
             }
         }
 
@@ -151,47 +153,6 @@ namespace Mecaota.Gunner.EditorTools
                     {
                         var arr = so.FindProperty("aimMaxAngles");
                         if (arr.arraySize < size) arr.arraySize = size;
-                        arr.GetArrayElementAtIndex(index).floatValue = value;
-                    });
-                }
-            }
-            EditorGUI.indentLevel--;
-        }
-
-        // 射出口ごとに線の幅の倍率の欄を1つ出す(0 か空 = 1)。中身は streamWidthScales(同じ番号が射出口)。
-        // 射出口が1つで欄も空なら、畳んだ配列のまま出す(DrawAimAngles と同じ形)。
-        void DrawStreamWidthScales(GunnerRig rig)
-        {
-            var emitters = rig.emitters ?? new Transform[0];
-            var scales = rig.streamWidthScales ?? new float[0];
-            if (targets.Length != 1 || (emitters.Length < 2 && scales.Length == 0))
-            {
-                Field("streamWidthScales");
-                return;
-            }
-            EditorGUILayout.LabelField(Label("GunnerRig.streamWidthScales"));
-            EditorGUI.indentLevel++;
-            for (int e = 0; e < emitters.Length && e < GunnerRig.MaxEmitters; e++)
-            {
-                string name = emitters[e] != null ? emitters[e].name : "-";
-                float now = e < scales.Length ? scales[e] : 0f;
-                EditorGUI.BeginChangeCheck();
-                float next = EditorGUILayout.FloatField(new GUIContent(e + " (" + name + ")", T("GunnerRig.streamWidthScales.row")), now);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    int index = e;
-                    int size = emitters.Length;
-                    float value = Mathf.Max(next, 0f);
-                    GunnerEditorUtil.Edit(rig, so =>
-                    {
-                        var arr = so.FindProperty("streamWidthScales");
-                        if (arr.arraySize < size)
-                        {
-                            // 足した所は 0(= 倍率 1)。arraySize を増やすと最後の要素の写しが入るので、0 で上書きする
-                            int old = arr.arraySize;
-                            arr.arraySize = size;
-                            for (int k = old; k < size; k++) arr.GetArrayElementAtIndex(k).floatValue = 0f;
-                        }
                         arr.GetArrayElementAtIndex(index).floatValue = value;
                     });
                 }
@@ -284,13 +245,12 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        /// <summary>射出口 i の先頭の骨(実行時と同じ決め方)。付け替えた射出口・連動しない射出口は null。</summary>
+        /// <summary>射出口 i の先頭の骨(実行時と同じ決め方)。連動しない射出口は null。</summary>
         internal static Transform LeadBone(GunnerRig rig, int i)
         {
             if (rig == null || rig.emitters == null || i < 0 || i >= rig.emitters.Length) return null;
             var em = rig.emitters[i];
             if (em == null) return null;
-            if (rig.mounts != null && i < rig.mounts.Length && rig.mounts[i] != null) return null;
             Transform bone = rig.linkBones != null && i < rig.linkBones.Length ? rig.linkBones[i] : null;
             Transform parent = em.parent;
             Transform self = rig.transform;

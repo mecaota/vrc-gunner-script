@@ -4,13 +4,13 @@ using UnityEngine;
 namespace Mecaota.Gunner
 {
     // 1つの GunnerRig の連射: 連射の粒子を出し、その経路を持ち、当たる所を見つけ(持ち主)、トレイルをつなぐ。
-    // rig からだけ動かされる(Update → _PreSimulate、PostLateUpdate → _StepMasked。_Step は組なしの版)。自分のイベントは持たない。
+    // rig からだけ動かされる(Update → _PreSimulate、PostLateUpdate → _StepMasked)。自分のイベントは持たない。
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class GunnerStream : UdonSharpBehaviour
     {
         public const int JoinParticles = 0;
         public const int JoinLine = 1;
-        // HitOnce: 最初の接触で着弾を1つ記録し、その射出口の飛んでいる粒子を消す(rig.streamClearOnHit が偽なら消さない)。
+        // HitOnce: 最初の接触で着弾を1つ記録し、その射出口の飛んでいる粒子を消す
         // その射出口は、連射をやり直すか当たり判定をもう一度 on にするまで記録しない。トリガーを押している間は出し続ける。
         public const int HitOnce = 0;
         public const int HitKeep = 1;
@@ -39,10 +39,7 @@ namespace Mecaota.Gunner
         private float range;
         private float life;
         private float interval;
-        private float width;
-        private float[] widths;                // 射出口ごとの、つないだ線の幅(streamWidth × streamWidthScales。_Init で 1 回だけ作る)
         private float hitInterval;
-        private AnimationCurve taper;
         private int join;
         private int hitMode;
 
@@ -54,7 +51,6 @@ namespace Mecaota.Gunner
         private bool[] look;
         private bool[] baseCollision;
         private bool[] latched;
-        private ParticleSystem.MinMaxCurve[] baseTrailWidth;
         private int[] head;
         private Vector3[] rOrigin;
         private Vector3[] rDir;
@@ -76,21 +72,10 @@ namespace Mecaota.Gunner
             range = Mathf.Max(rig.maxRange, 0.01f);
             life = range / speed;
             interval = 1f / Mathf.Max(rig.streamRate, 0.1f);
-            width = Mathf.Max(rig.streamWidth, 0.0005f);
-            taper = rig.streamTaper;
             join = rig.streamJoin;
             hitMode = rig.streamHitMode;
             hitInterval = Mathf.Max(rig.streamHitInterval, 0.02f);
             cap = Mathf.Clamp(Mathf.CeilToInt(life / interval) + 2, 4, 128);
-
-            // 射出口ごとの幅: streamWidthScales の空・短い・0 以下の所は倍率 1(既定では今までと同じ太さ)。下限も今までと同じ
-            float[] scales = rig.streamWidthScales;
-            widths = new float[count];
-            for (int e = 0; e < count; e++)
-            {
-                float scale = scales != null && e < scales.Length && scales[e] > 0f ? scales[e] : 1f;
-                widths[e] = Mathf.Max(rig.streamWidth * scale, 0.0005f);
-            }
 
             reach = new float[count];
             span = new float[count];
@@ -103,7 +88,6 @@ namespace Mecaota.Gunner
             look = new bool[count];
             baseCollision = new bool[count];
             latched = new bool[count];
-            baseTrailWidth = new ParticleSystem.MinMaxCurve[count];
             head = new int[count];
             rOrigin = new Vector3[count * cap];
             rDir = new Vector3[count * cap];
@@ -118,7 +102,6 @@ namespace Mecaota.Gunner
                 baseCollision[e] = collision.enabled;
                 ParticleSystem.TrailModule trails = ps.trails;
                 baseTrailLife[e] = trails.lifetimeMultiplier;
-                baseTrailWidth[e] = trails.widthOverTrail;
             }
         }
 
@@ -166,7 +149,6 @@ namespace Mecaota.Gunner
             collision.enabled = baseCollision[e];
             ParticleSystem.TrailModule trails = ps.trails;
             trails.lifetimeMultiplier = baseTrailLife[e];
-            trails.widthOverTrail = baseTrailWidth[e];
         }
 
         // 射出口 e の連射の粒子を消す(HitOnce の接触、StopFire、ClearHits)。
@@ -208,9 +190,7 @@ namespace Mecaota.Gunner
 
         // 全員、rig の PostLateUpdate から(狙いの後): 出す、経路を古くする、トレイルをつないだままにする。持ち主で
         // 当たり判定が on なら、経路が最初に当たった所を記録する。true = まだ動いている(連射中か粒子が飛んでいる)。
-        public bool _Step(float now, bool streaming, bool owner, bool collide) { return _StepMasked(now, streaming, owner, collide, 0); }
-
-        // _Step と同じ。mask = 粒子を出す射出口の組(ビット e = 射出口 e。0 = 全部)。組の外の射出口は新しく出さないが、
+        // mask = 粒子を出す射出口の組(ビット e = 射出口 e。0 = 全部)。組の外の射出口は新しく出さないが、
         // もう飛んでいる粒子は今までどおり進み、当たる。
         public bool _StepMasked(float now, bool streaming, bool owner, bool collide, int mask)
         {
@@ -299,8 +279,7 @@ namespace Mecaota.Gunner
             if (hitMode == HitOnce)
             {
                 latched[e] = true;
-                // 消さない設定なら、出ている線はそのまま(次の粒が来るまで線が途切れない)。記録は上で 1 つだけ
-                if (rig.streamClearOnHit) _Clear(e);
+                _Clear(e);
             }
             else
             {
@@ -343,12 +322,7 @@ namespace Mecaota.Gunner
             collision.enabled = hitMode == HitKeep && baseCollision[e];
             ParticleSystem.MainModule main = ps.main;
             if (main.maxParticles < cap + 1) main.maxParticles = cap + 1;
-            if (join != JoinLine) return;
-            // トレイルごとに幅は一定: 短いトレイルごとに根元から先へ細くすると、くさびをつないだ鎖に見える。
-            ParticleSystem.TrailModule trails = ps.trails;
-            float w = e < widths.Length ? widths[e] : width;
-            if (taper != null && taper.length >= 2) trails.widthOverTrail = new ParticleSystem.MinMaxCurve(w, taper);
-            else trails.widthOverTrail = new ParticleSystem.MinMaxCurve(w);
+            // 線の幅は上書きしない。粒子の Trails > Width over Trail のまま(トレイルごとに一定にしておくと、つないだ線が鎖に見えない)。
         }
 
         // つないだトレイル1本が覆うべき秒数: 1つ前の粒子まで + フレームに基づく重なり。止まった時は古い方の

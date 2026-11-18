@@ -56,7 +56,7 @@ GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
 GunnerRig.emitters	射出口	Emitters
 GunnerRig.emitters.tip	+Z が撃つ向き。最大16	+Z is the shooting direction. Up to 16
-GunnerRig.emitters.removeNote	選んだ射出口を、下の「-」で外す。後ろの番号は1つずつ詰まる	Select an emitter and press - below to remove it. The later numbers move up by one
+GunnerRig.emitters.removeNote	選んだ射出口を「-」で外す。後ろの番号は1つずつ詰まる	Select one, press - to remove. Later numbers shift up
 GunnerRig.shotParticles	粒子	Particles
 GunnerRig.shotParticles.tip	撃つときに出す粒子。射出口と同じ番号に入れる。Simulation Space は World にする	Particles shot from the emitter. Same index as the emitters. Set Simulation Space to World
 GunnerRig.linkBones	連動ボーン	Linked bones
@@ -66,7 +66,7 @@ GunnerRig.linkExtraBones.tip	任意。連動ボーンの親や祖先の骨。足
 GunnerRig.linkExtraEmitter	追加ボーンの射出口	Extra bone emitters
 GunnerRig.linkExtraEmitter.tip	追加の連動ボーンと同じ番号。その骨が加わる射出口の番号	Same index as the extra linked bones. The emitter each bone joins
 GunnerRig.extra.orphan	無い射出口を指す骨	Bones pointing at a missing emitter
-button.add_parent_bones	親の骨を {0} 個足す	Add {0} parent bone(s)
+button.add_parent_bones	親の骨を {0} 個足す	Add parent
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
 GunnerRig.receivers	受け手	Receivers

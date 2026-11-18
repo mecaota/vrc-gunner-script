@@ -4,6 +4,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.8.0] - unreleased / 未公開
+
+Removals and clean-up. Members nobody called, and fields that a Unity or VRChat feature already covers, are removed.
+
+削除と整理です。呼ぶ者のいないメンバーと、Unity・VRChat の機能で足りる欄を消しました。
+
+### Removed / 削除
+
+- `GunnerSounds` (the component, its Udon program asset, its inspector and the **Add Gunner Sounds** menu and button), and the public Editor class `GunnerAudio` that lives in `GunnerSoundsEditor.cs` (`CreateVoice`, `ConfigureVoice`, `Rolloff`, `SetUpVoices`, `RigsOf`, `SoundsFor`). Use the rig's built-in sounds (`fireClip`, `impactClip` and the other sound fields), which stay.
+- `streamWidth`, `streamWidthScales`, `streamTaper`. The rig no longer overwrites the stream particles' Trails > Width over Trail; set the width there on each particle system. A single shot's trail and a stream's line then have the same width; they cannot have separate widths. Rigs that used `streamWidth` get a different line width until the particles are set.
+- `streamClearOnHit`. "Stop at first hit" always clears the emitter's flying particles on the first hit (the old default).
+- `projectile`, `GunnerHitReceiver._OnOwnerHit` / `_OnOwnerCommit`, `_RetireHit`.
+- `mounts`, `_SetMount`. Make the emitter a child of the Transform, or use a VRC Parent Constraint.
+- `chainYawLimit`, `chainPitchUpLimit`, `chainPitchDownLimit`. The chain limit is always the per-bone limit times the number of bones (the old behaviour with the fields at 0).
+- `_SetAimDirection` and the direction aim mode (`AimDirection`). Use `_SetAimTarget` or `_SetAimAngles`. The synced values of the other aim modes are unchanged.
+- `_FireFrom` (use `_FireWith(emitter, 0)`), `_Unregister`, `_ForceStopStream`, `_IsCollisionOn`, `_LiveHitCount`, `_SlotUsed` / `_SlotKind` / `_SlotIndex` / `_SlotPayload` / `_SlotCount`, `_CastKind`, `_CastIndex`.
+- `_SolveFor`, `_SolveWithin`, `_SolveFrom`, `_SolveNearest` and `solveDir`, `solveDistance`, `solveCasts`.
+- `flightFlown`. `flightLength` and `flightSlot` are now private (`flightOn` stays public).
+- `GunnerStream._Step` (the rig calls `_StepMasked`).
+- `GunnerSounds`(コンポーネント、Udon のプログラムアセット、インスペクタ、メニューとボタンの **Add Gunner Sounds**)と、`GunnerSoundsEditor.cs` 内の Editor の公開クラス `GunnerAudio`(`CreateVoice`、`ConfigureVoice`、`Rolloff`、`SetUpVoices`、`RigsOf`、`SoundsFor`)。rig に内蔵の効果音(`fireClip`、`impactClip` ほか)は残ります。そちらを使ってください。
+- `streamWidth`、`streamWidthScales`、`streamTaper`。rig は連射の粒子の Trails > Width over Trail を上書きしなくなりました。線の太さは各粒子の Trails > Width over Trail で決めます。単発の軌跡も連射の線も同じ幅になり、別々の幅は持てません。`streamWidth` を使っていた rig は、粒子側を直すまで線の太さが変わります。
+- `streamClearOnHit`。「1回で止める」は、最初の当たりでいつもその射出口の飛んでいる粒子を消します(これまでの既定)。
+- `projectile`、`GunnerHitReceiver._OnOwnerHit` / `_OnOwnerCommit`、`_RetireHit`。
+- `mounts`、`_SetMount`。射出口をその Transform の子にするか、VRC Parent Constraint を使ってください。
+- `chainYawLimit`、`chainPitchUpLimit`、`chainPitchDownLimit`。鎖の上限は、いつも「骨1本あたりの上限 × 骨の数」です(欄が 0 の時のこれまでの動き)。
+- `_SetAimDirection` と向きでの狙い(`AimDirection`)。`_SetAimTarget` か `_SetAimAngles` を使ってください。ほかの狙いの同期する値は変わりません。
+- `_FireFrom`(`_FireWith(emitter, 0)` を使う)、`_Unregister`、`_ForceStopStream`、`_IsCollisionOn`、`_LiveHitCount`、`_SlotUsed` / `_SlotKind` / `_SlotIndex` / `_SlotPayload` / `_SlotCount`、`_CastKind`、`_CastIndex`。
+- `_SolveFor`、`_SolveWithin`、`_SolveFrom`、`_SolveNearest` と `solveDir`、`solveDistance`、`solveCasts`。
+- `flightFlown`。`flightLength` と `flightSlot` は private になりました(`flightOn` は公開のまま)。
+- `GunnerStream._Step`(rig は `_StepMasked` を呼びます)。
+
 ## [0.7.0] - unreleased / 未公開
 
 ### Added / 追加

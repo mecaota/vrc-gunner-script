@@ -1,9 +1,9 @@
 name: Build Release
 
 # 下書き(gunner)。複製元の release.yml を、リポジトリの根 = パッケージの根の形に直したもの。
-# main で "Run workflow" を押すと、package.json の version を名前にしたタグと Release を作り、
-# zip と unitypackage と package.json を添付する。完了すると Build Repo Listing が動く。
-# 実行するのは人(タグと Release の公開は取り消しにくいため)。
+# main の package.json が変わる push か "Run workflow" で、package.json の version を名前にしたタグと
+# Release を作り、zip と unitypackage と package.json を添付する。完了すると Build Repo Listing が動く。
+# push のときは、その版のタグが既にあれば何もしない。
 #
 # 複製元からの主な変更:
 #   - 検証のジョブ(verify)を先に走らせ、通らなければ何も公開しない。
@@ -14,13 +14,41 @@ name: Build Release
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - package.json
 
 permissions:
   contents: read
 
+# 続けて走った run が、先の run の作ったタグを見てから判定するように
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
 
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.check.outputs.released }}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check Tag
+        id: check
+        run: |
+          version="$(jq -r .version package.json)"
+          tag="$(git ls-remote --tags --refs origin "refs/tags/$version")"
+          if [ -n "$tag" ]; then released=true; else released=false; fi
+          echo "released=$released" >> "$GITHUB_OUTPUT"
+
   verify:
+    needs: check
+    if: github.event_name == 'workflow_dispatch' || needs.check.outputs.released == 'false'
     uses: ./.github/workflows/verify.yml
     secrets: inherit
 

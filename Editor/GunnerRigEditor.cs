@@ -51,11 +51,11 @@ namespace Mecaota.Gunner.EditorTools
                 if (targets.Length == 1)
                 {
                     cards.DoLayoutList();
-                    EditorGUILayout.LabelField(T("GunnerRig.emitters.removeNote"), EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField(T("GunnerRig.emitters.removeNote"), EditorStyles.wordWrappedMiniLabel);
                     DrawOrphanBones(rig);
                 }
                 else
-                    Fields("emitters", "shotParticles", "linkBones", "linkExtraBones", "linkExtraEmitter", "aimMaxAngles");
+                    EditorGUILayout.HelpBox(T("GunnerRig.emitters.multi"), MessageType.Info);
                 using (new EditorGUI.DisabledScope(targets.Length != 1))
                 {
                     if (GUILayout.Button(T("button.place_hand")))
@@ -129,10 +129,14 @@ namespace Mecaota.Gunner.EditorTools
             ObjectAt(row, "shotParticles", i, typeof(ParticleSystem));
             row.y += Line;
             var angles = serializedObject.FindProperty("aimMaxAngles");
-            float angle = i < angles.arraySize ? angles.GetArrayElementAtIndex(i).floatValue : 0f;
+            bool hasAngle = i < angles.arraySize;
+            float angle = hasAngle ? angles.GetArrayElementAtIndex(i).floatValue : 0f;
+            var angleLabel = Label("GunnerRig.aimMaxAngles.row");
+            if (hasAngle) angleLabel = EditorGUI.BeginProperty(row, angleLabel, angles.GetArrayElementAtIndex(i));
             EditorGUI.BeginChangeCheck();
-            angle = EditorGUI.FloatField(row, new GUIContent(T("GunnerRig.aimMaxAngle"), T("GunnerRig.aimMaxAngles.row")), angle);
+            angle = EditorGUI.FloatField(row, angleLabel, angle);
             if (EditorGUI.EndChangeCheck()) Grow(angles, i).floatValue = Mathf.Clamp(angle, 0f, 180f);
+            if (hasAngle) EditorGUI.EndProperty();
             row.y += Line;
             ObjectAt(row, "linkBones", i, typeof(Transform));
 

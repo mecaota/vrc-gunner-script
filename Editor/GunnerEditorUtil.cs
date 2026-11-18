@@ -183,7 +183,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        static void RemoveAt(SerializedProperty array, int index)
+        internal static void RemoveAt(SerializedProperty array, int index)
         {
             // DeleteArrayElementAtIndex は null でないオブジェクトの枠だと1回目は中身を消すだけなので、先に消して1回で除く。
             var e = array.GetArrayElementAtIndex(index);

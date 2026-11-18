@@ -14,6 +14,7 @@ namespace Mecaota.Gunner.EditorTools
     public abstract class GunnerInspectorBase : Editor
     {
         readonly HashSet<string> missing = new HashSet<string>();
+        protected readonly List<GunnerCheck> checks = new List<GunnerCheck>();
         string typeName;
 
         protected string TypeName => typeName ?? (typeName = target.GetType().Name);
@@ -22,9 +23,11 @@ namespace Mecaota.Gunner.EditorTools
         {
             if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(targets)) return;
             missing.Clear();
+            string about = TypeName + ".about";
+            if (GunnerL10n.Tr(about) != about) EditorGUILayout.LabelField(GunnerL10n.Tr(about), EditorStyles.wordWrappedMiniLabel);
 
             // 最初の1つだけでなく、選んだオブジェクトをすべて点検する。
-            var checks = new List<GunnerCheck>();
+            checks.Clear();
             foreach (var t in targets) checks.AddRange(GunnerChecks.Run(t as Component));
             if (GunnerChecks.DrawRows(checks, targets.Length > 1)) GUIUtility.ExitGUI();
 
@@ -101,10 +104,10 @@ namespace Mecaota.Gunner.EditorTools
             return GunnerL10n.Tr(key);
         }
 
-        protected bool Foldout(string key)
+        protected bool Foldout(string key, bool openByDefault = true)
         {
             string state = "Mecaota.Gunner.Fold." + key;
-            bool open = SessionState.GetBool(state, true);
+            bool open = SessionState.GetBool(state, openByDefault);
             bool next = EditorGUILayout.Foldout(open, T(key), true, EditorStyles.foldoutHeader);
             if (next != open) SessionState.SetBool(state, next);
             return next;

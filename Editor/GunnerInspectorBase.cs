@@ -130,9 +130,6 @@ namespace Mecaota.Gunner.EditorTools
     [CustomEditor(typeof(GunnerMoveHold)), CanEditMultipleObjects]
     public class GunnerMoveHoldEditor : GunnerInspectorBase { }
 
-    [CustomEditor(typeof(GunnerHitSplash)), CanEditMultipleObjects]
-    public class GunnerHitSplashEditor : GunnerInspectorBase { }
-
     // ほかのパッケージの受け手も、独自のエディタが無ければ同じ並びになる。
     [CustomEditor(typeof(GunnerHitReceiver), true), CanEditMultipleObjects]
     public class GunnerHitReceiverEditor : GunnerInspectorBase { }

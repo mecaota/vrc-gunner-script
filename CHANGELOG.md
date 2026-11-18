@@ -4,6 +4,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.9.0] - unreleased / 未公開
+
+### Added / 追加
+
+- `GunnerRig.impactParticles` and `impactBurst`: particles burst at the hit point. They follow `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`; `impactMinInterval` does not drop them.
+- `GunnerRig.impactParticles` と `impactBurst`。当たった点で粒子を弾けさせます。`soundOnPlayers` / `soundOnWorld` / `soundOnMoving` に従い、`impactMinInterval` では間引きません。
+
+### Removed / 削除
+
+- `GunnerHitSplash` and the **Add Hit Splash** menu and button. Move its particle system to `impactParticles` and its `burst` to `impactBurst`.
+- `GunnerHitSplash` と、メニューとボタンの **Add Hit Splash**。粒子は `impactParticles` へ、`burst` は `impactBurst` へ移してください。
+
 ## [0.8.0] - unreleased / 未公開
 
 Removals and clean-up. Members nobody called, and fields that a Unity or VRChat feature already covers, are removed.

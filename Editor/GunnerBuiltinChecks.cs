@@ -22,7 +22,6 @@ namespace Mecaota.Gunner.EditorTools
                 case GunnerRig rig: Rig(rig, into); break;
                 case GunnerHandController hand: Hand(hand, into); break;
                 case GunnerPickupInput input: PickupInput(input, into); break;
-                case GunnerHitSplash splash: Splash(splash, into); break;
                 case GunnerStream stream: Stream(stream, into); break;
             }
         }
@@ -70,6 +69,10 @@ namespace Mecaota.Gunner.EditorTools
                     into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), label));
             }
 
+            var impact = rig.impactParticles;
+            if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
+                into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
+
             if (rig.fireMode == GunnerRig.FireStream && rig.stream == null)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_stream", rig, () => GunnerSetup.EnsureStream(rig)));
 
@@ -108,7 +111,6 @@ namespace Mecaota.Gunner.EditorTools
             foreach (var r in rig.GetComponentsInChildren<GunnerHitReceiver>(true))
             {
                 if (System.Array.IndexOf(listed, r) >= 0) continue;
-                if (r is GunnerHitSplash s && s.targetRig == rig) continue; // Start で自分を登録する
                 var receiver = r;
                 into.Add(new GunnerCheck(E.Warning, "check.rig.receiver_unlisted", r, () => AddReceiver(rig, receiver), r.name));
             }
@@ -318,31 +320,7 @@ namespace Mecaota.Gunner.EditorTools
                     () => Undo.AddComponent<VRCObjectSync>(input.gameObject)));
         }
 
-        // ---------------- 受け手と連射 ----------------
-
-        static void Splash(GunnerHitSplash splash, List<GunnerCheck> into)
-        {
-            if (splash.splash == null) into.Add(new GunnerCheck(E.Error, "check.splash.no_particle", splash));
-            else if (splash.splash.main.simulationSpace != ParticleSystemSimulationSpace.World)
-            {
-                var ps = splash.splash;
-                into.Add(new GunnerCheck(E.Error, "check.particle.not_world", ps, () => GunnerEditorUtil.MakeWorldSpace(ps), ps.name));
-            }
-            if (splash.targetRig == null && !ListedAnywhere(splash))
-            {
-                var rig = GunnerSetup.RigFor(splash.gameObject);
-                System.Action fix = null;
-                if (rig != null) fix = () => GunnerEditorUtil.Edit(splash, so => so.FindProperty("targetRig").objectReferenceValue = rig);
-                into.Add(new GunnerCheck(E.Warning, "check.receiver.no_rig", splash, fix));
-            }
-        }
-
-        static bool ListedAnywhere(GunnerHitReceiver r)
-        {
-            foreach (var rig in GunnerEditorUtil.FindInScenes<GunnerRig>())
-                if (rig.receivers != null && System.Array.IndexOf(rig.receivers, r) >= 0) return true;
-            return false;
-        }
+        // ---------------- 連射 ----------------
 
         static void Stream(GunnerStream stream, List<GunnerCheck> into)
         {

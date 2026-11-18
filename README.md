@@ -5,9 +5,9 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Emitters, aiming, single shots and streams
 - Synced hit records (world, moving objects, players) delivered to hit receivers
 - Receivers derive from `GunnerHitReceiver` and override only what they need
-- Built-in fire and impact sounds on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
+- Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.8.0). APIs will change.
+Status: early (0.9.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -75,9 +75,9 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 
 `streamRate`, `streamJoin` and `streamHitMode` are read once when the rig starts; changing them at runtime has no effect. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
 
-### Built-in sounds
+### Built-in sounds and impact particles
 
-`GunnerRig` can play a fire sound and an impact sound by itself (the **Sounds** section of its inspector). Every device plays them from the fire and hit events; nothing extra is synced.
+`GunnerRig` can play a fire sound and an impact sound, and burst particles at the hit point, by itself (the **Sounds and particles** section of its inspector). Every device plays them from the fire and hit events; nothing extra is synced.
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -85,11 +85,13 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `fireVolume` / `impactVolume` | 1 / 1 | Source volume (0-1). |
 | `pitchJitter` | 0.05 | Random pitch change per sound. 0 = off. |
 | `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
-| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). |
-| `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound. |
+| `impactParticles` | empty | Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
+| `impactBurst` | 12 | Particles per hit (at least 1). |
+| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped. |
+| `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound and burst the impact particles. |
 | `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
 
-- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound plays at the hit point. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent.
+- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound and particles play at the hit point. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
 - Udon cannot add `VRC_SpatialAudioSource` at runtime. Add one to every AudioSource in the editor and match its Far to the AudioSource's Max Distance. The Check Window does not check the rig's sources.
 
@@ -131,7 +133,7 @@ How it works:
 
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
 2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
-3. Add a receiver: **Add Hit Splash** (particles at the hit point) or your own `GunnerHitReceiver`. For sounds, set the clips in the rig's **Sounds** section.
+3. For sounds and particles at the hit point, set the clips and `impactParticles` in the rig's **Sounds and particles** section. For anything else, add your own `GunnerHitReceiver`.
 4. Call `TriggerDown()` / `TriggerUp()` from your own script, or use **Place Hand Controller** for a ready-made hand-held ball.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
 
@@ -145,7 +147,6 @@ Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 - **Add Emitter**: an emitter with its own particles under the selected object.
 - **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator).
 - **Place Hand Controller**: a hand-held ball with VRC Pickup, VRC Object Sync, `GunnerPickupInput`, `GunnerStickAim`, `GunnerMoveHold` and `GunnerHandController`.
-- **Add Hit Splash**: a `GunnerHitSplash` under the rig's `Parts` child.
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 
@@ -181,7 +182,7 @@ Removals and clean-up (see CHANGELOG.md for the full list). `GunnerSounds` is re
 ## Changes in 0.6.0
 
 - `GunnerAutoAim`: aim at and shoot players inside a trigger box (see "Auto aim").
-- Built-in fire and impact sounds on `GunnerRig` (see "Built-in sounds"). Empty clips = silent, the same as before. `GunnerSounds` is unchanged; clips on both play twice.
+- Built-in fire and impact sounds on `GunnerRig` (see "Built-in sounds and impact particles"). Empty clips = silent, the same as before. `GunnerSounds` is unchanged; clips on both play twice.
 
 ## Changes in 0.5.0
 

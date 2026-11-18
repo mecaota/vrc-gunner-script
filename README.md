@@ -85,14 +85,13 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `fireVolume` / `impactVolume` | 1 / 1 | Source volume (0-1). |
 | `pitchJitter` | 0.05 | Random pitch change per sound. 0 = off. |
 | `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
-| `impactParticles` | empty | Particles burst at the hit point (World simulation space, +Z = splash direction). The particle system decides the look and lifetime. Empty = none. |
+| `impactParticles` | empty | Particles burst at the hit point (World simulation space). Empty = none. |
 | `impactBurst` | 12 | Particles per hit (at least 1). |
 | `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). Impact particles are not dropped. |
 | `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound and burst the impact particles. |
 | `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
 
-- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound and particles play at the hit point; the particles face the surface found by a short raycast there, or back along the shot when none is found (always for players). Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
-- An impact clip without particles plays only the sound; particles without a clip show only the particles.
+- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound and particles play at the hit point. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
 - Udon cannot add `VRC_SpatialAudioSource` at runtime. Add one to every AudioSource in the editor and match its Far to the AudioSource's Max Distance. The Check Window does not check the rig's sources.
 
@@ -178,7 +177,7 @@ See [CHANGELOG.md](CHANGELOG.md) for every version.
 
 ## Changes in 0.9.0
 
-The hit splash receiver is merged into `GunnerRig`: set `impactParticles` and `impactBurst` in the **Sounds and particles** section. It follows the impact sound's filters (`soundOn*`), but `impactMinInterval` drops only the sound. See CHANGELOG.md.
+`GunnerHitSplash` is removed; use the rig's `impactParticles` and `impactBurst` instead.
 
 ## Changes in 0.8.0
 

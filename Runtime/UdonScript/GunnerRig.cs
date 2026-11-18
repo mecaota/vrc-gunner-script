@@ -63,8 +63,8 @@ namespace Mecaota.Gunner
         private const float AimSyncMove = 0.05f;
         private const float BodyRadiusMin = 0.08f;  // メートル。小さいアバターにも当たるように
         private const float BodyRadiusMax = 0.5f;   // メートル。大きいアバターが近くの弾を全部吸い込まないように
-        private const float ImpactProbe = 0.3f;     // メートル。着弾の粒子の向きを決める面を、着弾点の前後これだけ探す
-        private const float ImpactLift = 0.02f;     // メートル。着弾の粒子を面から浮かせる(面の中で弾けないように)
+        private const float ImpactProbe = 0.3f;     // メートル
+        private const float ImpactLift = 0.02f;     // メートル。面の中で弾けないように
         // 暴れ止め: 休みの向きから上下にこの角度(度)を超える狙いでは、左右の角度を前の値のまま保つ。
         // 狙える角度がこれ以下の射出口では起きないので、既定の rig(60 度)は今までと同じ。
         private const float FlipPitch = 80f;
@@ -131,8 +131,7 @@ namespace Mecaota.Gunner
         // 音源は発射用と着弾用で分け、それぞれ複数持てる。Udon は実行時に VRC_SpatialAudioSource を足せないので、エディタで付けておく
         public AudioSource[] fireVoices;
         public AudioSource[] impactVoices;
-        // 任意: 着弾した所で弾けさせる粒子(World simulation space。+Z = 飛び散る向き)。空なら出さない。
-        // 粒の見た目と寿命は粒子の側で決める。出すかどうかは着弾音と同じ絞り込み(soundOn*)に従う。間引かない(impactMinInterval は音だけ)。
+        // World simulation space。+Z が飛び散る向き
         public ParticleSystem impactParticles;
         public int impactBurst = 12;
         public float fireMinInterval = 0.05f;     // 同じフレームの一斉射撃を1回にまとめる
@@ -685,8 +684,7 @@ namespace Mecaota.Gunner
             if (PlaySound(fireVoices, fireVoiceStarted, fireClip, fireVolume, emitters[at].position)) lastFireSound = Time.time;
         }
 
-        // 着弾音と着弾の粒子は当たった点で出す。粒は着弾のたびに出し、間引くのは音だけ。LoadHit の後(hit* が埋まっている時)に呼ぶ。
-        // 遅れて入った人に戻される古い記録や、相手が見つからない記録では出さない。クリップと粒子はどちらも空でよい。
+        // LoadHit の後(hit* が埋まっている時)に呼ぶ。
         private void PlayImpact()
         {
             if (hitReplay || !hitResolved) return;
@@ -698,7 +696,7 @@ namespace Mecaota.Gunner
             if (PlaySound(impactVoices, impactVoiceStarted, impactClip, impactVolume, hitPoint)) lastImpact = Time.time;
         }
 
-        // 面の向きを短い Raycast で取り直し、面から少し浮かせて弾けさせる。人や面が見つからない時は、弾の来た向きへ飛び散らせる。
+        // 着弾の記録には面の向きが無いので、Raycast で取り直す。
         private void EmitImpactParticles()
         {
             if (impactParticles == null) return;

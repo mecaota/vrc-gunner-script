@@ -6,30 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [0.9.0] - unreleased / 未公開
 
-The hit splash receiver is merged into the rig. It shares the impact sound's filters, so a rig can play only the sound, show only the particles, or both.
-
-着弾のしぶきの受け手を rig に統合しました。着弾音と同じ絞り込みを使うので、音だけ、粒子だけ、その両方を rig だけで設定できます。
-
 ### Added / 追加
 
-- `GunnerRig.impactParticles` and `impactBurst`: particles burst at the hit point (World simulation space, +Z = splash direction). The particle system decides the look and lifetime. Empty = none. They use the impact sound's filters: `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`, `hitReplay` and `hitResolved`. `impactMinInterval` drops only the sound, not the particles.
+- `GunnerRig.impactParticles` and `impactBurst`: particles burst at the hit point. They follow `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`; `impactMinInterval` does not drop them.
 - The Check Window reports `impactParticles` that are not in World simulation space.
-- `GunnerRig.impactParticles` と `impactBurst`。当たった点で粒子を弾けさせます(World simulation space、+Z が飛び散る向き)。粒の見た目と寿命は粒子の側で決めます。空なら出しません。絞り込みは着弾音と同じです: `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`、`hitReplay`、`hitResolved`。`impactMinInterval` が間引くのは音だけで、粒子は間引きません。
+- `GunnerRig.impactParticles` と `impactBurst`。当たった点で粒子を弾けさせます。`soundOnPlayers` / `soundOnWorld` / `soundOnMoving` に従い、`impactMinInterval` では間引きません。
 - 点検ウィンドウが、World simulation space でない `impactParticles` を知らせます。
-
-### Changed / 変更
-
-- `impactClip` may be empty while `impactParticles` is set (particles only), and the other way round (sound only).
-- Stream hits always burst the particles (the splash's `onStream` switch is gone). To show fewer, lower `impactBurst`.
-- The inspector section **Sounds** is now **Sounds and particles**. `Prefab/GunnerRig.prefab` and `Scene/Gunner.unity` use the rig's new fields instead of a `GunnerHitSplash`.
-- `impactClip` が空で `impactParticles` だけ(粒子だけ)、その逆(音だけ)にできます。
-- 連射の着弾でも、いつも粒子を出します(しぶきの `onStream` はなくなりました)。多すぎる時は `impactBurst` を減らしてください。
-- インスペクタの節 **効果音** は **効果音と粒子** になりました。`Prefab/GunnerRig.prefab` と `Scene/Gunner.unity` は、`GunnerHitSplash` の代わりに rig の新しい欄を使います。
 
 ### Removed / 削除
 
-- `GunnerHitSplash` (the component, its Udon program asset, its inspector, its checks, and the **Add Hit Splash** menu and button). Move its particle system to the rig's `impactParticles` and its `burst` to `impactBurst`. Its `sound` and `surfaceOffset` have no replacement: use the rig's impact sound; the offset is fixed at 0.02 m. `GunnerHitReceiver` stays.
-- `GunnerHitSplash`(コンポーネント、Udon のプログラムアセット、インスペクタ、点検、メニューとボタンの **Add Hit Splash**)。粒子は rig の `impactParticles` へ、`burst` は `impactBurst` へ移してください。`sound` と `surfaceOffset` の代わりはありません。rig の着弾音を使ってください。面からの浮きは 0.02 m に固定です。`GunnerHitReceiver` は残ります。
+- `GunnerHitSplash` and the **Add Hit Splash** menu and button. Move its particle system to `impactParticles` and its `burst` to `impactBurst`.
+- `GunnerHitSplash` と、メニューとボタンの **Add Hit Splash**。粒子は `impactParticles` へ、`burst` は `impactBurst` へ移してください。
 
 ## [0.8.0] - unreleased / 未公開
 

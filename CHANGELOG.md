@@ -9,9 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added / 追加
 
 - `GunnerRig.impactParticles` and `impactBurst`: particles burst at the hit point. They follow `soundOnPlayers` / `soundOnWorld` / `soundOnMoving`; `impactMinInterval` does not drop them.
-- The Check Window reports `impactParticles` that are not in World simulation space.
 - `GunnerRig.impactParticles` と `impactBurst`。当たった点で粒子を弾けさせます。`soundOnPlayers` / `soundOnWorld` / `soundOnMoving` に従い、`impactMinInterval` では間引きません。
-- 点検ウィンドウが、World simulation space でない `impactParticles` を知らせます。
 
 ### Removed / 削除
 

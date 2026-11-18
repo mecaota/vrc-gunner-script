@@ -85,9 +85,9 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `fireVolume` / `impactVolume` | 1 / 1 | Source volume (0-1). |
 | `pitchJitter` | 0.05 | Random pitch change per sound. 0 = off. |
 | `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
-| `impactParticles` | empty | Particles burst at the hit point (World simulation space). Empty = none. |
+| `impactParticles` | empty | Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
 | `impactBurst` | 12 | Particles per hit (at least 1). |
-| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped (seconds). Impact particles are not dropped. |
+| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together than this are dropped. |
 | `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound and burst the impact particles. |
 | `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
 
@@ -174,10 +174,6 @@ All three are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnL
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
-
-## Changes in 0.9.0
-
-`GunnerHitSplash` is removed; use the rig's `impactParticles` and `impactBurst` instead.
 
 ## Changes in 0.8.0
 

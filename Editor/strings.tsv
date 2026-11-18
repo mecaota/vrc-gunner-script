@@ -142,7 +142,7 @@ GunnerRig.fireVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource �
 GunnerRig.impactVoices	着弾音の音源	Impact sources
 GunnerRig.impactVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
 GunnerRig.impactParticles	着弾の粒子	Impact particles
-GunnerRig.impactParticles.tip	当たった点で弾けさせる。World simulation space。空なら出さない	Burst at the hit point. World simulation space. Empty = none
+GunnerRig.impactParticles.tip	当たった点で弾けさせる。World simulation space。+Z が飛び散る向き。空なら出さない	Burst at the hit point. World simulation space. +Z is the splash direction. Empty = none
 GunnerRig.impactBurst	粒の数	Burst
 GunnerRig.impactBurst.tip	1回の着弾で出す粒の数(最低1)	Particles per hit (at least 1)
 GunnerRig.fireMinInterval	発射音の間引き	Fire min interval

@@ -131,7 +131,6 @@ namespace Mecaota.Gunner
         // 音源は発射用と着弾用で分け、それぞれ複数持てる。Udon は実行時に VRC_SpatialAudioSource を足せないので、エディタで付けておく
         public AudioSource[] fireVoices;
         public AudioSource[] impactVoices;
-        // World simulation space。+Z が飛び散る向き
         public ParticleSystem impactParticles;
         public int impactBurst = 12;
         public float fireMinInterval = 0.05f;     // 同じフレームの一斉射撃を1回にまとめる
@@ -684,7 +683,6 @@ namespace Mecaota.Gunner
             if (PlaySound(fireVoices, fireVoiceStarted, fireClip, fireVolume, emitters[at].position)) lastFireSound = Time.time;
         }
 
-        // LoadHit の後(hit* が埋まっている時)に呼ぶ。
         private void PlayImpact()
         {
             if (hitReplay || !hitResolved) return;

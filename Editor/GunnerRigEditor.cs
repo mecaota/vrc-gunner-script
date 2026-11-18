@@ -26,6 +26,7 @@ namespace Mecaota.Gunner.EditorTools
             {
                 elementHeightCallback = i => CardRows(i) * Line,
                 drawElementCallback = (rect, i, active, focused) => DrawCard(rect, i),
+                onCanAddCallback = list => list.count < GunnerRig.MaxEmitters,
                 onAddCallback = _ =>
                 {
                     var rig = (GunnerRig)target;
@@ -156,7 +157,6 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // 番号。点検の行がこの射出口かその粒子を指していれば、同じアイコンを付ける。
         GUIContent CardTitle(GunnerRig rig, int i)
         {
             var emitter = rig.emitters != null && i < rig.emitters.Length ? rig.emitters[i] : null;
@@ -198,8 +198,8 @@ namespace Mecaota.Gunner.EditorTools
             return arr.GetArrayElementAtIndex(i);
         }
 
-        /// <summary>射出口 i を外す。同じ番号の粒子・連動ボーン・可動域と、その射出口の追加の骨も外し、後ろの所属の番号を詰める。</summary>
-        internal static void RemoveEmitter(SerializedObject so, int i)
+        /// <summary>射出口 i を、同じ番号の欄とその追加の骨ごと外す。</summary>
+        static void RemoveEmitter(SerializedObject so, int i)
         {
             foreach (var name in new[] { "emitters", "shotParticles", "linkBones", "aimMaxAngles" })
             {
@@ -298,11 +298,7 @@ namespace Mecaota.Gunner.EditorTools
         {
             var bones = so.FindProperty("linkExtraBones");
             var owners = so.FindProperty("linkExtraEmitter");
-            if (bones != null && k < bones.arraySize)
-            {
-                bones.GetArrayElementAtIndex(k).objectReferenceValue = null;
-                bones.DeleteArrayElementAtIndex(k);
-            }
+            if (bones != null && k < bones.arraySize) GunnerEditorUtil.RemoveAt(bones, k);
             if (owners != null && k < owners.arraySize) owners.DeleteArrayElementAtIndex(k);
         }
 

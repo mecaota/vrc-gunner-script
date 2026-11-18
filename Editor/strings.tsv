@@ -65,7 +65,7 @@ GunnerRig.linkExtraBones	追加の連動ボーン	Extra linked bones
 GunnerRig.linkExtraBones.tip	任意。連動ボーンの親や祖先の骨。足すと、狙いの角度を骨の数で等分して曲げる	Optional. Parents or ancestors of the linked bone. The aim angle is split evenly across the bones
 GunnerRig.linkExtraEmitter	追加ボーンの射出口	Extra bone emitters
 GunnerRig.linkExtraEmitter.tip	追加の連動ボーンと同じ番号。その骨が加わる射出口の番号	Same index as the extra linked bones. The emitter each bone joins
-GunnerRig.extra.orphan	連動の無い射出口を指す骨	Bones pointing at an emitter with no link
+GunnerRig.extra.orphan	無い射出口を指す骨	Bones pointing at a missing emitter
 button.add_parent_bones	親の骨を {0} 個足す	Add {0} parent bone(s)
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
@@ -116,11 +116,11 @@ GunnerRig.boneFollow.tip	狙いに合わせてボーンを回す	Turn the bone w
 GunnerRig.boneStrength	連動の割合	Link share
 GunnerRig.boneStrength.tip	狙いの角度のうち、骨が受け持つ割合(0〜1)。残りは射出口だけが向く	Share of the aim angle the bones take (0-1). The emitter turns the rest by itself
 GunnerRig.boneYawMax	左右の上限	Yaw limit
-GunnerRig.boneYawMax.tip	骨1本が左右に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Yaw limit of one bone (degrees). With extra bones, the whole chain turns up to this value × the number of bones
+GunnerRig.boneYawMax.tip	骨1本が左右に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Yaw limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
 GunnerRig.bonePitchUpMax	上の上限	Pitch up limit
-GunnerRig.bonePitchUpMax.tip	骨1本が上に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-up limit of one bone (degrees). With extra bones, the whole chain turns up to this value × the number of bones
+GunnerRig.bonePitchUpMax.tip	骨1本が上に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-up limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
 GunnerRig.bonePitchDownMax	下の上限	Pitch down limit
-GunnerRig.bonePitchDownMax.tip	骨1本が下に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-down limit of one bone (degrees). With extra bones, the whole chain turns up to this value × the number of bones
+GunnerRig.bonePitchDownMax.tip	骨1本が下に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-down limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
 GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
 GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか。大きいほど早く追いつき、小さいほどなめらか	Per second, share of the remaining angle closed. Higher catches up faster, lower is smoother
 GunnerRig.boneMinSpeed	最低の速さ	Minimum speed

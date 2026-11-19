@@ -67,7 +67,7 @@ namespace Mecaota.Gunner.EditorTools
                 if (main.playOnAwake || main.loop)
                     into.Add(new GunnerCheck(E.Warning, "check.particle.autoplay", ps, () => GunnerEditorUtil.StopAutoPlay(ps), label));
                 int join = rig.streamJoins != null && i < rig.streamJoins.Length ? rig.streamJoins[i] : GunnerStream.JoinLine;
-                if (rig.fireMode == GunnerRig.FireStream && join == GunnerStream.JoinLine && !ps.trails.enabled)
+                if (IsStream(rig, i) && join == GunnerStream.JoinLine && !ps.trails.enabled)
                     into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), label));
             }
 
@@ -81,7 +81,7 @@ namespace Mecaota.Gunner.EditorTools
                 if (source != null && source.transform.IsChildOf(rig.transform))
                     into.Add(new GunnerCheck(E.Warning, "check.rig.impact_in_rig", source, null, source.name));
 
-            if (rig.fireMode == GunnerRig.FireStream && rig.stream == null)
+            if (StreamCount(rig) > 0 && rig.stream == null)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_stream", rig, () => GunnerSetup.EnsureStream(rig)));
 
             if (rig.maxHits < 1)
@@ -232,6 +232,16 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
+        static bool IsStream(GunnerRig rig, int i) => rig.fireModes != null && i < rig.fireModes.Length && rig.fireModes[i] == GunnerRig.FireStream;
+
+        static int StreamCount(GunnerRig rig)
+        {
+            int count = rig.emitters != null ? Mathf.Min(rig.emitters.Length, GunnerRig.MaxEmitters) : 0;
+            int n = 0;
+            for (int i = 0; i < count; i++) if (IsStream(rig, i)) n++;
+            return n;
+        }
+
         static void AddReceiver(GunnerRig rig, GunnerHitReceiver r)
         {
             GunnerEditorUtil.Edit(rig, so =>
@@ -278,12 +288,13 @@ namespace Mecaota.Gunner.EditorTools
             var rig = hand.rig;
             if (rig != null)
             {
-                if (hand.collideMode == GunnerHandController.CollideAfterRelease && rig.fireMode != GunnerRig.FireStream)
+                int streams = StreamCount(rig);
+                if (hand.collideMode == GunnerHandController.CollideAfterRelease && streams == 0)
                     into.Add(new GunnerCheck(E.Warning, "check.hand.window_single", hand,
                         () => GunnerEditorUtil.Edit(hand, so => so.FindProperty("collideMode").intValue = GunnerHandController.CollideAlways)));
-                // 射出口が2つ以上の連射の rig で組を決めていない球は、全部の射出口から連射する。
-                if (hand.useEmitters == 0 && rig.fireMode == GunnerRig.FireStream && rig.emitters != null && rig.emitters.Length >= 2)
-                    into.Add(new GunnerCheck(E.Warning, "check.hand.all_emitters", hand, null, rig.emitters.Length.ToString()));
+                // 連射の射出口が2つ以上ある rig で組を決めていない球は、その全部から連射する。
+                if (hand.useEmitters == 0 && streams >= 2)
+                    into.Add(new GunnerCheck(E.Warning, "check.hand.all_emitters", hand, null, streams.ToString()));
                 var ball = hand.input != null ? hand.input.GetComponent<Collider>() : null;
                 if (ball != null && GunnerEditorUtil.HitsLayer(rig, ball.gameObject.layer))
                 {

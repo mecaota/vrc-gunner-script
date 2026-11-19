@@ -16,7 +16,7 @@ namespace Mecaota.Gunner
         public GunnerStickAim aim;                // 任意: 無ければスティックで狙わない
         public GunnerMoveHold hold;               // 任意: 撃っている間もプレイヤーが歩ける
 
-        public int emitter = -1;                  // 単発: -1 = 全部の射出口
+        public int emitter = -1;                  // -1 = 全部の射出口。それぞれ射出口の撃ち方で撃つ
         public int payload;                       // rig へそのまま渡す。意味は弾が決める
         // AfterRelease: 押している間の連射は何でも素通りし、放すとその粒子が最初に触れたものに1回当たる。
         public int collideMode = CollideAlways;
@@ -74,11 +74,9 @@ namespace Mecaota.Gunner
             _Refresh();
             if (!active || triggerDown) return;
             triggerDown = true;
-            if (rig.fireMode != GunnerRig.FireStream)
-            {
-                rig._FireWith(emitter, payload);
-                return;
-            }
+            int use = emitter < 0 ? -1 : 1 << emitter;
+            if ((use & ~rig.streamMask) != 0) rig._FireWith(emitter, payload);
+            if ((use & rig.streamMask) == 0) return;
             if (collideMode == CollideAfterRelease)
             {
                 closePending = false;

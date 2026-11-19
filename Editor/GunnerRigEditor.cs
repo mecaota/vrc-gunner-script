@@ -60,7 +60,7 @@ namespace Mecaota.Gunner.EditorTools
             }
 
             if (Foldout("GunnerRig.section.shot"))
-                Fields("fireMode", "stream", "fireAnimator");
+                Fields("stream", "fireAnimator");
 
             if (Foldout("GunnerRig.section.hit", false))
                 Fields("receivers", "movers", "playerRadius", "maxHits");
@@ -144,6 +144,7 @@ namespace Mecaota.Gunner.EditorTools
             EditorGUI.indentLevel++;
 
             Heading("GunnerRig.card.fire");
+            PopupAt("fireModes", i, "GunnerRig.fireModes", GunnerRig.FireSingle);
             ObjectAt("fireSources", i, typeof(AudioSource));
             ObjectAt("fireClips", i, typeof(AudioClip));
             FloatAt("fireMinIntervals", i, "GunnerRig.fireMinIntervals", 0f, float.MaxValue);
@@ -319,7 +320,7 @@ namespace Mecaota.Gunner.EditorTools
         }
 
         /// <summary>emitters と同じ番号の配列。</summary>
-        internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles",
+        internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles", "fireModes",
             "fireSources", "fireClips", "fireMinIntervals", "impactSources", "impactClips", "impactMinIntervals", "impactParticles", "impactBursts",
             "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals", "streamCollides",
             "boneStrengths", "boneYawMaxes", "bonePitchUpMaxes", "bonePitchDownMaxes", "boneSmooths", "boneMinSpeeds", "boneMaxSpeeds" };

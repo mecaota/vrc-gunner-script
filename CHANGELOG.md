@@ -4,6 +4,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.13.0] - 2026-11-20
+
+Breaking: `GunnerRig.fireMode` is replaced by the per-emitter `fireModes`. The value in `fireMode` is lost on update.
+
+互換性のない変更です。`GunnerRig` の `fireMode` を、射出口ごとの `fireModes` に置き換えました。`fireMode` の値は、更新すると失われます。
+
+### Breaking changes / 互換性のない変更
+
+- `fireMode` is removed. Set the fire mode (Single or Stream) on each emitter card (`fireModes`, empty = Single). If a rig had `fireMode` set to Stream, set Stream on every card. A rig left on Single needs no change.
+- `TriggerDown()` starts the stream on the Stream emitters and fires the Single emitters once, and `TriggerUp()` stops the stream. The hand controller does the same; with `emitter` set to one emitter, it uses that emitter's fire mode.
+- `Fire()` and `_FireWith(-1, payload)` fire only the Single emitters in the aim set. `_FireWith(emitter, payload)` with an emitter number still fires that emitter, whatever its fire mode. `_FireVolley()` is unchanged.
+- A stream comes out only of the Stream emitters in the aim set. With no Stream emitter in the aim set, `StartStream()` does nothing: the stream does not start, nothing is synced and `_OnFire` is not called.
+- `fireMode` を削除しました。撃ち方(単発・連射)は、射出口のカードの `fireModes` で決めます(空なら単発)。`fireMode` を連射にしていた rig は、すべてのカードで連射にしてください。単発のままの rig は、変更する必要はありません。
+- `TriggerDown()` を呼ぶと、連射の射出口で連射を始め、単発の射出口で1回撃ちます。`TriggerUp()` は連射を止めます。手に持つ球(`GunnerHandController`)も同じように撃ちます。`emitter` に射出口の番号を入れた球は、その射出口の撃ち方で撃ちます。
+- `Fire()` と `_FireWith(-1, payload)` は、狙う射出口の組のうち、単発の射出口だけから撃ちます。`_FireWith(emitter, payload)` に射出口の番号を渡したときは、これまでどおり、撃ち方に関係なくその射出口で撃ちます。`_FireVolley()` は変わりません。
+- 連射は、狙う射出口の組のうち、連射の射出口だけから出ます。狙う射出口の組に連射の射出口がない場合は、`StartStream()` を呼んでも連射は始まりません。同期も `_OnFire` の呼び出しも行われません。
+
 ## [0.12.0] - 2026-11-20
 
 Breaking: four `GunnerRig` fields are removed (see "Breaking changes"). Values in them are lost on update.

@@ -14,7 +14,7 @@ check.rig.too_many_emitters	射出口が多すぎます(最大 {0})	Too many emi
 check.rig.null_emitter	射出口の欄に空きがあります	An emitter slot is empty
 check.rig.no_particle	射出口 {0} にパーティクルがありません(当たりは記録されます)	Emitter {0} has no particles (hits are still recorded)
 check.rig.trails_off	射出口 {0} のパーティクルにトレイルがなく、連射が線になりません	Emitter {0}: particle trails are off, so the stream will not join into a line
-check.rig.no_stream	連射モードですが GunnerStream がありません	Stream mode, but no GunnerStream
+check.rig.no_stream	撃ち方が連射の射出口がありますが、GunnerStream がありません	An emitter fires in Stream mode, but there is no GunnerStream
 check.rig.hits_zero	記録数が 0 です	Hit records is 0
 check.rig.many_hits	記録数が {0} を超えています({0} 件までしか使われません)	More than {0} hit records (only {0} are used)
 check.rig.object_sync	VRC Object Sync と同じ GameObject には置けません(子へ移してください)	Cannot share a GameObject with VRC Object Sync (move it to a child)
@@ -38,9 +38,9 @@ check.hand.no_input	GunnerPickupInput が未設定です	No GunnerPickupInput se
 check.hand.input_unwired	入力の Controller がこの球を指していません	The input's Controller is not this ball
 check.hand.no_aim	スティックで狙えません(GunnerStickAim が未設定)	No stick aim (GunnerStickAim not set)
 check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
-check.hand.window_single	「離してから」は単発では効きません	"After release" has no effect on single shots
+check.hand.window_single	撃ち方が連射の射出口がないため、「離してから」は効きません	No emitter fires in Stream mode, so "After release" has no effect
 check.hand.mask_hits_ball	弾が球に当たります(射出口のパーティクルの Collides With にレイヤー {0} が入っています)	Shots can hit the ball (layer {0} is in an emitter particle system's Collides With)
-check.hand.all_emitters	連射が全部の射出口({0}個)から出ます(狙う射出口の組が 0)	The stream comes out of all {0} emitters (emitter set is 0)
+check.hand.all_emitters	狙う射出口の組が 0 のため、撃ち方が連射の射出口すべて({0}個)から連射が出ます	The stream comes out of all {0} Stream emitters (emitter set is 0)
 check.input.no_controller	Controller が未設定です	No Controller set
 check.input.no_pickup	同じ GameObject に VRC Pickup がありません	No VRC Pickup on this GameObject
 check.input.pickup_elsewhere	Pickup の欄が別の物を指しています	The Pickup field points elsewhere
@@ -81,9 +81,9 @@ GunnerRig.receivers	受け手	Receivers
 GunnerRig.receivers.tip	着弾を知らせる相手	Notified of every hit
 GunnerRig.stream	連射の部品	Stream component
 GunnerRig.stream.tip	連射に使う GunnerStream。連射の量・見た目・当たり方は射出口のカードで決める	The GunnerStream used for streams. Set the rate, look and hits on each emitter card
-GunnerRig.fireMode	撃ち方	Fire mode
-GunnerRig.fireMode.opt	単発|連射	Single|Stream
-GunnerRig.fireMode.tip	押したときの撃ち方。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	How a press shoots. Single: one shot per press. Stream: keeps shooting while held
+GunnerRig.fireModes	撃ち方	Fire mode
+GunnerRig.fireModes.opt	単発|連射	Single|Stream
+GunnerRig.fireModes.tip	トリガーを押したときの、この射出口の撃ち方。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	How this emitter shoots when the trigger is pressed. Single: one shot per press. Stream: keeps shooting while held
 GunnerRig.maxHits	記録数	Hit records
 GunnerRig.fireAnimator	撃つ前のアニメ	Pre-fire animator
 GunnerRig.fireAnimator.tip	撃つ前にアニメを流す Animator。空ならすぐ撃つ。入れると、アニメの終わりの合図(_AnimFire)で撃つ。射出口ごとに bool のパラメーター GunnerPre0, GunnerPre1… が必要。rig は Animator と同じ GameObject に置く	Animator played before shooting. Empty: shoot at once. Set: shoot on the animation's end signal (_AnimFire). Each emitter needs a bool parameter GunnerPre0, GunnerPre1… Put the rig on the same GameObject as the Animator
@@ -152,7 +152,7 @@ GunnerHandController.aim.tip	任意。空ならスティックで狙わない	Op
 GunnerHandController.hold	移動ロック	Move hold
 GunnerHandController.hold.tip	任意。空なら撃つ間も歩ける	Optional. Empty = the player can walk while shooting
 GunnerHandController.emitter	射出口の番号	Emitter index
-GunnerHandController.emitter.tip	単発で使う射出口。-1 ならすべて	Emitter for single shots. -1 = all
+GunnerHandController.emitter.tip	使う射出口。-1 ならすべて。射出口ごとの撃ち方で撃つ	Emitter to use. -1 = all. Each emitter uses its own fire mode
 GunnerHandController.payload	payload	Payload
 GunnerHandController.payload.tip	rig へそのまま渡す整数。意味は受け手が決める	Integer passed to the rig as is; the receivers decide what it means
 GunnerHandController.collideMode	当たるとき	When it hits

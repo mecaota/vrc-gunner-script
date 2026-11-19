@@ -1462,7 +1462,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: ce49e1ff27d29e24f80ccf7e641f5166, type: 2}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: fireMode
+      propertyPath: fireModes.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: fireModes.Array.data[0]
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}

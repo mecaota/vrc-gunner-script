@@ -92,7 +92,7 @@ namespace Mecaota.Gunner
         public int maxHits = 16;                  // この端末が使う記録の数(1..SyncSlots)。Android では下げる。同期は16のまま
         // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーには常に当たる(持ち主も)
         public float playerRadius = 0.12f;        // 体の半径。的の目の高さに対する割合
-        public int fireMode = FireSingle;         // TriggerDown / TriggerUp で何をするか
+        public int[] fireModes;                   // 射出口ごとの撃ち方(FireSingle / FireStream)。無い射出口は FireSingle
         // 任意: 射出口ごとの狙える角度(度。休み方向から)。空・短い・0 以下の射出口は DefaultAimLimit。狙い(Wish)が見る。
         public float[] aimMaxAngles;
 
@@ -189,6 +189,7 @@ namespace Mecaota.Gunner
         private bool baselined;
         private int slots;
         private int emitterCount;
+        [System.NonSerialized] public int streamMask;  // 撃ち方が連射の射出口(ビット i = 射出口 i)
         private int preEmitter = -1;    // 持ち主: 撃つ前のアニメの合図を待っている射出口。-1 = 待っていない
         private int prePayload;
         private float preUntil;
@@ -308,7 +309,11 @@ namespace Mecaota.Gunner
             joinMs = Networking.GetServerTimeInMilliseconds();
             emitterCount = emitters != null ? Mathf.Min(emitters.Length, MaxEmitters) : 0;
             if (receivers == null) receivers = new GunnerHitReceiver[0];
-            for (int i = 0; i < emitterCount; i++) if (Number(streamCollides, i, 1) != 0) collideMask |= 1 << i;
+            for (int i = 0; i < emitterCount; i++)
+            {
+                if (Number(streamCollides, i, 1) != 0) collideMask |= 1 << i;
+                if (Number(fireModes, i, FireSingle) == FireStream) streamMask |= 1 << i;
+            }
             EnsureSyncArrays();
 
             seenMiss = new int[emitterCount];
@@ -638,7 +643,7 @@ namespace Mecaota.Gunner
 
         // ================= 音 =================
 
-        // 発射音の音源は動かさない。e < 0(連射の開始)は、持ち主の狙う組のうち発射音の音源がある先頭の射出口。
+        // 発射音の音源は動かさない。e < 0(連射の開始)は、持ち主の狙う組の連射の射出口のうち発射音の音源がある先頭の射出口。
         // 組は同期した aimEmitSync で見る(ほかの端末の aimEmitters はその端末自身の組)。
         // 入室時に既に続いていた連射(replay)は今撃たれたのではないので鳴らさない。
         private void PlayFireSound(int e, bool replay)
@@ -649,7 +654,7 @@ namespace Mecaota.Gunner
             {
                 for (int i = 0; i < emitterCount; i++)
                 {
-                    if (!ValidEmitter(i) || !InAim(i, aimEmitSync) || Source(fireSources, i) == null) continue;
+                    if (!ValidEmitter(i) || (StreamSet(aimEmitSync) & (1 << i)) == 0 || Source(fireSources, i) == null) continue;
                     at = i;
                     break;
                 }
@@ -708,19 +713,19 @@ namespace Mecaota.Gunner
 
         // ================= 公開の操作 =================
 
-        /// <summary>単発の一斉射(狙う射出口の組の全部。payload は 0)。</summary>
+        /// <summary>単発の一斉射(狙う射出口の組のうち、撃ち方が単発の射出口。payload は 0)。</summary>
         public void Fire() { _FireWith(-1, 0); }
 
-        // emitter < 0 = 一斉射(狙う射出口の組の全部。既定は全部の射出口)。emitter >= 0 は組の外の射出口でも撃つ
-        // (その射出口は休みの向きで撃つ)。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
+        // emitter < 0 = 一斉射(狙う射出口の組のうち、撃ち方が単発の射出口)。emitter >= 0 は撃ち方や組に関係なく、その射出口で
+        // 単発を撃つ(組の外の射出口は休みの向きで撃つ)。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
         public void _FireWith(int emitter, int payload)
         {
+            Init();
             if (emitter < 0)
             {
-                _FireVolley(payload, -1, null);
+                _FireVolley(payload, ~streamMask, null);
                 return;
             }
-            Init();
             if (!ValidEmitter(emitter)) return;
             if (fireAnimator != null)
             {
@@ -775,11 +780,11 @@ namespace Mecaota.Gunner
         /// <summary>連射を始める(payload は 0)。stream が空なら何もしない。</summary>
         public void StartStream() { _StartStreamWith(0); }
 
-        /// <summary>payload 付きで連射を始める(rig を取る)。もう連射中なら payload と狙いだけを送り直す。</summary>
+        /// <summary>payload 付きで連射を始める(rig を取る)。狙う組に連射の射出口が無ければ何もしない。もう連射中なら payload と狙いだけを送り直す。</summary>
         public void _StartStreamWith(int payload)
         {
             Init();
-            if (stream == null || !TakeOwnership()) return;
+            if (stream == null || StreamSet(aimEmitters) == 0 || !TakeOwnership()) return;
             streamMine = true;
             streamPayload = payload;
             aimSyncMode = (byte)aimMode;
@@ -866,18 +871,15 @@ namespace Mecaota.Gunner
             return TakeOwnership();
         }
 
-        // 単発: 撃つ。連射: 始める。TriggerUp で止まる。
+        /// <summary>連射の射出口は連射を始め(TriggerUp で止まる)、単発の射出口は1回撃つ。</summary>
         public void TriggerDown()
         {
-            if (fireMode == FireStream) StartStream();
-            else Fire();
+            StartStream();
+            Fire();
         }
 
-        /// <summary>連射: 止める。単発: 何もしない。</summary>
-        public void TriggerUp()
-        {
-            if (fireMode == FireStream) StopStream();
-        }
+        /// <summary>この端末が始めた連射を止める。</summary>
+        public void TriggerUp() { StopStream(); }
 
         // 持ち主の端末だけ: 連射の粒子が着弾を記録してよいか。off → on では、粒子の今の位置から数え始める。
         public void _SetCollision(bool on)
@@ -1655,8 +1657,8 @@ namespace Mecaota.Gunner
             StepLinks(Time.deltaTime, mode, vec, emit);
             ApplyAimAll(mode, vec, emit);
 
-            // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。連射は持ち主の狙う組の射出口だけから出る。
-            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, owner ? aimEmitters : aimEmitSync);
+            // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。連射は持ち主の狙う組の連射の射出口だけから出る。
+            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, StreamSet(owner ? aimEmitters : aimEmitSync));
             if (owner && AimSynced() && AimChanged())
             {
                 aimSyncMode = (byte)aimMode;
@@ -2052,6 +2054,9 @@ namespace Mecaota.Gunner
 
         // 射出口 i が狙う組に入っているか(0 = 全部)。
         private bool InAim(int i, int mask) { return mask == 0 || (mask & (1 << i)) != 0; }
+
+        // 狙う組(0 = 全部)のうち、撃ち方が連射の射出口。
+        private int StreamSet(int aim) { return (aim == 0 ? -1 : aim) & streamMask; }
 
         private bool BoneOn() { return boneMode == 0 ? boneFollow : boneMode == 2; }
 

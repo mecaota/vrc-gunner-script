@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed / 変更
+
+- `GunnerRig` inspector: each emitter card and each linked bone has its own frame. Add emitters with **+ Add emitter** below the cards and remove one with **Remove** on its card. Add or remove bones with the buttons below the bone list. Units are shown in the field names.
+- `GunnerRig` のインスペクタ: 射出口のカードと連動ボーンを、1つずつ枠で囲みました。射出口はカードの下の **+ 射出口を足す** で足し、各カードの **外す** で外します。骨は、一覧の下のボタンで足したり外したりします。欄の名前に単位を付けました。
+
 ### Removed / 削除
 
 - JSON export and import of number fields (the inspector's **JSON (values)** section, **Values JSON** in the right-click menu, and `GunnerValueSchemas.Register`).

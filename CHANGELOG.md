@@ -4,6 +4,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [Unreleased] / 未公開
+
+### Changed / 変更
+
+- The `GunnerRig` emitter card now shows its linked bones in a single list, parent to child, with the lead bone last. **+** adds the top bone's parent, **-** removes the selected bone. The "Add n parent bones" button has been removed.
+- `GunnerRig` の射出口のカードで、連動ボーンを1つの一覧にまとめました。親から子の順に並び、最後の行が先頭の骨です。「+」でいちばん上の骨の親を足し、「-」で選んだ骨を外します。「親の骨を n 個足す」ボタンは削除しました。
+
 ## [0.9.0] - unreleased / 未公開
 
 ### Added / 追加

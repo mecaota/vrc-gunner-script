@@ -7,7 +7,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 - Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.9.0). APIs will change.
+Status: early (0.10.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -87,7 +87,7 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
 | `impactParticles` | empty | Per emitter. Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
 | `impactBursts` | empty = 1 | Per emitter. Particles per hit (at least 1). |
-| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together in time than this are dropped, whichever emitter they come from. In a volley, only the first emitter's fire sound plays unless `fireMinInterval` is 0. |
+| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together in time than this are dropped, whichever emitter they come from. Unless `fireMinInterval` is 0, only the first emitter with a configured sound (a clip and a volume above 0) plays its fire sound in a volley. |
 | `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound and burst the impact particles. |
 | `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
 

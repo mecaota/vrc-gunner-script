@@ -10,9 +10,9 @@ Breaking: the fire and impact sounds, their volumes and the impact particles are
 
 互換性のない変更です。発射音・着弾音・その音量・着弾のパーティクルを、射出口ごとに設定するようにしました。0.9.0 で下の6つの欄に入れた値は、更新すると消えます。
 
-To update: before updating, note the six values on each rig. After updating, enter them again on each emitter's card. Leave a volume empty for 1.
+To update: before updating, note the six values on each rig. After updating, enter them again on each emitter's card. Leave a volume empty for 1. Up to 0.9.0, the impact particles were shared by all emitters. From this version onward, set them on every emitter's card; without them, hits from emitter 1 onward show no particles.
 
-更新の手順: 更新の前に、各 rig の6つの欄の値を控えてください。更新した後に、射出口ごとのカードに入れ直してください。音量は、空のままなら 1 です。
+更新の手順: 更新の前に、各 rig の6つの欄の値を控えてください。更新した後に、射出口ごとのカードに入れ直してください。音量は、空のままなら 1 です。0.9.0 までは、着弾パーティクルを全部の射出口で共有していました。更新した後は、各射出口のカードにそれぞれ入れてください。入れていない場合、射出口 1 以降の着弾ではパーティクルが出ません。
 
 ### Changed / 変更
 

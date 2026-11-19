@@ -35,13 +35,14 @@ namespace Mecaota.Gunner
         private Transform[] emitters;
         private ParticleSystem[] systems;
         private bool[] flightOn;               // rig の配列: その間は単発が粒子を使う
-        private float speed;
-        private float range;
-        private float life;
-        private float interval;
-        private float hitInterval;
-        private int join;
-        private int hitMode;
+        // 射出口ごと(rig の値を _Init で写す)
+        private float[] speed;
+        private float[] range;
+        private float[] life;
+        private float[] interval;
+        private float[] hitInterval;
+        private int[] join;
+        private int[] hitMode;
 
         private float[] nextEmitAt;
         private float[] nextHitAt;
@@ -68,14 +69,26 @@ namespace Mecaota.Gunner
             systems = rig.shotParticles;
             flightOn = rig.flightOn;
             count = rig._EmitterCount();
-            speed = Mathf.Max(rig.shotSpeed, 0.01f);
-            range = Mathf.Max(rig.maxRange, 0.01f);
-            life = range / speed;
-            interval = 1f / Mathf.Max(rig.streamRate, 0.1f);
-            join = rig.streamJoin;
-            hitMode = rig.streamHitMode;
-            hitInterval = Mathf.Max(rig.streamHitInterval, 0.02f);
-            cap = Mathf.Clamp(Mathf.CeilToInt(life / interval) + 2, 4, 128);
+            speed = new float[count];
+            range = new float[count];
+            life = new float[count];
+            interval = new float[count];
+            hitInterval = new float[count];
+            join = new int[count];
+            hitMode = new int[count];
+            cap = 4;
+            for (int e = 0; e < count; e++)
+            {
+                speed[e] = rig._Speed(e);
+                range[e] = Mathf.Max(rig._Range(e), 0.01f);
+                life[e] = range[e] / speed[e];
+                interval[e] = 1f / Mathf.Max(rig._StreamRate(e), 0.1f);
+                join[e] = rig._StreamJoin(e);
+                hitMode[e] = rig._StreamHitMode(e);
+                hitInterval[e] = Mathf.Max(rig._StreamHitInterval(e), 0.02f);
+                cap = Mathf.Max(cap, Mathf.CeilToInt(life[e] / interval[e]) + 2);
+            }
+            cap = Mathf.Min(cap, 128);
 
             reach = new float[count];
             span = new float[count];
@@ -168,7 +181,7 @@ namespace Mecaota.Gunner
         public bool _InFlight(float now)
         {
             if (!ready) return false;
-            for (int k = 0; k < rAlive.Length; k++) if (rAlive[k] && (now - rTime[k]) * speed <= range) return true;
+            for (int k = 0; k < rAlive.Length; k++) if (rAlive[k] && (now - rTime[k]) * speed[k / cap] <= range[k / cap]) return true;
             return false;
         }
 
@@ -176,14 +189,14 @@ namespace Mecaota.Gunner
         // シミュレーションが止まり(引っかかり)より前の点を先に落としてしまい、落ちた点は戻らない。
         public void _PreSimulate(float now, float dt)
         {
-            if (!ready || join != JoinLine || dt <= StallShare * interval) return;
+            if (!ready) return;
             for (int e = 0; e < count; e++)
             {
-                if (!look[e] || flightOn[e] || trailShare[e] < 0f) continue;
+                if (join[e] != JoinLine || dt <= StallShare * interval[e] || !look[e] || flightOn[e] || trailShare[e] < 0f) continue;
                 float gap = dt;
                 int newest = e * cap + (head[e] + cap - 1) % cap;
                 if (rAlive[newest] && rTime[newest] >= resumeAt && now - rTime[newest] > gap) gap = now - rTime[newest];
-                float share = Share(TrailTime(gap));
+                float share = Share(e, TrailTime(e, gap));
                 if (share > trailShare[e]) SetShare(e, share);
             }
         }
@@ -206,18 +219,18 @@ namespace Mecaota.Gunner
                 else if (emitHere)
                 {
                     int k = 0;
-                    while (now >= nextEmitAt[e] && k < CatchUpMax) { Emit(e, now); nextEmitAt[e] += interval; k++; }
-                    if (now >= nextEmitAt[e]) nextEmitAt[e] = now + interval;
+                    while (now >= nextEmitAt[e] && k < CatchUpMax) { Emit(e, now); nextEmitAt[e] += interval[e]; k++; }
+                    if (now >= nextEmitAt[e]) nextEmitAt[e] = now + interval[e];
                 }
                 else if (streaming) nextEmitAt[e] = now; // 組の外: 組に戻った時に追いつきで続けて出さない
                 float maxGap = Age(e, now);
                 if (active[e]) busy = true;
-                if (active[e] && look[e] && join == JoinLine && !flightOn[e])
+                if (active[e] && look[e] && join[e] == JoinLine && !flightOn[e])
                 {
-                    float trailTime = TrailTime(maxGap);
-                    float share = Share(trailTime);
+                    float trailTime = TrailTime(e, maxGap);
+                    float share = Share(e, trailTime);
                     if (Mathf.Abs(share - trailShare[e]) > 0.0005f) SetShare(e, share);
-                    span[e] = Mathf.Min(reach[e], trailTime * speed);
+                    span[e] = Mathf.Min(reach[e], trailTime * speed[e]);
                 }
                 else span[e] = 0f;
                 if (owner && collide && active[e]) Collide(e, now);
@@ -238,8 +251,8 @@ namespace Mecaota.Gunner
             {
                 int q = at + (head[e] + r) % cap; // 古いものから新しいものへ
                 if (!rAlive[q]) continue;
-                float flown = (now - rTime[q]) * speed;
-                if (flown > range) { rAlive[q] = false; continue; }
+                float flown = (now - rTime[q]) * speed[e];
+                if (flown > range[e]) { rAlive[q] = false; continue; }
                 if (flown > farthest) farthest = flown;
                 bool acrossRestart = prevBorn < resumeAt && rTime[q] >= resumeAt;
                 if (any && !acrossRestart && rTime[q] - prevBorn > maxGap) maxGap = rTime[q] - prevBorn;
@@ -254,8 +267,8 @@ namespace Mecaota.Gunner
         // 持ち主: 生きている経路ごとに、前に確かめた後に飛んだ区間を判定する。時間で一番早い接触を採る。
         private void Collide(int e, float now)
         {
-            if (hitMode == HitOnce && latched[e]) return;
-            if (hitMode == HitKeep && now < nextHitAt[e]) return;
+            if (hitMode[e] == HitOnce && latched[e]) return;
+            if (hitMode[e] == HitKeep && now < nextHitAt[e]) return;
             int at = e * cap;
             int bestQ = -1;
             float bestWhen = 1e30f;
@@ -263,11 +276,11 @@ namespace Mecaota.Gunner
             {
                 int q = at + r;
                 if (!rAlive[q]) continue;
-                float a = (Mathf.Max(checkFrom[e], rTime[q]) - rTime[q]) * speed;
-                float b = Mathf.Min((now - rTime[q]) * speed, range);
+                float a = (Mathf.Max(checkFrom[e], rTime[q]) - rTime[q]) * speed[e];
+                float b = Mathf.Min((now - rTime[q]) * speed[e], range[e]);
                 if (b - a <= 0.0001f) continue;
-                if (!rig._CastPath(rOrigin[q] + rDir[q] * a, rDir[q], b - a)) continue;
-                float when = rTime[q] + (a + rig._CastDistance()) / speed;
+                if (!rig._CastPath(e, rOrigin[q] + rDir[q] * a, rDir[q], b - a)) continue;
+                float when = rTime[q] + (a + rig._CastDistance()) / speed[e];
                 if (when >= bestWhen) continue;
                 bestWhen = when;
                 bestQ = q;
@@ -276,7 +289,7 @@ namespace Mecaota.Gunner
             }
             if (bestQ < 0) return;
             rig._StreamHit(e);
-            if (hitMode == HitOnce)
+            if (hitMode[e] == HitOnce)
             {
                 latched[e] = true;
                 _Clear(e);
@@ -284,7 +297,7 @@ namespace Mecaota.Gunner
             else
             {
                 rAlive[bestQ] = false;
-                nextHitAt[e] = now + hitInterval;
+                nextHitAt[e] = now + hitInterval[e];
             }
         }
 
@@ -300,8 +313,8 @@ namespace Mecaota.Gunner
             Vector3 dir = m.forward;
             ps.transform.SetPositionAndRotation(origin, m.rotation);
             ParticleSystem.MainModule main = ps.main;
-            main.startSpeedMultiplier = speed;
-            main.startLifetimeMultiplier = life;
+            main.startSpeedMultiplier = speed[e];
+            main.startLifetimeMultiplier = life[e];
             if (!ps.isPlaying) ps.Play(true);
             ps.Emit(1);
             int k = e * cap + head[e];
@@ -319,7 +332,7 @@ namespace Mecaota.Gunner
             // HitOnce: 接触は持ち主の判定で決める。作ったときの当たり判定だと、撃つ人の体で粒子が消えてしまう。
             // HitKeep: 作ったときの当たり判定を残し、連射(水)が壁で自然に終わるようにする。
             ParticleSystem.CollisionModule collision = ps.collision;
-            collision.enabled = hitMode == HitKeep && baseCollision[e];
+            collision.enabled = hitMode[e] == HitKeep && baseCollision[e];
             ParticleSystem.MainModule main = ps.main;
             if (main.maxParticles < cap + 1) main.maxParticles = cap + 1;
             // 線の幅は上書きしない。粒子の Trails > Width over Trail のまま(トレイルごとに一定にしておくと、つないだ線が鎖に見えない)。
@@ -327,13 +340,13 @@ namespace Mecaota.Gunner
 
         // つないだトレイル1本が覆うべき秒数: 1つ前の粒子まで + フレームに基づく重なり。止まった時は古い方の
         // 粒子のトレイルが長い1区間を持ち、それが点ごとに削られるので、間隔の約2倍もたせる必要がある。
-        private float TrailTime(float gap)
+        private float TrailTime(int e, float gap)
         {
-            float reachBack = gap > StallShare * interval ? 2f * gap : Mathf.Max(interval, gap);
+            float reachBack = gap > StallShare * interval[e] ? 2f * gap : Mathf.Max(interval[e], gap);
             return reachBack + Mathf.Max(OverlapMin, OverlapFrames * frameDt);
         }
 
-        private float Share(float trailTime) { return Mathf.Clamp(trailTime / life, 0.001f, 1f); }
+        private float Share(int e, float trailTime) { return Mathf.Clamp(trailTime / life[e], 0.001f, 1f); }
 
         private void SetShare(int e, float share)
         {

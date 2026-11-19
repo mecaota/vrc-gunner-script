@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -60,13 +61,13 @@ namespace Mecaota.Gunner.EditorTools
             }
 
             if (Foldout("GunnerRig.section.shot"))
-                Fields("fireMode", "shotSpeed", "maxRange", "castRadius", "aimMaxAngle", "fireAnimator");
+                Fields("fireMode", "aimMaxAngle", "fireAnimator");
 
             if (Foldout("GunnerRig.section.hit", false))
-                Fields("receivers", "movers", "hitMask", "hitPlayers", "excludeOwner", "playerRadius", "maxHits");
+                Fields("receivers", "movers", "hitPlayers", "excludeOwner", "playerRadius", "maxHits");
 
             if (Foldout("GunnerRig.section.stream", false))
-                Fields("stream", "streamRate", "streamJoin", "streamHitMode", "streamHitInterval", "streamCollide");
+                Fields("stream", "streamCollide");
 
             if (Foldout("GunnerRig.section.bone", false))
                 Fields("boneFollow", "boneStrength", "boneYawMax", "bonePitchUpMax", "bonePitchDownMax",
@@ -145,6 +146,9 @@ namespace Mecaota.Gunner.EditorTools
             Heading("GunnerRig.card.fire");
             ObjectAt("fireSources", i, typeof(AudioSource));
             FloatAt("fireMinIntervals", i, "GunnerRig.fireMinIntervals", 0f, float.MaxValue);
+            FloatAt("shotSpeeds", i, "GunnerRig.shotSpeeds", 25f, float.MaxValue);
+            FloatAt("maxRanges", i, "GunnerRig.maxRanges", 30f, float.MaxValue);
+            FloatAt("castRadii", i, "GunnerRig.castRadii", 0.05f, float.MaxValue);
 
             Heading("GunnerRig.card.impact");
             ObjectAt("impactSources", i, typeof(AudioSource));
@@ -157,6 +161,12 @@ namespace Mecaota.Gunner.EditorTools
                 int burst = Mathf.Max(1, EditorGUILayout.IntField(Label("GunnerRig.impactBursts"), 1));
                 if (burst != 1) Grow(bursts, i, 1).intValue = burst;
             }
+
+            Heading("GunnerRig.card.stream");
+            FloatAt("streamRates", i, "GunnerRig.streamRates", 12f, float.MaxValue);
+            PopupAt("streamJoins", i, "GunnerRig.streamJoins", GunnerStream.JoinLine);
+            PopupAt("streamHitModes", i, "GunnerRig.streamHitModes", GunnerStream.HitOnce);
+            FloatAt("streamHitIntervals", i, "GunnerRig.streamHitIntervals", 0.25f, float.MaxValue);
 
             Heading("GunnerRig.card.aim");
             FloatAt("aimMaxAngles", i, "GunnerRig.aimMaxAngles.row", 0f, 180f);
@@ -247,6 +257,21 @@ namespace Mecaota.Gunner.EditorTools
             if (has) EditorGUI.EndProperty();
         }
 
+        // 選択肢は "<labelKey>.opt"。
+        void PopupAt(string array, int i, string labelKey, int empty)
+        {
+            var row = EditorGUILayout.GetControlRect();
+            var arr = serializedObject.FindProperty(array);
+            bool has = i < arr.arraySize;
+            var label = Label(labelKey);
+            if (has) label = EditorGUI.BeginProperty(row, label, arr.GetArrayElementAtIndex(i));
+            var options = System.Array.ConvertAll(T(labelKey + ".opt").Split('|'), s => new GUIContent(s));
+            EditorGUI.BeginChangeCheck();
+            int value = EditorGUI.Popup(row, label, Mathf.Clamp(has ? arr.GetArrayElementAtIndex(i).intValue : empty, 0, options.Length - 1), options);
+            if (EditorGUI.EndChangeCheck()) Grow(arr, i, empty).intValue = value;
+            if (has) EditorGUI.EndProperty();
+        }
+
         // arraySize を増やすと末尾の値が写るので、間に増えた要素は fill に戻す。
         static SerializedProperty Grow(SerializedProperty arr, int i, float fill = 0f)
         {
@@ -262,11 +287,15 @@ namespace Mecaota.Gunner.EditorTools
             return arr.GetArrayElementAtIndex(i);
         }
 
+        /// <summary>emitters と同じ番号の配列。</summary>
+        internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles",
+            "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts",
+            "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals" };
+
         /// <summary>射出口 i を、同じ番号の欄とその追加の骨ごと外す。</summary>
         static void RemoveEmitter(SerializedObject so, int i)
         {
-            foreach (var name in new[] { "emitters", "shotParticles", "linkBones", "aimMaxAngles",
-                "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts" })
+            foreach (var name in PerEmitter.Prepend("emitters"))
             {
                 var arr = so.FindProperty(name);
                 if (i < arr.arraySize) GunnerEditorUtil.RemoveAt(arr, i);
@@ -393,7 +422,7 @@ namespace Mecaota.Gunner.EditorTools
             Vector3 up = em.up;
             Vector3 right = em.right;
             float size = HandleUtility.GetHandleSize(pos);
-            float range = Mathf.Max(0f, rig.maxRange);
+            float range = Mathf.Max(0f, rig.maxRanges != null && index < rig.maxRanges.Length ? rig.maxRanges[index] : 30f);
             float angle = Mathf.Clamp(EmitterLimit(rig, index), 0f, 180f);
             float fan = Mathf.Min(range, size * 1.5f);
 
@@ -435,17 +464,17 @@ namespace Mecaota.Gunner.EditorTools
                 }
             }
 
-            // 射程と狙いの限度は rig のもの: 最初の射出口でだけ編集する(射出口ごとの角度はインスペクタで)。
-            if (index != 0) return;
             Handles.color = RangeLine;
             EditorGUI.BeginChangeCheck();
             Vector3 tip = Handles.Slider(pos + fwd * range, fwd, size * 0.12f, Handles.SphereHandleCap, 0f);
             if (EditorGUI.EndChangeCheck())
             {
                 float nextRange = Mathf.Max(0.1f, Vector3.Dot(tip - pos, fwd));
-                GunnerEditorUtil.Edit(rig, so => so.FindProperty("maxRange").floatValue = nextRange);
+                GunnerEditorUtil.Edit(rig, so => Grow(so.FindProperty("maxRanges"), index, 30f).floatValue = nextRange);
             }
 
+            // 既定の可動域は rig のもの: 最初の射出口でだけ編集する(射出口ごとの角度はインスペクタで)。
+            if (index != 0) return;
             Handles.color = FanLine;
             Vector3 edge = pos + Quaternion.AngleAxis(angle, up) * fwd * fan;
             EditorGUI.BeginChangeCheck();

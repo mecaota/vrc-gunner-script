@@ -196,17 +196,21 @@ namespace Mecaota.Gunner.EditorTools
                 so.FindProperty("hold").objectReferenceValue = hold;
             });
             // 玉は撃つ人のすぐそばに持たれる: 弾が玉で止まってはいけない。
-            if (GunnerEditorUtil.InMask(rig.hitMask, PickupLayer)) ExcludeLayer(rig, PickupLayer);
+            ExcludeLayer(rig, PickupLayer);
             return hand;
         }
 
+        /// <summary>全部の射出口のパーティクルの Collision > Collides With から layer を外す。</summary>
         public static void ExcludeLayer(GunnerRig rig, int layer)
         {
-            GunnerEditorUtil.Edit(rig, so =>
+            foreach (var ps in rig.shotParticles ?? new ParticleSystem[0])
             {
-                var mask = so.FindProperty("hitMask");
-                mask.intValue = mask.intValue & ~(1 << layer);
-            });
+                if (ps == null) continue;
+                Undo.RecordObject(ps, "Gunner: hit layers");
+                var collision = ps.collision;
+                collision.collidesWith = collision.collidesWith.value & ~(1 << layer);
+                EditorUtility.SetDirty(ps);
+            }
         }
 
         // ---------------- 体の部位(エディタでの既定値だけ。実行時のコードは骨の名前を使わない) ----------------

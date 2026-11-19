@@ -89,10 +89,7 @@ namespace Mecaota.Gunner
         public GunnerHitReceiver[] receivers;    // 着弾を知らされる全員。実行中は _Register で増える
 
         public int maxHits = 16;                  // この端末が使う記録の数(1..SyncSlots)。Android では下げる。同期は16のまま
-        public float shotSpeed = 25f;
-        public float maxRange = 30f;
-        public float castRadius = 0.05f;
-        public LayerMask hitMask = ~(1 << 2);     // プレイヤーのレイヤーはここでは無視する。hitPlayers で決める
+        // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーのレイヤーは hitPlayers で決める
         public bool hitPlayers = true;
         // この端末のプレイヤー、つまり当たり判定を走らせる人の体を飛ばす。判定は rig の持ち主で走るので、実際には
         // 撃つ人が自分の弾に当たることはない(自分の骨に付けた射出口、後ろ向きに撃った弾)。見ている人が持ち主の
@@ -104,11 +101,7 @@ namespace Mecaota.Gunner
         // 任意: 射出口ごとの狙える角度(度)。空・短い・0 以下の射出口は aimMaxAngle を使う。狙い(Wish)が見る。
         public float[] aimMaxAngles;
 
-        public float streamRate = 12f;            // 射出口ごとの1秒あたりの粒子数
-        public int streamJoin = GunnerStream.JoinLine;   // 線の幅は各粒子の Trails > Width over Trail で決める
-        public int streamHitMode = GunnerStream.HitOnce; // HitOnce: 最初の当たりで、その射出口の飛んでいる粒子とトレイルを消す
-        public float streamHitInterval = 0.25f;   // HitKeep: 射出口ごとの記録の間隔(秒)
-        public bool streamCollide = true;         // 開始時の当たり判定(持ち主の端末だけ。_SetCollision で変わる)
+        public bool streamCollide = true;        // 開始時の当たり判定(持ち主の端末だけ。_SetCollision で変わる)
 
         public bool boneFollow;                   // 初期値。BoneFollowOn / Off で変えると同期する
         public float boneStrength = 1f;           // 狙いのうち骨が受け持つ割合
@@ -129,6 +122,14 @@ namespace Mecaota.Gunner
         public float[] impactMinIntervals;
         public ParticleSystem[] impactParticles;
         public int[] impactBursts;
+        // 任意: emitters と同じ番号。無い射出口の値は _Speed などの既定値
+        public float[] shotSpeeds;
+        public float[] maxRanges;
+        public float[] castRadii;
+        public float[] streamRates;               // 1秒あたりの粒子数
+        public int[] streamJoins;                 // 線の幅は各粒子の Trails > Width over Trail で決める
+        public int[] streamHitModes;              // HitOnce: 最初の当たりで、その射出口の飛んでいる粒子とトレイルを消す
+        public float[] streamHitIntervals;        // HitKeep: 記録の間隔(秒)
         public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。入れたら、全部の射出口に bool GunnerPre0, GunnerPre1, ... が要る
 
         // ---------------- 同期(Manual) ----------------
@@ -654,7 +655,7 @@ namespace Mecaota.Gunner
                 }
             }
             if (!ValidEmitter(at)) return;
-            PlaySound(Source(fireSources, at), Value(fireMinIntervals, at));
+            PlaySound(Source(fireSources, at), Value(fireMinIntervals, at, 0f));
         }
 
         private void PlayImpact()
@@ -662,7 +663,7 @@ namespace Mecaota.Gunner
             if (hitReplay || !hitResolved) return;
             EmitImpactParticles();
             AudioSource source = Source(impactSources, hitEmitter);
-            if (PlaySound(source, Value(impactMinIntervals, hitEmitter))) source.transform.position = hitPoint;
+            if (PlaySound(source, Value(impactMinIntervals, hitEmitter, 0f))) source.transform.position = hitPoint;
         }
 
         // 着弾の記録には面の向きが無いので、Raycast で取り直す。
@@ -680,13 +681,13 @@ namespace Mecaota.Gunner
             Vector3 normal = -incoming;
             RaycastHit hit;
             if (hitKind != KindPlayer
-                && Physics.Raycast(point - incoming * ImpactProbe, incoming, out hit, ImpactProbe * 2f, hitMask.value & ~PlayerLayers, QueryTriggerInteraction.Ignore))
+                && Physics.Raycast(point - incoming * ImpactProbe, incoming, out hit, ImpactProbe * 2f, HitMask(hitEmitter), QueryTriggerInteraction.Ignore))
             {
                 normal = hit.normal;
                 point = hit.point;
             }
             ps.transform.SetPositionAndRotation(point + normal * ImpactLift, Quaternion.LookRotation(normal));
-            ps.Emit(Mathf.Max(1, impactBursts != null && hitEmitter < impactBursts.Length ? impactBursts[hitEmitter] : 0));
+            ps.Emit(Mathf.Max(1, Number(impactBursts, hitEmitter, 0)));
         }
 
         // 鳴っている途中でも、最短間隔を過ぎていれば頭から鳴らし直す。PlayOneShot は音ごとに位置を変えられないので使わない。
@@ -986,7 +987,7 @@ namespace Mecaota.Gunner
                 Vector2 off = offsets[e];
                 if (off.x != 0f || off.y != 0f) dir = emitters[e].rotation * (Quaternion.Euler(-off.y, off.x, 0f) * Vector3.forward);
             }
-            if (!Cast(origin, dir, maxRange))
+            if (!Cast(e, origin, dir, _Range(e)))
             {
                 mSeq[e] = mSeq[e] + 1;
                 mDir[e] = dir;
@@ -995,7 +996,7 @@ namespace Mecaota.Gunner
                 // 受け手が粒子の発射より前に firePayload を読めるように、通知を先にする(粒子を戻すのはさらに前)。
                 PrepareFly(e);
                 NotifyFire(e, false, false, payload);
-                Fly(e, -1, dir, maxRange);
+                Fly(e, -1, dir, _Range(e));
                 return true;
             }
             KeepCast();
@@ -1229,12 +1230,12 @@ namespace Mecaota.Gunner
         // ================= 当たり判定 =================
 
         // origin + dir * (0..range) に沿って一番近い接触: この rig に属さないワールドのコライダー、次にプレイヤー。判定の結果を埋める。
-        public bool _CastPath(Vector3 origin, Vector3 dir, float range) { return Cast(origin, dir, range); }
+        public bool _CastPath(int e, Vector3 origin, Vector3 dir, float range) { return Cast(e, origin, dir, range); }
 
         // _CastPath の経路に沿った距離(true を返した直後だけ有効)。
         public float _CastDistance() { return castDistance; }
 
-        private bool Cast(Vector3 origin, Vector3 dir, float range)
+        private bool Cast(int e, Vector3 origin, Vector3 dir, float range)
         {
             castKind = KindNone;
             castIndex = -1;
@@ -1243,7 +1244,8 @@ namespace Mecaota.Gunner
             castDistance = 0f;
             castPlayer = null;
             if (range <= 0f) return false;
-            int count = Physics.SphereCastNonAlloc(origin, castRadius, dir, castHits, range, hitMask.value & ~PlayerLayers, QueryTriggerInteraction.Ignore);
+            float radius = Value(castRadii, e, 0.05f);
+            int count = Physics.SphereCastNonAlloc(origin, radius, dir, castHits, range, HitMask(e), QueryTriggerInteraction.Ignore);
             int best = -1;
             float reach = range;
             Transform self = transform;
@@ -1257,7 +1259,7 @@ namespace Mecaota.Gunner
                     reach = castHits[i].distance;
                 }
             }
-            if (hitPlayers && PlayerTouch(origin, dir, reach)) return true;
+            if (hitPlayers && PlayerTouch(origin, dir, reach, radius)) return true;
             if (best < 0) return false;
             // コライダーの中から始めた判定は、距離0とゼロの点を返す。
             castPoint = castHits[best].distance > 0f ? castHits[best].point : origin;
@@ -1312,12 +1314,12 @@ namespace Mecaota.Gunner
                 if (head == Vector3.zero) head = feet + Vector3.up * eye;
                 pFeet[p] = feet;
                 pHead[p] = head;
-                pRadius[p] = Mathf.Clamp(eye * playerRadius, BodyRadiusMin, BodyRadiusMax) + castRadius;
+                pRadius[p] = Mathf.Clamp(eye * playerRadius, BodyRadiusMin, BodyRadiusMax);
             }
         }
 
         // プレイヤーのコライダーはアバターに付いていかないので、代わりに足から頭までのカプセルを体とする。
-        private bool PlayerTouch(Vector3 origin, Vector3 dir, float reach)
+        private bool PlayerTouch(Vector3 origin, Vector3 dir, float reach, float shotRadius)
         {
             ReadPlayers();
             int best = -1;
@@ -1325,8 +1327,8 @@ namespace Mecaota.Gunner
             Vector3 bestPoint = Vector3.zero;
             for (int p = 0; p < pCount; p++)
             {
-                float radius = pRadius[p];
-                if (radius < 0f) continue;
+                if (pRadius[p] < 0f) continue;
+                float radius = pRadius[p] + shotRadius;
                 float along = SegmentApproach(origin, dir, reach, pFeet[p], pHead[p]);
                 if (along >= bestAlong) continue;
                 Vector3 onShot = origin + dir * along;
@@ -1409,7 +1411,7 @@ namespace Mecaota.Gunner
             kWorld[s] = point;
             Vector3 to = point - emitters[e].position;
             float dist = to.magnitude;
-            arriveAt[s] = Time.time + dist / Speed();
+            arriveAt[s] = Time.time + dist / _Speed(e);
             if (flies && dist > 0.0001f) Fly(e, s, to / dist, dist);
         }
 
@@ -1430,8 +1432,8 @@ namespace Mecaota.Gunner
             if (dir.sqrMagnitude < 0.000001f) dir = emitters[e].forward;
             ps.transform.SetPositionAndRotation(emitters[e].position, Quaternion.LookRotation(dir));
             ParticleSystem.MainModule main = ps.main;
-            main.startSpeedMultiplier = Speed();
-            main.startLifetimeMultiplier = dist / Speed();
+            main.startSpeedMultiplier = _Speed(e);
+            main.startLifetimeMultiplier = dist / _Speed(e);
             ps.Play(true);
             flightOn[e] = true;
             flightSlot[e] = slot;
@@ -1500,7 +1502,7 @@ namespace Mecaota.Gunner
                     arriveAt[s] = now;
                     // 持ち主の連射がここに当たった: この射出口の連射の粒子もここで終わる(HitOnce の時)。
                     int em = MetaEmitter(kMeta[s]);
-                    if (!first && stream != null && streamHitMode == GunnerStream.HitOnce && ValidEmitter(em)) stream._Clear(em);
+                    if (!first && stream != null && _StreamHitMode(em) == GunnerStream.HitOnce && ValidEmitter(em)) stream._Clear(em);
                 }
                 else Launch(s);
             }
@@ -1515,7 +1517,7 @@ namespace Mecaota.Gunner
                 {
                     PrepareFly(i);
                     NotifyFire(i, false, false, mPayload);
-                    Fly(i, -1, mDir[i], maxRange);
+                    Fly(i, -1, mDir[i], _Range(i));
                 }
             }
             ApplyStreamState(first);
@@ -1678,11 +1680,10 @@ namespace Mecaota.Gunner
             }
 
             // 3. 飛んでいる弾と着弾。
-            float speed = Speed();
             for (int i = 0; i < emitterCount; i++)
             {
                 if (!flightOn[i]) continue;
-                if ((now - flightStart[i]) * speed >= flightLength[i])
+                if ((now - flightStart[i]) * _Speed(i) >= flightLength[i])
                 {
                     flightOn[i] = false;
                     flightSlot[i] = -1;
@@ -2063,9 +2064,29 @@ namespace Mecaota.Gunner
 
         private AudioSource Source(AudioSource[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : null; }
 
-        private float Value(float[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : 0f; }
+        private float Value(float[] a, int e, float empty) { return a != null && e >= 0 && e < a.Length ? a[e] : empty; }
 
-        private float Speed() { return Mathf.Max(shotSpeed, 0.01f); }
+        private int Number(int[] a, int e, int empty) { return a != null && e >= 0 && e < a.Length ? a[e] : empty; }
+
+        // パーティクルが無い射出口は Ignore Raycast 以外。
+        private int HitMask(int e)
+        {
+            ParticleSystem ps = Particles(shotParticles, e);
+            return (ps != null ? ps.collision.collidesWith.value : ~(1 << 2)) & ~PlayerLayers;
+        }
+
+        // 射出口 e の値(GunnerStream も読む)。
+        public float _Speed(int e) { return Mathf.Max(Value(shotSpeeds, e, 25f), 0.01f); }
+
+        public float _Range(int e) { return Value(maxRanges, e, 30f); }
+
+        public float _StreamRate(int e) { return Value(streamRates, e, 12f); }
+
+        public int _StreamJoin(int e) { return Number(streamJoins, e, GunnerStream.JoinLine); }
+
+        public int _StreamHitMode(int e) { return Number(streamHitModes, e, GunnerStream.HitOnce); }
+
+        public float _StreamHitInterval(int e) { return Value(streamHitIntervals, e, 0.25f); }
 
         /// <summary>使う射出口の数(emitters の長さ。最大 MaxEmitters)。</summary>
         public int _EmitterCount() { return emitterCount; }

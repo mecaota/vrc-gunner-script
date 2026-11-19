@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UdonSharp;
 using UdonSharpEditor;
@@ -206,7 +207,7 @@ namespace Mecaota.Gunner.EditorTools
             main.loop = false;
             main.duration = 0.1f;
             main.startLifetime = 1f;      // 寿命は rig が1発ごとに距離から決める
-            main.startSpeed = 25f;        // 速さは rig が shotSpeed から決める
+            main.startSpeed = 25f;        // 速さは rig が shotSpeeds から決める
             main.startSize = 0.1f;
             main.gravityModifier = 0f;
             main.maxParticles = 64;
@@ -217,6 +218,9 @@ namespace Mecaota.Gunner.EditorTools
 
             var shape = ps.shape;
             shape.enabled = false;        // +Z へまっすぐ
+
+            var collision = ps.collision;
+            collision.collidesWith = ~(1 << 2);   // rig の当たるレイヤー。Collision を入れなくても使う
 
             var trails = ps.trails;
             trails.enabled = true;
@@ -289,6 +293,8 @@ namespace Mecaota.Gunner.EditorTools
             return list;
         }
 
-        public static bool InMask(LayerMask mask, int layer) => (mask.value & (1 << layer)) != 0;
+        /// <summary>どれかの射出口の弾が layer に当たるか(パーティクルの Collision > Collides With)。</summary>
+        public static bool HitsLayer(GunnerRig rig, int layer) =>
+            (rig.shotParticles ?? new ParticleSystem[0]).Any(ps => ps != null && (ps.collision.collidesWith.value & (1 << layer)) != 0);
     }
 }

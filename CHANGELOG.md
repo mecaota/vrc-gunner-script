@@ -10,6 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - `GunnerRig` inspector: each emitter card and each linked bone has its own frame. Add emitters with **+ Add emitter** below the cards and remove one with **Remove** on its card. Add bones with **+ Add parent bone** below the bone list and remove one from the list with **-** on its row. Units are shown in the field names.
 - `GunnerRig` のインスペクタ: 射出口のカードと連動ボーンを、1つずつ枠で囲みました。射出口はカードの下の **+ 射出口を足す** で足し、各カードの **外す** で外します。骨は、一覧の下の **+ 親の骨を足す** で足し、各行の **-** で一覧から外します。欄の名前に単位を付けました。
+- Breaking: each emitter card takes one fire sound source and one impact sound source (`fireSources`, `impactSources`); set the clip, volume and range on those AudioSources. `fireMinInterval` / `impactMinInterval` are now per emitter (`fireMinIntervals`, `impactMinIntervals`). `fireClips`, `impactClips`, `fireVolumes`, `impactVolumes`, `pitchJitter`, `fireVoices`, `impactVoices`, `soundOnPlayers`, `soundOnWorld`, `soundOnMoving` and `soundCullDistance` are removed, and impact particles now show whatever is hit; set the sounds again on each card.
+- 互換性のない変更: 射出口のカードに、発射音と着弾音の音源(`fireSources`、`impactSources`)を1つずつ割り当てる形にしました。クリップ・音量・聞こえる距離は、その AudioSource で決めます。`fireMinInterval` / `impactMinInterval` は射出口ごと(`fireMinIntervals`、`impactMinIntervals`)になりました。`fireClips`、`impactClips`、`fireVolumes`、`impactVolumes`、`pitchJitter`、`fireVoices`、`impactVoices`、`soundOnPlayers`、`soundOnWorld`、`soundOnMoving`、`soundCullDistance` は削除し、着弾パーティクルは、当たった相手によらず出るようにしました。各カードで音を設定し直してください。
 
 ### Removed / 削除
 

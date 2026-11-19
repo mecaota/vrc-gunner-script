@@ -69,7 +69,7 @@ namespace Mecaota.Gunner.Tests.Models
 
             void Case(float aimYaw, float aimPitch, float chainYaw, float expectTotal)
             {
-                // 追従の角度が狙いに追いついた状態(boneStrength = 1)
+                // 追従の角度が狙いに追いついた状態(boneStrengths = 1)
                 float ty = Math.Max(-Limit(yawMax, chainYaw, n), Math.Min(Limit(yawMax, chainYaw, n), aimYaw));
                 float tp = Math.Max(-Limit(downMax, 0, n), Math.Min(Limit(upMax, 0, n), aimPitch));
                 Quaternion Q = Euler(-tp, ty, 0);

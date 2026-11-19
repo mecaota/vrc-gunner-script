@@ -62,6 +62,8 @@ GunnerRig.card.fire	発射	Fire
 GunnerRig.card.impact	着弾	Impact
 GunnerRig.card.stream	連射	Stream
 GunnerRig.card.aim	向き	Aim
+GunnerRig.card.follow	連動の設定	Link settings
+GunnerRig.follow.shared	射出口 {0} と同じ骨です。連動の設定は射出口 {0} のカードで行ってください	Same bone as emitter {0}. Set the link on emitter {0}'s card
 GunnerRig.shotParticles	パーティクル	Particles
 GunnerRig.shotParticles.tip	撃つときに出すパーティクル。射出口と同じ番号に入れる。Simulation Space は World にする。弾が当たるレイヤーは、このパーティクルの Collision > Collides With で決める(Collision を切っていても、この値は使う)	Particles shot from the emitter. Same index as the emitters. Set Simulation Space to World. Shots hit the layers in this particle system's Collision > Collides With (used even when Collision is off)
 GunnerRig.linkBones	先端(射出口側)	Tip (emitter side)
@@ -115,20 +117,20 @@ GunnerRig.streamCollide	連射の当たり判定	Stream collision
 GunnerRig.streamCollide.tip	開始時の値。球などが実行中に切り替える	Initial value; a controller may switch it at runtime
 GunnerRig.boneFollow	ボーン連動	Bone link
 GunnerRig.boneFollow.tip	狙いに合わせてボーンを回す	Turn the bone with the aim
-GunnerRig.boneStrength	連動の割合	Link share
-GunnerRig.boneStrength.tip	狙いの角度のうち、骨が受け持つ割合(0〜1)。残りは射出口だけが向く	Share of the aim angle the bones take (0-1). The emitter turns the rest by itself
-GunnerRig.boneYawMax	左右の上限(度)	Yaw limit (°)
-GunnerRig.boneYawMax.tip	骨1本が左右に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Yaw limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
-GunnerRig.bonePitchUpMax	上の上限(度)	Pitch up limit (°)
-GunnerRig.bonePitchUpMax.tip	骨1本が上に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-up limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
-GunnerRig.bonePitchDownMax	下の上限(度)	Pitch down limit (°)
-GunnerRig.bonePitchDownMax.tip	骨1本が下に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-down limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
-GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
-GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか。大きいほど早く追いつき、小さいほどなめらか	Per second, share of the remaining angle closed. Higher catches up faster, lower is smoother
-GunnerRig.boneMinSpeed	最低の速さ(度/秒)	Minimum speed (°/s)
-GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
-GunnerRig.boneMaxSpeed	最高の速さ(度/秒)	Maximum speed (°/s)
-GunnerRig.boneMaxSpeed.tip	骨が追従して回る速さの上限(度毎秒)。0 なら上限なし	Upper limit of the bone's follow speed (degrees per second). 0 = no limit
+GunnerRig.boneStrengths	連動の割合	Link share
+GunnerRig.boneStrengths.tip	狙いの角度のうち、骨が受け持つ割合(0〜1)。残りは射出口だけが向く	Share of the aim angle the bones take (0-1). The emitter turns the rest by itself
+GunnerRig.boneYawMaxes	左右の上限(度)	Yaw limit (°)
+GunnerRig.boneYawMaxes.tip	骨1本が左右に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Yaw limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
+GunnerRig.bonePitchUpMaxes	上の上限(度)	Pitch up limit (°)
+GunnerRig.bonePitchUpMaxes.tip	骨1本が上に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-up limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
+GunnerRig.bonePitchDownMaxes	下の上限(度)	Pitch down limit (°)
+GunnerRig.bonePitchDownMaxes.tip	骨1本が下に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-down limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
+GunnerRig.boneSmooths	追いつく速さ	Catch-up rate
+GunnerRig.boneSmooths.tip	毎秒、残りの角度をどれだけ詰めるか。大きいほど早く追いつき、小さいほどなめらか	Per second, share of the remaining angle closed. Higher catches up faster, lower is smoother
+GunnerRig.boneMinSpeeds	最低の速さ(度/秒)	Minimum speed (°/s)
+GunnerRig.boneMinSpeeds.tip	度毎秒	Degrees per second
+GunnerRig.boneMaxSpeeds	最高の速さ(度/秒)	Maximum speed (°/s)
+GunnerRig.boneMaxSpeeds.tip	骨が追従して回る速さの上限(度毎秒)。0 なら上限なし	Upper limit of the bone's follow speed (degrees per second). 0 = no limit
 GunnerRig.fireSources	発射音の音源	Fire sound source
 GunnerRig.fireSources.tip	音源はその場で鳴らす(動かさない)。射出口の近くに置く。クリップ・音量・聞こえる距離は AudioSource で決める。空なら鳴らさない	Played where it is (not moved). Place it near the emitter. Set the clip, volume and range on the AudioSource. Empty = silent
 GunnerRig.fireMinIntervals	発射音の最短間隔(秒)	Fire sound min interval (s)

@@ -638,7 +638,7 @@ namespace Mecaota.Gunner
 
         // ================= 音 =================
 
-        // 発射音は撃った射出口の位置で鳴らす。e < 0(連射の開始)は発射音の音源がある先頭の射出口。
+        // 発射音の音源は動かさない。e < 0(連射の開始)は発射音の音源がある先頭の射出口。
         // 入室時に既に続いていた連射(replay)は今撃たれたのではないので鳴らさない。
         private void PlayFireSound(int e, bool replay)
         {
@@ -654,14 +654,15 @@ namespace Mecaota.Gunner
                 }
             }
             if (!ValidEmitter(at)) return;
-            PlaySound(Source(fireSources, at), Value(fireMinIntervals, at), emitters[at].position);
+            PlaySound(Source(fireSources, at), Value(fireMinIntervals, at));
         }
 
         private void PlayImpact()
         {
             if (hitReplay || !hitResolved) return;
             EmitImpactParticles();
-            PlaySound(Source(impactSources, hitEmitter), Value(impactMinIntervals, hitEmitter), hitPoint);
+            AudioSource source = Source(impactSources, hitEmitter);
+            if (PlaySound(source, Value(impactMinIntervals, hitEmitter))) source.transform.position = hitPoint;
         }
 
         // 着弾の記録には面の向きが無いので、Raycast で取り直す。
@@ -689,12 +690,12 @@ namespace Mecaota.Gunner
         }
 
         // 鳴っている途中でも、最短間隔を過ぎていれば頭から鳴らし直す。PlayOneShot は音ごとに位置を変えられないので使わない。
-        private void PlaySound(AudioSource source, float minInterval, Vector3 point)
+        private bool PlaySound(AudioSource source, float minInterval)
         {
-            if (source == null || (source.isPlaying && source.time < minInterval)) return;
+            if (source == null || (source.isPlaying && source.time < minInterval)) return false;
             source.Stop();
-            source.transform.position = point;
             source.Play();
+            return true;
         }
 
         private void StopSources(AudioSource[] sources)

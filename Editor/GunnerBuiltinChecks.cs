@@ -76,12 +76,10 @@ namespace Mecaota.Gunner.EditorTools
                 if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
                     into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
 
-            // 着弾音の音源は当たった点へ動かすので、動く骨の子だと鳴っている間に骨と一緒に流れる。
-            var linked = Enumerable.Range(0, emitters.Length).Select(e => GunnerRigEditor.LeadBone(rig, e))
-                .Concat(rig.linkExtraBones ?? new Transform[0]).Where(b => b != null).ToList();
+            // 着弾音の音源は当たった点へ動かすので、rig の下にあると鳴っている間に rig と一緒に動き、rig や射出口に付けるとそれごと動かしてしまう。
             foreach (var source in (rig.impactSources ?? new AudioSource[0]).Distinct())
-                if (source != null && linked.Any(b => source.transform.IsChildOf(b)))
-                    into.Add(new GunnerCheck(E.Warning, "check.rig.impact_on_bone", source, null, source.name));
+                if (source != null && source.transform.IsChildOf(rig.transform))
+                    into.Add(new GunnerCheck(E.Warning, "check.rig.impact_in_rig", source, null, source.name));
 
             if (rig.fireMode == GunnerRig.FireStream && rig.stream == null)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_stream", rig, () => GunnerSetup.EnsureStream(rig)));

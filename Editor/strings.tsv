@@ -26,7 +26,7 @@ check.rig.extra_not_ancestor	追加の骨 {0} が先端の骨の祖先ではあ�
 check.rig.extra_duplicate	追加の骨 {0} が重複しています	Extra bone {0} is listed twice
 check.rig.extra_shared	追加の骨 {0} が別の連動にも使われています(回転が二重に書かれます)	Extra bone {0} is also used by another link (it would be turned twice)
 check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
-check.rig.impact_on_bone	着弾音の音源 {0} が連動ボーンの子になっています。鳴っている間も骨と一緒に動くので、連動ボーンの外に移してください	Impact sound source {0} is under a linked bone. It would move with the bone while playing, so move it outside linked bones
+check.rig.impact_in_rig	着弾音の音源 {0} が rig の配下にあります。当たった点へ動かす音源が rig につられて動いたり、rig の一部を動かしたりするので、rig の外に置いてください	Impact sound source {0} is under the rig. It would follow the rig, or move part of the rig when moved to the hit point, so place it outside the rig
 check.rig.angles_long	射出口ごとの狙える角度の欄が射出口より多くあります: {0}	More per-emitter aim limits than emitters: {0}
 check.rig.angle_over	射出口ごとの狙える角度が180度を超えています: {0}	A per-emitter aim limit is over 180 degrees: {0}
 check.rig.angle_link	狙える角度が170度を超えています。真後ろ近くで骨が跳ぶことがあるので、連動する射出口は170度までにしてください: {0}	Aim limit over 170 degrees. Bones can jump near straight back, so keep linked emitters at 170 degrees or less: {0}
@@ -131,13 +131,13 @@ GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
 GunnerRig.boneMaxSpeed	最高の速さ(度/秒)	Maximum speed (°/s)
 GunnerRig.boneMaxSpeed.tip	骨が追従して回る速さの上限(度毎秒)。0 なら上限なし	Upper limit of the bone's follow speed (degrees per second). 0 = no limit
 GunnerRig.fireSources	発射音の音源	Fire sound source
-GunnerRig.fireSources.tip	この射出口の位置で鳴らす。クリップ・音量・聞こえる距離は AudioSource で決める。空なら鳴らさない	Played at this emitter. Set the clip, volume and range on the AudioSource. Empty = silent
+GunnerRig.fireSources.tip	音源はその場で鳴らす(動かさない)。射出口の近くに置く。クリップ・音量・聞こえる距離は AudioSource で決める。空なら鳴らさない	Played where it is (not moved). Place it near the emitter. Set the clip, volume and range on the AudioSource. Empty = silent
 GunnerRig.fireMinIntervals	発射音の最短間隔(秒)	Fire sound min interval (s)
-GunnerRig.fireMinIntervals.tip	発射音の再生中は、鳴り始めてからこの秒数が経つまで次の発射音を鳴らさない(鳴り終わっていれば次が鳴る)。0 なら毎回頭から鳴らし直す	While the fire sound is playing, the next one is skipped until it has played this many seconds (once it ends, the next one plays). 0 = restart it every time
+GunnerRig.fireMinIntervals.tip	発射音の再生中は、再生位置(AudioSource の time)がこの秒数に達するまで次の発射音を鳴らさない(鳴り終わった後なら次が鳴る)。0 なら毎回頭から鳴らし直す	While the fire sound is playing, the next one is skipped until its playback position (the AudioSource's time) reaches this many seconds (once it ends, the next one plays). 0 = restart it every time
 GunnerRig.impactSources	着弾音の音源	Impact sound source
-GunnerRig.impactSources.tip	この射出口の弾が当たった点へ音源を動かして鳴らす。連動ボーンの外に置く。空なら鳴らさない	Moved to where this emitter's shot hits and played. Keep it outside linked bones. Empty = silent
+GunnerRig.impactSources.tip	この射出口の弾が当たった点へ音源を動かして鳴らす。rig の外に置く。空なら鳴らさない	Moved to where this emitter's shot hits and played. Place it outside the rig. Empty = silent
 GunnerRig.impactMinIntervals	着弾音の最短間隔(秒)	Impact sound min interval (s)
-GunnerRig.impactMinIntervals.tip	着弾音の再生中は、鳴り始めてからこの秒数が経つまで次の着弾音を鳴らさない(鳴り終わっていれば次が鳴る)。0 なら毎回頭から鳴らし直す。着弾パーティクルは間引かない	While the impact sound is playing, the next one is skipped until it has played this many seconds (once it ends, the next one plays). 0 = restart it every time. Impact particles are not skipped
+GunnerRig.impactMinIntervals.tip	着弾音の再生中は、再生位置(AudioSource の time)がこの秒数に達するまで次の着弾音を鳴らさない(鳴り終わった後なら次が鳴る)。0 なら毎回頭から鳴らし直す。着弾パーティクルは間引かない	While the impact sound is playing, the next one is skipped until its playback position (the AudioSource's time) reaches this many seconds (once it ends, the next one plays). 0 = restart it every time. Impact particles are not skipped
 GunnerRig.impactParticles	着弾パーティクル	Impact particles
 GunnerRig.impactParticles.tip	この射出口の弾が当たった点で出すパーティクル。空なら出さない。+Z が飛び散る向き。Simulation Space は World にする	Particles shown where this emitter's shot hits. Empty = none. +Z is the splash direction. Set Simulation Space to World
 GunnerRig.impactBursts	着弾パーティクルの数	Impact burst

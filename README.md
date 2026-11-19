@@ -82,11 +82,11 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | Field | Default | Meaning |
 |---|---|---|
 | `fireSources` / `impactSources` | empty | Per emitter. The AudioSource to play. Set the clip, volume, pitch and range on it. Empty = silent. |
-| `fireMinIntervals` / `impactMinIntervals` | empty = 0 | Per emitter. While the sound is playing, the next one is skipped until it has played this many seconds; once it ends, the next one plays. 0 = restart it every time. |
+| `fireMinIntervals` / `impactMinIntervals` | empty = 0 | Per emitter. While the sound is playing, the next one is skipped until its playback position (the AudioSource's `time`) reaches this many seconds; once it ends, the next one plays. 0 = restart it every time. For example, 0.08 for impacts keeps a stream from sounding too busy. |
 | `impactParticles` | empty | Per emitter. Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
 | `impactBursts` | empty = 1 | Per emitter. Particles per hit (at least 1). |
 
-- The fire sound source is moved to the emitter that fired (a stream start uses the first emitter with a fire sound source), and the impact sound source and particles to the hit point. A source plays one sound at a time; the next sound restarts it. Keep impact sound sources outside moving bones, or they move with the bone while playing. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
+- The fire sound source plays where it is (a stream start uses the first emitter with a fire sound source); place it near the emitter. The impact sound source and particles are moved to the hit point; place impact sound sources outside the rig, or moving them would move part of the rig. A source plays one sound at a time; the next sound restarts it. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
 - To shoot two kinds of shots from one place (for example a bullet and a web from the mouth), add two emitters there as two separate Transforms and set each card. Do not register the same Transform as two emitters; they overwrite each other's aim every frame.
 - `Fire()`, `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.

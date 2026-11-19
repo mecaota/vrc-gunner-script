@@ -2,7 +2,7 @@
 # このパッケージの確かめ(Unity を開かずに、Git Bash で動かす)。
 #   1. csc で Runtime・Editor・Tests/Editor をコンパイルする(警告0・エラー0)。.cs は find で集めるので、ファイルを足しても
 #      この台本は書き直さなくてよい。参照と定義は、Unity が作った rsp(Library/Bee/artifacts/*.dag/<アセンブリ>.rsp)から取る。
-#   2. 純計算のテスト(Tests/Editor/Models と Tools~/verify/pure の *.cs)を、ファイルごとに pwsh で動かす(run-pure.ps1)。
+#   2. 純計算のテスト(Tests/Editor/Models の *.cs)を、ファイルごとに pwsh で動かす(run-pure.ps1)。
 #      Tests/Editor の NUnit のテストは Unity の Test Runner(EditMode)で動かす。
 #   3. Editor/strings.tsv の重複キーを調べる。
 #
@@ -85,7 +85,7 @@ fi
 # ---------------- 2. 純計算のテスト ----------------
 if [ "${SKIP_PURE:-0}" != "1" ]; then
     if command -v pwsh > /dev/null; then
-        for f in $(find "$ROOT/Tests/Editor/Models" "$ROOT/Tools~/verify/pure" -name '*.cs' 2>/dev/null | sort); do
+        for f in $(find "$ROOT/Tests/Editor/Models" -name '*.cs' 2>/dev/null | sort); do
             # 身代わりの型だけのファイル(Run を持たない)は、使う側のテストが verify-uses で読む
             grep -q 'static string Run(' "$f" || continue
             pwsh -NoProfile -File "$(cygpath -w "$HERE/run-pure.ps1")" -File "$(cygpath -w "$f")" -Root "$(cygpath -w "$ROOT")" ${GUNNER_ROOT:+-Gunner "$(cygpath -w "$GUNNER_ROOT")"} || FAIL=1

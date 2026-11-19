@@ -152,25 +152,15 @@ Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 
-### JSON values
-
-The `GunnerRig` inspector has a **JSON (values)** section, and the component's right-click menu has **Values JSON > Import... / Export...**.
-
-- Export writes the number fields to a JSON file: `{ "type": "GunnerRig", "version": 1, "values": { ... } }`.
-- Import reads them back. References, curves and layers are not included. Fields missing from the JSON keep their values. If there is any error, nothing is written.
-- The linked JSON is remembered in this machine's user settings, not in the scene. The checks warn when the JSON changed after import.
-- Save the scene after importing.
-
 ### Language
 
 The inspectors and the Check Window have a **Language** popup at the bottom: Follow the editor, Japanese, or English. The choice is saved in EditorPrefs.
 
 ## Extending from other packages
 
-All three are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnLoad]` static constructor.
+Both are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnLoad]` static constructor.
 
 - `GunnerChecks.Register(IGunnerCheckProvider)`: add checks for your components. They show in the inspectors and the Check Window.
-- `GunnerValueSchemas.Register(typeof(MyComponent), customize)`: allow JSON export and import for a component type (exact type match). `customize` can exclude fields and add ranges or lengths.
 - `GunnerL10n.AddTable("Packages/<your.package>/Editor/strings.tsv")`: add your own text table (tab-separated columns `key`, `ja`, `en`; `<key>.tip` is the tooltip). Later tables override earlier keys.
 
 ## Changes

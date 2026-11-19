@@ -21,8 +21,8 @@ check.rig.null_mover	動く物の欄に空きがあります	A moving object slo
 check.rig.null_receiver	受け手の欄に空きがあります	A receiver slot is empty
 check.rig.receiver_unlisted	受け手の登録漏れ: {0}	Receiver not registered: {0}
 check.rig.extra_null	追加の骨の欄に空きがあります	An extra bone slot is empty
-check.rig.extra_no_link	追加の骨 {0} の射出口に先頭の骨がありません(番号の誤り)	Extra bone {0}: its emitter has no lead bone (wrong index)
-check.rig.extra_not_ancestor	追加の骨 {0} が先頭の骨の祖先ではありません(使われません)	Extra bone {0} is not an ancestor of the lead bone (ignored)
+check.rig.extra_no_link	追加の骨 {0} の射出口に先端の骨がありません(番号の誤り)	Extra bone {0}: its emitter has no tip bone (wrong index)
+check.rig.extra_not_ancestor	追加の骨 {0} が先端の骨の祖先ではありません(使われません)	Extra bone {0} is not an ancestor of the tip bone (ignored)
 check.rig.extra_duplicate	追加の骨 {0} が重複しています	Extra bone {0} is listed twice
 check.rig.extra_shared	追加の骨 {0} が別の連動にも使われています(回転が二重に書かれます)	Extra bone {0} is also used by another link (it would be turned twice)
 check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
@@ -54,18 +54,22 @@ GunnerRig.section.sound	効果音	Sounds
 GunnerRig.about	指定した位置から弾やパーティクルを撃ち出す部品。	Shoots bullets or particles from the set positions.
 GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
-GunnerRig.emitters	射出口	Emitters
-GunnerRig.emitters.tip	+Z が撃つ向き。最大16	+Z is the shooting direction. Up to 16
-GunnerRig.emitters.removeNote	射出口を選んで「-」で外す。後ろの番号が1つずつ前にずれるので、GunnerPre の番号と useEmitters も直す	Select an emitter and press "-" to remove it. Later emitters move up one number, so update GunnerPre and useEmitters
+GunnerRig.emitters.removeNote	外すと後ろの番号が1つずつ前にずれるので、GunnerPre の番号と useEmitters も直す	Removing an emitter moves later emitters up one number, so update GunnerPre and useEmitters
 GunnerRig.emitters.multi	複数選択中は射出口を編集できません	Emitters cannot be edited while multiple objects are selected
+GunnerRig.emitters.add	+ 射出口を足す	+ Add emitter
+GunnerRig.emitters.remove	外す	Remove
+GunnerRig.card.fire	発射	Fire
+GunnerRig.card.impact	着弾	Impact
+GunnerRig.card.aim	向き	Aim
 GunnerRig.shotParticles	パーティクル	Particles
 GunnerRig.shotParticles.tip	撃つときに出すパーティクル。射出口と同じ番号に入れる。Simulation Space は World にする	Particles shot from the emitter. Same index as the emitters. Set Simulation Space to World
-GunnerRig.linkBones	先頭の骨	Lead bone
+GunnerRig.linkBones	先端(射出口側)	Tip (emitter side)
 GunnerRig.linkBones.tip	任意。狙いで回す骨のうち、射出口にいちばん近い骨。空なら射出口の親	Optional. The bone nearest the emitter that the aim turns. Empty = the emitter's parent
-GunnerRig.linkExtraBones	連動ボーン(親 → 子)	Linked bones (parent → child)
-GunnerRig.linkExtraBones.tip	狙いで回す骨。「+」でいちばん上の骨の親を足し、「-」で選んだ骨を外す。狙いの角度を骨の数で等分して回す。同じ先頭の骨を持つ射出口は、骨の鎖を共有する	Bones the aim turns. + adds the top bone's parent, - removes the selected bone. The aim angle is split evenly across the bones. Emitters with the same lead bone share a chain
-GunnerRig.linkExtraEmitter	追加の骨の射出口	Extra bone emitters
-GunnerRig.linkExtraEmitter.tip	追加の骨(連動ボーンのうち、先頭の骨より上の骨)が属する射出口の番号。追加の骨と同じ番号に入れる	The emitter index each extra bone (a linked bone above the lead bone) belongs to. Same index as the extra bones
+GunnerRig.linkRoot	根元(親側)	Root (parent side)
+GunnerRig.linkRoot.tip	連動ボーンのうち、いちばん上の骨	The top bone of the linked bones
+GunnerRig.linkExtraBones	連動ボーン(根元 → 先端)	Linked bones (root → tip)
+GunnerRig.linkExtraBones.tip	狙いで回す骨。狙いの角度を骨の数で等分して回す。同じ先端の骨を持つ射出口は、骨の鎖を共有する	Bones the aim turns. The aim angle is split evenly across the bones. Emitters with the same tip bone share a chain
+GunnerRig.bones.add	+ 親の骨を足す	+ Add parent bone
 GunnerRig.extra.orphan	無い射出口を指す骨	Bones pointing at a missing emitter
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
@@ -80,11 +84,11 @@ GunnerRig.maxHits	記録数	Hit records
 GunnerRig.fireAnimator	撃つ前のアニメ	Pre-fire animator
 GunnerRig.fireAnimator.tip	撃つ前にアニメを流す Animator。空ならすぐ撃つ。入れると、アニメの終わりの合図(_AnimFire)で撃つ。射出口ごとに bool のパラメーター GunnerPre0, GunnerPre1… が必要。rig は Animator と同じ GameObject に置く	Animator played before shooting. Empty: shoot at once. Set: shoot on the animation's end signal (_AnimFire). Each emitter needs a bool parameter GunnerPre0, GunnerPre1… Put the rig on the same GameObject as the Animator
 GunnerRig.maxHits.tip	この端末で記録する着弾の数(1〜16)。Android で減らしても PC とずれない	Hits recorded on this device (1-16). Lowering it on Android stays in step with PC
-GunnerRig.shotSpeed	弾の速さ	Shot speed
+GunnerRig.shotSpeed	弾の速さ(m/秒)	Shot speed (m/s)
 GunnerRig.shotSpeed.tip	メートル毎秒	Metres per second
-GunnerRig.maxRange	射程	Range
+GunnerRig.maxRange	射程(m)	Range (m)
 GunnerRig.maxRange.tip	メートル	Metres
-GunnerRig.castRadius	弾の半径	Shot radius
+GunnerRig.castRadius	弾の半径(m)	Shot radius (m)
 GunnerRig.castRadius.tip	当たり判定の太さ(メートル)	Hit test thickness (metres)
 GunnerRig.hitMask	当たるレイヤー	Hit layers
 GunnerRig.hitMask.tip	プレイヤーのレイヤーはここでは見ない。人は「人に当たる」で決める	Player layers are ignored here; "Hit players" decides
@@ -94,13 +98,11 @@ GunnerRig.excludeOwner	自分には当てない	Skip own body
 GunnerRig.excludeOwner.tip	撃った本人には当てない。罠の場合は、rig の持ち主にも当てない	Never hit the shooter. For a trap, never hit the rig's owner either
 GunnerRig.playerRadius	体の太さ	Body radius
 GunnerRig.playerRadius.tip	目の高さに対する割合	Share of the eye height
-GunnerRig.aimMaxAngle	可動域(既定)	Aim limit (default)
+GunnerRig.aimMaxAngle	既定の可動域(度)	Default aim limit (°)
 GunnerRig.aimMaxAngle.tip	射出口が狙える角度の上限(度)。撃つ向きの初期値から測る	Limit of the emitter's aim (degrees), measured from the rest direction
-GunnerRig.aimMaxAngles	射出口ごとの可動域	Per-emitter aim limit
-GunnerRig.aimMaxAngles.tip	射出口ごとの狙える角度の上限(度)。0 か空なら全体の「可動域」を使う	Aim limit for each emitter (degrees). 0 or empty uses the overall Aim limit
-GunnerRig.aimMaxAngles.row	可動域	Aim limit
-GunnerRig.aimMaxAngles.row.tip	この射出口が狙える角度の上限(度)。0 なら「可動域(既定)」の値を使う	Aim limit for this emitter (degrees). Set to 0 to use "Aim limit (default)"
-GunnerRig.streamRate	連射の量	Stream rate
+GunnerRig.aimMaxAngles.row	可動域(度)	Aim limit (°)
+GunnerRig.aimMaxAngles.row.tip	この射出口が狙える角度の上限(度)。0 なら「既定の可動域」の値を使う	Aim limit for this emitter (degrees). Set to 0 to use "Default aim limit"
+GunnerRig.streamRate	連射の量(個/秒)	Stream rate (/s)
 GunnerRig.streamRate.tip	射出口ごとの毎秒のパーティクルの数	Particles per second per emitter
 GunnerRig.streamJoin	連射の見た目	Stream look
 GunnerRig.streamJoin.opt	パーティクルのまま|線につなぐ	Particles|Joined line
@@ -108,7 +110,7 @@ GunnerRig.streamJoin.tip	パーティクルのまま: パーティクルだけ�
 GunnerRig.streamHitMode	連射の当たり方	Stream hits
 GunnerRig.streamHitMode.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
 GunnerRig.streamHitMode.tip	1回で止める: 射出口ごとに、最初の当たりだけを記録する。当たり続ける: 「当たりの間隔」ごとに記録する	Stop at first hit: each emitter records only its first hit. Keep hitting: records once per Hit interval
-GunnerRig.streamHitInterval	当たりの間隔	Hit interval
+GunnerRig.streamHitInterval	当たりの間隔(秒)	Hit interval (s)
 GunnerRig.streamHitInterval.tip	当たり続ける時の、射出口ごとの記録の間隔(秒)	Keep hitting: seconds between records per emitter
 GunnerRig.streamCollide	連射の当たり判定	Stream collision
 GunnerRig.streamCollide.tip	開始時の値。球などが実行中に切り替える	Initial value; a controller may switch it at runtime
@@ -116,17 +118,17 @@ GunnerRig.boneFollow	ボーン連動	Bone link
 GunnerRig.boneFollow.tip	狙いに合わせてボーンを回す	Turn the bone with the aim
 GunnerRig.boneStrength	連動の割合	Link share
 GunnerRig.boneStrength.tip	狙いの角度のうち、骨が受け持つ割合(0〜1)。残りは射出口だけが向く	Share of the aim angle the bones take (0-1). The emitter turns the rest by itself
-GunnerRig.boneYawMax	左右の上限	Yaw limit
+GunnerRig.boneYawMax	左右の上限(度)	Yaw limit (°)
 GunnerRig.boneYawMax.tip	骨1本が左右に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Yaw limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
-GunnerRig.bonePitchUpMax	上の上限	Pitch up limit
+GunnerRig.bonePitchUpMax	上の上限(度)	Pitch up limit (°)
 GunnerRig.bonePitchUpMax.tip	骨1本が上に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-up limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
-GunnerRig.bonePitchDownMax	下の上限	Pitch down limit
+GunnerRig.bonePitchDownMax	下の上限(度)	Pitch down limit (°)
 GunnerRig.bonePitchDownMax.tip	骨1本が下に曲がる角度の上限(度)。追加の骨があれば、全体でこの値 × 骨の数まで曲がる	Pitch-down limit of one bone (degrees). With extra bones, the whole chain can turn as far as this value × the number of bones
 GunnerRig.boneSmooth	追いつく速さ	Catch-up rate
 GunnerRig.boneSmooth.tip	毎秒、残りの角度をどれだけ詰めるか。大きいほど早く追いつき、小さいほどなめらか	Per second, share of the remaining angle closed. Higher catches up faster, lower is smoother
-GunnerRig.boneMinSpeed	最低の速さ	Minimum speed
+GunnerRig.boneMinSpeed	最低の速さ(度/秒)	Minimum speed (°/s)
 GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
-GunnerRig.boneMaxSpeed	最高の速さ	Maximum speed
+GunnerRig.boneMaxSpeed	最高の速さ(度/秒)	Maximum speed (°/s)
 GunnerRig.boneMaxSpeed.tip	骨が追従して回る速さの上限(度毎秒)。0 なら上限なし	Upper limit of the bone's follow speed (degrees per second). 0 = no limit
 GunnerRig.fireClips	発射音	Fire sound
 GunnerRig.fireClips.tip	この射出口の位置で鳴らす。空なら鳴らさない	Played at this emitter. Empty = silent
@@ -142,21 +144,21 @@ GunnerRig.fireVoices	発射音の音源	Fire sources
 GunnerRig.fireVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
 GunnerRig.impactVoices	着弾音の音源	Impact sources
 GunnerRig.impactVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
-GunnerRig.impactParticles	着弾のパーティクル	Impact particles
+GunnerRig.impactParticles	着弾パーティクル	Impact particles
 GunnerRig.impactParticles.tip	この射出口の弾が当たった点で出すパーティクル。空なら出さない。+Z が飛び散る向き。Simulation Space は World にする	Particles shown where this emitter's shot hits. Empty = none. +Z is the splash direction. Set Simulation Space to World
 GunnerRig.impactBursts	着弾パーティクルの数	Impact burst
 GunnerRig.impactBursts.tip	1回の着弾で出す数(最低1)	Particles per hit (at least 1)
-GunnerRig.fireMinInterval	発射音の間引き	Fire min interval
+GunnerRig.fireMinInterval	発射音の間引き(秒)	Fire min interval (s)
 GunnerRig.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
-GunnerRig.impactMinInterval	着弾音の間引き	Impact min interval
-GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)。着弾のパーティクルは間引かない	Impact sounds closer together than this are dropped (seconds). Impact particles are not dropped
+GunnerRig.impactMinInterval	着弾音の間引き(秒)	Impact min interval (s)
+GunnerRig.impactMinInterval.tip	これより短い間隔の着弾音は鳴らさない(秒)。着弾パーティクルは間引かない	Impact sounds closer together than this are dropped (seconds). Impact particles are not dropped
 GunnerRig.soundOnPlayers	人	Players
-GunnerRig.soundOnPlayers.tip	人への着弾で着弾音と着弾のパーティクルを出す	Impact sound and particles on hits on players
+GunnerRig.soundOnPlayers.tip	人への着弾で着弾音と着弾パーティクルを出す	Impact sound and particles on hits on players
 GunnerRig.soundOnWorld	壁や床	World
-GunnerRig.soundOnWorld.tip	壁や床への着弾で着弾音と着弾のパーティクルを出す	Impact sound and particles on hits on the world
+GunnerRig.soundOnWorld.tip	壁や床への着弾で着弾音と着弾パーティクルを出す	Impact sound and particles on hits on the world
 GunnerRig.soundOnMoving	動く物	Moving objects
-GunnerRig.soundOnMoving.tip	動く物への着弾で着弾音と着弾のパーティクルを出す	Impact sound and particles on hits on moving objects
-GunnerRig.soundCullDistance	鳴らす距離	Cull distance
+GunnerRig.soundOnMoving.tip	動く物への着弾で着弾音と着弾パーティクルを出す	Impact sound and particles on hits on moving objects
+GunnerRig.soundCullDistance	鳴らす距離(m)	Cull distance (m)
 GunnerRig.soundCullDistance.tip	自分からこれより遠い音は鳴らさない(メートル)。0 なら音源の届く距離	Sounds farther than this from you are not played (metres). 0 = the sources' reach
 GunnerHandController.rig	GunnerRig	GunnerRig
 GunnerHandController.rig.tip	この球で撃つ rig	The rig this ball shoots

@@ -20,11 +20,11 @@ check.rig.object_sync	VRC Object Sync と同じ GameObject には置けません
 check.rig.null_mover	動く物の欄に空きがあります	A moving object slot is empty
 check.rig.null_receiver	受け手の欄に空きがあります	A receiver slot is empty
 check.rig.receiver_unlisted	受け手の登録漏れ: {0}	Receiver not registered: {0}
-check.rig.extra_null	追加の連動ボーンの欄に空きがあります	An extra linked bone slot is empty
-check.rig.extra_no_link	追加の連動ボーン {0} の射出口に連動ボーンがありません(番号の誤り)	Extra linked bone {0}: its emitter has no linked bone (wrong index)
-check.rig.extra_not_ancestor	追加の連動ボーン {0} が連動ボーンの祖先ではありません(使われません)	Extra linked bone {0} is not an ancestor of the linked bone (ignored)
-check.rig.extra_duplicate	追加の連動ボーン {0} が重複しています	Extra linked bone {0} is listed twice
-check.rig.extra_shared	追加の連動ボーン {0} が別の連動にも使われています(回転が二重に書かれます)	Extra linked bone {0} is also used by another link (it would be turned twice)
+check.rig.extra_null	追加の骨の欄に空きがあります	An extra bone slot is empty
+check.rig.extra_no_link	追加の骨 {0} の射出口に先頭の骨がありません(番号の誤り)	Extra bone {0}: its emitter has no lead bone (wrong index)
+check.rig.extra_not_ancestor	追加の骨 {0} が先頭の骨の祖先ではありません(使われません)	Extra bone {0} is not an ancestor of the lead bone (ignored)
+check.rig.extra_duplicate	追加の骨 {0} が重複しています	Extra bone {0} is listed twice
+check.rig.extra_shared	追加の骨 {0} が別の連動にも使われています(回転が二重に書かれます)	Extra bone {0} is also used by another link (it would be turned twice)
 check.rig.chain_long	連動する骨が6本を超えています: {0}	More than 6 linked bones in a chain: {0}
 check.rig.angles_long	射出口ごとの狙える角度の欄が射出口より多くあります: {0}	More per-emitter aim limits than emitters: {0}
 check.rig.angle_over	射出口ごとの狙える角度が180度を超えています: {0}	A per-emitter aim limit is over 180 degrees: {0}
@@ -60,14 +60,13 @@ GunnerRig.emitters.removeNote	射出口を選んで「-」で外す。後ろの�
 GunnerRig.emitters.multi	複数選択中は射出口を編集できません	Emitters cannot be edited while multiple objects are selected
 GunnerRig.shotParticles	パーティクル	Particles
 GunnerRig.shotParticles.tip	撃つときに出すパーティクル。射出口と同じ番号に入れる。Simulation Space は World にする	Particles shot from the emitter. Same index as the emitters. Set Simulation Space to World
-GunnerRig.linkBones	連動ボーン	Linked bones
-GunnerRig.linkBones.tip	任意。狙いで回すボーン。空なら射出口の親	Optional. The bone the aim turns. Empty = the emitter's parent
-GunnerRig.linkExtraBones	追加の連動ボーン	Extra linked bones
-GunnerRig.linkExtraBones.tip	任意。連動ボーンの親や祖先の骨。足すと、狙いの角度を骨の数で等分して曲げる	Optional. Parents or ancestors of the linked bone. The aim angle is split evenly across the bones
-GunnerRig.linkExtraEmitter	追加ボーンの射出口	Extra bone emitters
-GunnerRig.linkExtraEmitter.tip	追加の連動ボーンと同じ番号。その骨が加わる射出口の番号	Same index as the extra linked bones. The emitter each bone joins
+GunnerRig.linkBones	先頭の骨	Lead bone
+GunnerRig.linkBones.tip	任意。狙いで回す骨のうち、射出口にいちばん近い骨。空なら射出口の親	Optional. The bone nearest the emitter that the aim turns. Empty = the emitter's parent
+GunnerRig.linkExtraBones	連動ボーン(親 → 子)	Linked bones (parent → child)
+GunnerRig.linkExtraBones.tip	狙いで回す骨。「+」でいちばん上の骨の親を足し、「-」で選んだ骨を外す。狙いの角度を骨の数で等分して回す。同じ先頭の骨を持つ射出口は、骨の鎖を共有する	Bones the aim turns. + adds the top bone's parent, - removes the selected bone. The aim angle is split evenly across the bones. Emitters with the same lead bone share a chain
+GunnerRig.linkExtraEmitter	追加の骨の射出口	Extra bone emitters
+GunnerRig.linkExtraEmitter.tip	追加の骨(連動ボーンのうち、先頭の骨より上の骨)が属する射出口の番号。追加の骨と同じ番号に入れる	The emitter index each extra bone (a linked bone above the lead bone) belongs to. Same index as the extra bones
 GunnerRig.extra.orphan	無い射出口を指す骨	Bones pointing at a missing emitter
-button.add_parent_bones	親の骨を {0} 個足す	Add {0} parent bone(s)
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
 GunnerRig.receivers	受け手	Receivers

@@ -17,14 +17,15 @@ namespace Mecaota.Gunner.EditorTools
         static float Line => EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
         ReorderableList cards;
-        int addParentCount = 1;
+        // 射出口ごとに使い回す: 作り直すと選んだ行が消え、「-」が効かない。
+        readonly Dictionary<int, ReorderableList> links = new Dictionary<int, ReorderableList>();
 
         void OnEnable()
         {
             // 並べ替えは付けない: 番号は GunnerPre の番号や、ほかの部品の番号の配列と対応している。
             cards = new ReorderableList(serializedObject, serializedObject.FindProperty("emitters"), false, false, true, true)
             {
-                elementHeightCallback = i => CardRows(i) * Line,
+                elementHeightCallback = i => cards.serializedProperty.GetArrayElementAtIndex(i).isExpanded ? 3 * Line + Links(i).GetHeight() : Line,
                 drawElementCallback = (rect, i, active, focused) => DrawCard(rect, i),
                 onCanAddCallback = list => list.count < GunnerRig.MaxEmitters,
                 onAddCallback = _ =>
@@ -36,6 +37,7 @@ namespace Mecaota.Gunner.EditorTools
                 onRemoveCallback = list =>
                 {
                     RemoveEmitter(serializedObject, list.index);
+                    links.Clear();
                     list.index = Mathf.Min(list.index, list.count - 1);
                 },
             };
@@ -105,14 +107,62 @@ namespace Mecaota.Gunner.EditorTools
             return k < owners.arraySize ? owners.GetArrayElementAtIndex(k).intValue : -1;
         }
 
-        // 1行目、粒子・可動域・連動ボーンの3行、所属する追加の骨、親の骨を足す行(連動があるとき)。
-        int CardRows(int i)
+        // 高さの計算と描画のたびに並べ直す。
+        ReorderableList Links(int i)
         {
-            if (!cards.serializedProperty.GetArrayElementAtIndex(i).isExpanded) return 1;
-            int rows = 4 + (LeadBone((GunnerRig)target, i) != null ? 1 : 0);
-            int bones = serializedObject.FindProperty("linkExtraBones").arraySize;
-            for (int k = 0; k < bones; k++) if (ExtraOwner(k) == i) rows++;
-            return rows;
+            if (!links.TryGetValue(i, out var list))
+            {
+                var rows = new List<int>();
+                list = new ReorderableList(rows, typeof(int), false, true, true, true)
+                {
+                    elementHeight = Line,
+                    drawHeaderCallback = rect => EditorGUI.LabelField(rect, Label("GunnerRig.linkExtraBones")),
+                    drawElementCallback = (rect, row, active, focused) =>
+                    {
+                        rect = new Rect(rect.x, rect.y + 1f, rect.width, EditorGUIUtility.singleLineHeight);
+                        int k = rows[row];
+                        EditorGUI.BeginChangeCheck();
+                        if (k < 0) ObjectAt(rect, "linkBones", i, typeof(Transform));
+                        else EditorGUI.PropertyField(rect, serializedObject.FindProperty("linkExtraBones").GetArrayElementAtIndex(k), new GUIContent(" "));
+                        // 骨を替えると並びが変わり、選んだ行が別の骨を指すため。
+                        if (EditorGUI.EndChangeCheck()) list.index = -1;
+                    },
+                    onCanAddCallback = _ => LeadBone((GunnerRig)target, i) != null,
+                    onAddCallback = _ =>
+                    {
+                        var rig = (GunnerRig)target;
+                        GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, i, 1));
+                        GUIUtility.ExitGUI();
+                    },
+                    onRemoveCallback = l =>
+                    {
+                        int k = rows[l.index];
+                        l.index = -1;
+                        GunnerEditorUtil.Edit((GunnerRig)target, so =>
+                        {
+                            var lead = so.FindProperty("linkBones");
+                            if (k >= 0) RemoveExtraAt(so, k);
+                            else if (i < lead.arraySize) lead.GetArrayElementAtIndex(i).objectReferenceValue = null;
+                        });
+                        GUIUtility.ExitGUI();
+                    },
+                };
+                links[i] = list;
+            }
+            var mine = (List<int>)list.list;
+            mine.Clear();
+            var bones = serializedObject.FindProperty("linkExtraBones");
+            for (int k = 0; k < bones.arraySize; k++) if (ExtraOwner(k) == i) mine.Add(k);
+            mine.Sort((a, b) => Depth(bones, a).CompareTo(Depth(bones, b)));
+            mine.Add(-1);
+            return list;
+        }
+
+        static int Depth(SerializedProperty bones, int k)
+        {
+            int d = 0;
+            for (var t = bones.GetArrayElementAtIndex(k).objectReferenceValue as Transform; t != null; t = t.parent) d++;
+            return d;
         }
 
         void DrawCard(Rect rect, int i)
@@ -138,27 +188,8 @@ namespace Mecaota.Gunner.EditorTools
             if (EditorGUI.EndChangeCheck()) Grow(angles, i).floatValue = Mathf.Clamp(angle, 0f, 180f);
             if (hasAngle) EditorGUI.EndProperty();
             row.y += Line;
-            ObjectAt(row, "linkBones", i, typeof(Transform));
-
-            var label = Label("GunnerRig.linkExtraBones");
-            int bones = serializedObject.FindProperty("linkExtraBones").arraySize;
-            for (int k = 0; k < bones; k++)
-            {
-                if (ExtraOwner(k) != i) continue;
-                row.y += Line;
-                ExtraRow(row, rig, k, label);
-                label = new GUIContent(" ");
-            }
-            if (LeadBone(rig, i) == null) return;
-            row.y += Line;
-            var field = EditorGUI.PrefixLabel(row, new GUIContent(" "));
-            addParentCount = Mathf.Clamp(EditorGUI.IntField(new Rect(field.x, field.y, 40f, field.height), addParentCount), 1, 16);
-            if (GUI.Button(new Rect(field.x + 44f, field.y, field.width - 44f, field.height), T("button.add_parent_bones").Replace("{0}", addParentCount.ToString())))
-            {
-                int n = addParentCount;
-                GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, i, n));
-                GUIUtility.ExitGUI();
-            }
+            var list = Links(i);
+            list.DoList(new Rect(row.x, row.y, row.width, list.GetHeight()));
         }
 
         GUIContent CardTitle(GunnerRig rig, int i)
@@ -241,14 +272,14 @@ namespace Mecaota.Gunner.EditorTools
                 if (owner >= 0 && owner < emitters) continue;
                 if (!labelShown) EditorGUILayout.LabelField(T("GunnerRig.extra.orphan"));
                 labelShown = true;
-                ExtraRow(EditorGUILayout.GetControlRect(), rig, k, GUIContent.none);
+                ExtraRow(EditorGUILayout.GetControlRect(), rig, k);
             }
         }
 
-        void ExtraRow(Rect row, GunnerRig rig, int k, GUIContent label)
+        void ExtraRow(Rect row, GunnerRig rig, int k)
         {
             var bones = serializedObject.FindProperty("linkExtraBones");
-            EditorGUI.PropertyField(new Rect(row.x, row.y, row.width - 28f, row.height), bones.GetArrayElementAtIndex(k), label);
+            EditorGUI.PropertyField(new Rect(row.x, row.y, row.width - 28f, row.height), bones.GetArrayElementAtIndex(k), GUIContent.none);
             if (GUI.Button(new Rect(row.xMax - 24f, row.y, 24f, row.height), "-"))
             {
                 GunnerEditorUtil.Edit(rig, so => RemoveExtraAt(so, k));

@@ -27,7 +27,7 @@ Download `com.mecaota.gunner-x.y.z.zip` from [Releases](https://github.com/mecao
 
 1. **Emitters.** An emitter is a `Transform`. Its +Z axis is the shooting direction (the rest direction when nothing aims it). A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticles` (same index, World simulation space) for the visible shot.
 2. **The rig.** `GunnerRig` owns everything else: aiming, hit tests, the synced hit records and the receiver list. It uses Manual sync, so it cannot share a GameObject with VRC Object Sync (put it on a child). Shooting takes ownership of the rig.
-3. **Single shots.** `Fire()` shoots once from every emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots from one emitter with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at `shotSpeed`; receivers hear about the hit when it arrives.
+3. **Single shots.** `Fire()` shoots once from every emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots from one emitter with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at its emitter's `shotSpeeds` value; receivers hear about the hit when it arrives.
 4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started.
 5. **Trigger helpers.** `TriggerDown()` / `TriggerUp()` follow `fireMode`: in Single mode `TriggerDown()` calls `Fire()`; in Stream mode it starts the stream and `TriggerUp()` stops it.
 6. **Hit records.** Each hit becomes a record that the rig syncs to everyone. The sync always holds 16 records (`SyncSlots`, a ring); `maxHits` (1-16) only limits how many this device uses, so Android can use fewer and still match PC. Receivers read the current hit from the rig's `hit*` fields: `hitKind` (`KindWorld`, `KindMoving`, `KindPlayer`), `hitIndex` (moving object index or playerId), `hitBone`, `hitPoint`, `hitLocal`, `hitEmitter`, `hitPayload`, `hitStream`, `hitReplay` (restored for a late joiner; skip effects) and `hitResolved`.
@@ -54,26 +54,25 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 |---|---|---|
 | `fireMode` | Single | What `TriggerDown` / `TriggerUp` do (Single or Stream). |
 | `maxHits` | 16 | Hit records this device uses (1-16). |
-| `shotSpeed` | 25 | Metres per second. |
-| `maxRange` | 30 | Metres. |
-| `castRadius` | 0.05 | Hit test thickness (metres). |
-| `hitMask` | everything except layer 2 | Layers that stop shots. Player layers are ignored here. |
+| `shotSpeeds` | empty = 25 | Per emitter. Metres per second. |
+| `maxRanges` | empty = 30 | Per emitter. Metres. |
+| `castRadii` | empty = 0.05 | Per emitter. Hit test thickness (metres). |
 | `hitPlayers` | on | Whether shots hit players. |
 | `excludeOwner` | on | The player on this device is never hit. |
 | `playerRadius` | 0.12 | Body radius as a share of the player's eye height. |
 | `aimMaxAngle` | 60 | Aim limit in degrees from the rest direction. |
 | `aimMaxAngles` | empty | Per-emitter aim limit (0 or empty = `aimMaxAngle`). |
-| `streamRate` | 12 | Particles per second per emitter. |
-| `streamJoin` | Joined line | Particles, or particles joined into a line by their trails. |
-| `streamHitMode` | Stop at first hit | Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
-| `streamHitInterval` | 0.25 | Keep hitting: seconds between records per emitter. |
+| `streamRates` | empty = 12 | Per emitter. Particles per second. |
+| `streamJoins` | empty = Joined line | Per emitter. Particles, or particles joined into a line by their trails. |
+| `streamHitModes` | empty = Stop at first hit | Per emitter. Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
+| `streamHitIntervals` | empty = 0.25 | Per emitter. Keep hitting: seconds between records. |
 | `streamCollide` | on | Initial stream collision state. |
 | `boneFollow` | off | Turn linked bones with the aim. |
 | `boneStrength` | 1 | Share of the aim the bones take (0-1). |
 | `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
 | `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
 
-`streamRate`, `streamJoin` and `streamHitMode` are read once when the rig starts; changing them at runtime has no effect. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there (`hitPlayers` decides). An emitter without a particle system hits no layers (it can still hit players). `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
 
 ### Built-in sounds and impact particles
 

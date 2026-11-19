@@ -38,7 +38,7 @@ check.hand.input_unwired	入力の Controller がこの球を指していませ�
 check.hand.no_aim	スティックで狙えません(GunnerStickAim が未設定)	No stick aim (GunnerStickAim not set)
 check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
 check.hand.window_single	「離してから」は単発では効きません	"After release" has no effect on single shots
-check.hand.mask_hits_ball	弾が球に当たります(レイヤー {0} が当たり判定に入っています)	Shots can hit the ball (layer {0} is in the hit mask)
+check.hand.mask_hits_ball	弾が球に当たります(射出口のパーティクルの Collides With にレイヤー {0} が入っています)	Shots can hit the ball (layer {0} is in an emitter particle system's Collides With)
 check.hand.all_emitters	連射が全部の射出口({0}個)から出ます(狙う射出口の組が 0)	The stream comes out of all {0} emitters (emitter set is 0)
 check.input.no_controller	Controller が未設定です	No Controller set
 check.input.no_pickup	同じ GameObject に VRC Pickup がありません	No VRC Pickup on this GameObject
@@ -60,9 +60,10 @@ GunnerRig.emitters.add	+ 射出口を足す	+ Add emitter
 GunnerRig.emitters.remove	外す	Remove
 GunnerRig.card.fire	発射	Fire
 GunnerRig.card.impact	着弾	Impact
+GunnerRig.card.stream	連射	Stream
 GunnerRig.card.aim	向き	Aim
 GunnerRig.shotParticles	パーティクル	Particles
-GunnerRig.shotParticles.tip	撃つときに出すパーティクル。射出口と同じ番号に入れる。Simulation Space は World にする	Particles shot from the emitter. Same index as the emitters. Set Simulation Space to World
+GunnerRig.shotParticles.tip	撃つときに出すパーティクル。射出口と同じ番号に入れる。Simulation Space は World にする。弾が当たるレイヤーは、このパーティクルの Collision > Collides With で決める(Collision を切っていても、この値は使う)	Particles shot from the emitter. Same index as the emitters. Set Simulation Space to World. Shots hit the layers in this particle system's Collision > Collides With (used even when Collision is off)
 GunnerRig.linkBones	先端(射出口側)	Tip (emitter side)
 GunnerRig.linkBones.tip	任意。狙いで回す骨のうち、射出口にいちばん近い骨。空なら射出口の親	Optional. The bone nearest the emitter that the aim turns. Empty = the emitter's parent
 GunnerRig.linkRoot	根元(親側)	Root (parent side)
@@ -84,16 +85,14 @@ GunnerRig.maxHits	記録数	Hit records
 GunnerRig.fireAnimator	撃つ前のアニメ	Pre-fire animator
 GunnerRig.fireAnimator.tip	撃つ前にアニメを流す Animator。空ならすぐ撃つ。入れると、アニメの終わりの合図(_AnimFire)で撃つ。射出口ごとに bool のパラメーター GunnerPre0, GunnerPre1… が必要。rig は Animator と同じ GameObject に置く	Animator played before shooting. Empty: shoot at once. Set: shoot on the animation's end signal (_AnimFire). Each emitter needs a bool parameter GunnerPre0, GunnerPre1… Put the rig on the same GameObject as the Animator
 GunnerRig.maxHits.tip	この端末で記録する着弾の数(1〜16)。Android で減らしても PC とずれない	Hits recorded on this device (1-16). Lowering it on Android stays in step with PC
-GunnerRig.shotSpeed	弾の速さ(m/秒)	Shot speed (m/s)
-GunnerRig.shotSpeed.tip	メートル毎秒	Metres per second
-GunnerRig.maxRange	射程(m)	Range (m)
-GunnerRig.maxRange.tip	メートル	Metres
-GunnerRig.castRadius	弾の半径(m)	Shot radius (m)
-GunnerRig.castRadius.tip	当たり判定の太さ(メートル)	Hit test thickness (metres)
-GunnerRig.hitMask	当たるレイヤー	Hit layers
-GunnerRig.hitMask.tip	プレイヤーのレイヤーはここでは見ない。人は「人に当たる」で決める	Player layers are ignored here; "Hit players" decides
+GunnerRig.shotSpeeds	弾の速さ(m/秒)	Shot speed (m/s)
+GunnerRig.shotSpeeds.tip	メートル毎秒	Metres per second
+GunnerRig.maxRanges	射程(m)	Range (m)
+GunnerRig.maxRanges.tip	メートル	Metres
+GunnerRig.castRadii	弾の半径(m)	Shot radius (m)
+GunnerRig.castRadii.tip	当たり判定の太さ(メートル)	Hit test thickness (metres)
 GunnerRig.hitPlayers	人に当たる	Hit players
-GunnerRig.hitPlayers.tip	弾が人に当たるか。「当たるレイヤー」ではなく、ここで設定する	Whether shots hit players. Set here, not by Hit layers
+GunnerRig.hitPlayers.tip	弾が人に当たるかどうか。パーティクルの Collides With ではなく、ここで設定する	Whether shots hit players. Set here, not by the particles' Collides With
 GunnerRig.excludeOwner	自分には当てない	Skip own body
 GunnerRig.excludeOwner.tip	撃った本人には当てない。罠の場合は、rig の持ち主にも当てない	Never hit the shooter. For a trap, never hit the rig's owner either
 GunnerRig.playerRadius	体の太さ	Body radius
@@ -102,16 +101,16 @@ GunnerRig.aimMaxAngle	既定の可動域(度)	Default aim limit (°)
 GunnerRig.aimMaxAngle.tip	射出口が狙える角度の上限(度)。撃つ向きの初期値から測る	Limit of the emitter's aim (degrees), measured from the rest direction
 GunnerRig.aimMaxAngles.row	可動域(度)	Aim limit (°)
 GunnerRig.aimMaxAngles.row.tip	この射出口が狙える角度の上限(度)。0 なら「既定の可動域」の値を使う	Aim limit for this emitter (degrees). Set to 0 to use "Default aim limit"
-GunnerRig.streamRate	連射の量(個/秒)	Stream rate (/s)
-GunnerRig.streamRate.tip	射出口ごとの毎秒のパーティクルの数	Particles per second per emitter
-GunnerRig.streamJoin	連射の見た目	Stream look
-GunnerRig.streamJoin.opt	パーティクルのまま|線につなぐ	Particles|Joined line
-GunnerRig.streamJoin.tip	パーティクルのまま: パーティクルだけを出す。線につなぐ: パーティクルのトレイルをつないで1本の線に見せる(トレイルが必要)	Particles: particles only. Joined line: particle trails are joined into one line (needs trails)
-GunnerRig.streamHitMode	連射の当たり方	Stream hits
-GunnerRig.streamHitMode.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
-GunnerRig.streamHitMode.tip	1回で止める: 射出口ごとに、最初の当たりだけを記録する。当たり続ける: 「当たりの間隔」ごとに記録する	Stop at first hit: each emitter records only its first hit. Keep hitting: records once per Hit interval
-GunnerRig.streamHitInterval	当たりの間隔(秒)	Hit interval (s)
-GunnerRig.streamHitInterval.tip	当たり続ける時の、射出口ごとの記録の間隔(秒)	Keep hitting: seconds between records per emitter
+GunnerRig.streamRates	連射の量(個/秒)	Stream rate (/s)
+GunnerRig.streamRates.tip	1秒あたりのパーティクルの数	Particles per second
+GunnerRig.streamJoins	連射の見た目	Stream look
+GunnerRig.streamJoins.opt	パーティクルのまま|線につなぐ	Particles|Joined line
+GunnerRig.streamJoins.tip	パーティクルのまま: パーティクルだけを出す。線につなぐ: パーティクルのトレイルをつないで1本の線に見せる(トレイルが必要)	Particles: particles only. Joined line: particle trails are joined into one line (needs trails)
+GunnerRig.streamHitModes	連射の当たり方	Stream hits
+GunnerRig.streamHitModes.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
+GunnerRig.streamHitModes.tip	1回で止める: 射出口ごとに、最初の当たりだけを記録する。当たり続ける: 「当たりの間隔」ごとに記録する	Stop at first hit: each emitter records only its first hit. Keep hitting: records once per Hit interval
+GunnerRig.streamHitIntervals	当たりの間隔(秒)	Hit interval (s)
+GunnerRig.streamHitIntervals.tip	当たり続ける時の、射出口ごとの記録の間隔(秒)	Keep hitting: seconds between records per emitter
 GunnerRig.streamCollide	連射の当たり判定	Stream collision
 GunnerRig.streamCollide.tip	開始時の値。球などが実行中に切り替える	Initial value; a controller may switch it at runtime
 GunnerRig.boneFollow	ボーン連動	Bone link

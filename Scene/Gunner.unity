@@ -322,19 +322,27 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 94776a81bc4c2b348a24ad77fad05e6f, type: 2}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: shotSpeed
+      propertyPath: shotSpeeds.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: shotSpeeds.Array.data[0]
       value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: castRadius
+      propertyPath: castRadii.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: castRadii.Array.data[0]
       value: 0.02
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
       propertyPath: streamWidth
       value: 0.08
       objectReference: {fileID: 0}
-    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: hitMask.m_Bits
+    - target: {fileID: 5022160871835713446, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: CollisionModule.collidesWith.m_Bits
       value: 4294959099
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
@@ -1458,15 +1466,27 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: maxRange
+      propertyPath: maxRanges.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: maxRanges.Array.data[0]
       value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: shotSpeed
+      propertyPath: shotSpeeds.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: shotSpeeds.Array.data[0]
       value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: streamRate
+      propertyPath: streamRates.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: streamRates.Array.data[0]
       value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
@@ -1474,15 +1494,19 @@ PrefabInstance:
       value: 0.08
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: streamHitMode
+      propertyPath: streamHitModes.Array.size
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: hitMask.m_Bits
-      value: 4294959099
+      propertyPath: streamHitModes.Array.data[0]
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
-      propertyPath: streamHitInterval
+      propertyPath: streamHitIntervals.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: streamHitIntervals.Array.data[0]
       value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}

@@ -42,8 +42,7 @@ namespace Mecaota.Gunner.EditorTools
             for (int i = 0; i < emitters.Length; i++) if (emitters[i] == null) nullEmitter = true;
             if (nullEmitter)
                 into.Add(new GunnerCheck(E.Error, "check.rig.null_emitter", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "linkBones", "aimMaxAngles",
-                        "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts"))));
+                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", GunnerRigEditor.PerEmitter))));
 
             var particles = rig.shotParticles ?? new ParticleSystem[0];
             for (int i = 0; i < emitters.Length && i < GunnerRig.MaxEmitters; i++)
@@ -67,7 +66,8 @@ namespace Mecaota.Gunner.EditorTools
                     into.Add(new GunnerCheck(E.Error, "check.particle.not_world", ps, () => GunnerEditorUtil.MakeWorldSpace(ps), label));
                 if (main.playOnAwake || main.loop)
                     into.Add(new GunnerCheck(E.Warning, "check.particle.autoplay", ps, () => GunnerEditorUtil.StopAutoPlay(ps), label));
-                if (rig.fireMode == GunnerRig.FireStream && rig.streamJoin == GunnerStream.JoinLine && !ps.trails.enabled)
+                int join = rig.streamJoins != null && i < rig.streamJoins.Length ? rig.streamJoins[i] : GunnerStream.JoinLine;
+                if (rig.fireMode == GunnerRig.FireStream && join == GunnerStream.JoinLine && !ps.trails.enabled)
                     into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), label));
             }
 
@@ -289,7 +289,7 @@ namespace Mecaota.Gunner.EditorTools
                 if (hand.useEmitters == 0 && rig.fireMode == GunnerRig.FireStream && rig.emitters != null && rig.emitters.Length >= 2)
                     into.Add(new GunnerCheck(E.Warning, "check.hand.all_emitters", hand, null, rig.emitters.Length.ToString()));
                 var ball = hand.input != null ? hand.input.GetComponent<Collider>() : null;
-                if (ball != null && GunnerEditorUtil.InMask(rig.hitMask, ball.gameObject.layer))
+                if (ball != null && GunnerEditorUtil.HitsLayer(rig, ball.gameObject.layer))
                 {
                     int layer = ball.gameObject.layer;
                     into.Add(new GunnerCheck(E.Warning, "check.hand.mask_hits_ball", hand,

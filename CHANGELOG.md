@@ -10,16 +10,16 @@ Breaking: most `GunnerRig` fields move to the emitter cards, and the sounds move
 
 互換性のない変更です。`GunnerRig` の欄の多くを射出口のカードへ移し、音は AudioSource で決める形にしました。削除した欄の値は、更新すると失われます。
 
-To update from 0.10.0: before updating, note each rig's values for the fields under "Removed". After updating, set them again as listed there. A card field left empty uses the old default, so only values that differ from the default need to be entered. A value on one card does not apply to the other emitters.
+To update from 0.10.0: before updating, note each rig's values for the fields under "Removed". After updating, set them again as listed there. A card field left empty uses the old default, so only values that differ from the default need to be entered. A value on one card does not apply to the other emitters, except the bone link values of emitters that share a lead bone (the lowest-numbered card's values apply to all of them).
 
-0.10.0 からの更新の手順: 更新の前に、下の「削除」に挙げた欄の値を rig ごとに控えてください。更新した後に、各項目に書いた移し先へ入れ直してください。カードの欄は、空なら以前の既定値で動くので、入れ直すのは既定値と違う値だけで済みます。1枚のカードに入れた値は、ほかの射出口には反映されません。
+0.10.0 からの更新の手順: 更新の前に、下の「削除」に挙げた欄の値を rig ごとに控えてください。更新した後に、各項目に書いた移し先へ入れ直してください。カードの欄は、空なら以前の既定値で動くので、入れ直すのは既定値と違う値だけで済みます。1枚のカードに入れた値は、ほかの射出口には反映されません。ただし、同じ先頭の骨を使う射出口のボーン連動の値は例外として、番号の最も若いカードの値がすべての射出口に反映されます。
 
 - Fire sound sources play where they are; place each one near its emitter. Impact sound sources are moved to the hit point; place them outside the rig (for example under `GunnerRig/Parts`), not under a linked bone.
 - Shots now hit the layers in each emitter particle system's **Collision > Collides With**. Unity's default includes Ignore Raycast, while the old `hitMask` default left it out. To keep the old behaviour, untick Ignore Raycast there (and any layer you had removed from `hitMask`). An emitter without a particle system no longer hits objects (whether it hits players still follows `hitPlayers`); give it a particle system if it should hit objects.
-- When emitters share a lead bone, enter the bone link values on the lowest-numbered card; the other cards do not show them. If you remove that card, the link uses the values of the next-lowest-numbered card.
+- When emitters share a lead bone, enter the bone link values on the lowest-numbered card; the other cards do not show them. When that card changes (you remove it, or change its lead bone), the new lowest-numbered card's values are used.
 - 発射音の音源は、置いた場所で鳴ります。各射出口の近くに置いてください。着弾音の音源は、rig が当たった点へ動かして鳴らします。そのため、連動ボーンの子ではなく、rig の外(例: `GunnerRig/Parts` の下)に置いてください。
 - 弾が当たるレイヤーは、射出口のパーティクルの **Collision > Collides With** で決まります。Unity の既定では Ignore Raycast が含まれますが、以前の `hitMask` の既定では含まれていませんでした。今までと同じにするには、Collides With で Ignore Raycast を外してください(`hitMask` で外していたレイヤーも外してください)。パーティクルを入れていない射出口の弾は、物に当たらなくなりました(人に当たるかどうかは、今までどおり `hitPlayers` に従います)。弾を物に当てたい射出口には、パーティクルを入れてください。
-- 同じ先頭の骨を使う射出口が複数あるときは、ボーン連動の値を、番号の最も若いカードに入れてください。ほかのカードには、その欄が表示されません。値を入れたカードを外すと、連動には次に番号が若いカードの値が使われます。
+- 同じ先頭の骨を使う射出口が複数あるときは、ボーン連動の値を、番号の最も若いカードに入れてください。ほかのカードには、その欄が表示されません。そのカードが変わると(カードを外す、先頭の骨を付け替えるなど)、新たに番号が最も若くなったカードの値が使われます。
 
 ### Breaking changes / 互換性のない変更
 

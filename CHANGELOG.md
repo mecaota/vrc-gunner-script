@@ -4,6 +4,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [Unreleased]
+
+### Removed / 削除
+
+- JSON export and import of number fields (the inspector's **JSON (values)** section, **Values JSON** in the right-click menu, and `GunnerValueSchemas.Register`).
+- 数値の欄を JSON に書き出す機能と、JSON から読み込む機能(インスペクタの **JSON(数値)** の節、右クリックのメニューの **Values JSON**、`GunnerValueSchemas.Register`)を削除しました。
+
 ## [0.10.0] - unreleased / 未公開
 
 Breaking: the fire and impact sounds, their volumes and the impact particles are now set per emitter. Values set in 0.9.0 for the six fields below are lost on update.

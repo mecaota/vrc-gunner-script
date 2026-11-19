@@ -10,7 +10,7 @@ namespace Mecaota.Gunner.EditorTools
     {
         const string Root = "GameObject/Gunner/";
         const int Priority = 10;
-        const int PickupLayer = 13;
+        internal const int PickupLayer = 13;
 
         // ---------------- メニュー ----------------
 

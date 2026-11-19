@@ -220,7 +220,7 @@ namespace Mecaota.Gunner.EditorTools
             shape.enabled = false;        // +Z へまっすぐ
 
             var collision = ps.collision;
-            collision.collidesWith = ~(1 << 2);   // rig の当たるレイヤー。Collision を入れなくても使う
+            collision.collidesWith = ~((1 << 2) | (1 << GunnerSetup.PickupLayer));   // rig の当たるレイヤー。Collision を入れなくても使う
 
             var trails = ps.trails;
             trails.enabled = true;

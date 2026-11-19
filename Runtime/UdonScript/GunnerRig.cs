@@ -2068,11 +2068,11 @@ namespace Mecaota.Gunner
 
         private int Number(int[] a, int e, int empty) { return a != null && e >= 0 && e < a.Length ? a[e] : empty; }
 
-        // パーティクルが無い射出口は Ignore Raycast 以外。
+        // パーティクルを入れていない射出口は弾が見えないので、物には当てない(人に当たるかは hitPlayers に従う)。
         private int HitMask(int e)
         {
             ParticleSystem ps = Particles(shotParticles, e);
-            return (ps != null ? ps.collision.collidesWith.value : ~(1 << 2)) & ~PlayerLayers;
+            return ps != null ? ps.collision.collidesWith.value & ~PlayerLayers : 0;
         }
 
         // 射出口 e の値(GunnerStream も読む)。

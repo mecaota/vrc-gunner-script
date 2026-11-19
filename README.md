@@ -72,7 +72,7 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
 | `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
 
-Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there (`hitPlayers` decides). An emitter without a particle system hits every layer except Ignore Raycast. `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there (`hitPlayers` decides). An emitter without a particle system hits no layers (it can still hit players). `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
 
 ### Built-in sounds and impact particles
 

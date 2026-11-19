@@ -413,41 +413,25 @@ namespace Mecaota.Gunner.Tests.Models
                 Check("暴れ止めの境目で上の軸が連続", maxDiff < 0.05f, $"差 {maxDiff:F4} 度");
             }
 
-            // 8. 手に持つ球の角度での狙い(AimAngles): 射出口ごとの角度を 120 にしても、斜めいっぱいは今までの可動域 60 度で切る
+            // 8. 手に持つ球の角度での狙い(AimAngles)も、射出口ごとの角度(AimLimit)で切る
             {
-                // Wish の写し: limit = AimLimit(i)、角度での狙いなら min(limit, DefaultAimLimit)。RotateTowards は角度だけ回す。
-                Vector3 WishAngles(float yaw, float pitch, float aimMax, float[] perEmitter, bool angleMode)
+                // Wish の写し: limit = AimLimit(i)(空なら DefaultAimLimit)。RotateTowards は角度だけ回す。
+                Vector3 WishAngles(float yaw, float pitch, float[] perEmitter)
                 {
                     Vector3 rest = Vector3.UnitZ;
                     Vector3 w = Vector3.Transform(Vector3.UnitZ, Euler(-pitch, yaw, 0));
-                    float limit = perEmitter != null && perEmitter.Length > 0 && perEmitter[0] > 0f ? perEmitter[0] : aimMax;
-                    if (angleMode && aimMax < limit) limit = aimMax;
+                    float limit = perEmitter != null && perEmitter.Length > 0 && perEmitter[0] > 0f ? perEmitter[0] : Rig.DefaultAimLimit;
                     float a = UAngle(rest, w);
                     if (a <= limit) return w;
                     Vector3 axis = Vector3.Normalize(Vector3.Cross(rest, w));
                     return Vector3.Transform(rest, Quaternion.CreateFromAxisAngle(axis, limit * Deg));
                 }
                 float diagRaw = UAngle(Vector3.UnitZ, Vector3.Transform(Vector3.UnitZ, Euler(-60, 60, 0)));
-                float diagNew = UAngle(Vector3.UnitZ, WishAngles(60, 60, 60f, new[] { 120f }, true));
-                float diagOld = UAngle(Vector3.UnitZ, WishAngles(60, 60, 60f, new[] { 120f }, false));
-                Check("球の斜めいっぱい(左右60・上下60)", diagNew <= 60.001f, $"丸めなし {diagRaw:F1} 度 / 直す前の式で射出口ごと120 {diagOld:F1} 度 / 直した式 {diagNew:F1} 度");
-                // 既定(射出口ごとの角度が空)では、直した式と直す前の式がスティックの全範囲でビット単位で同じ
-                int diff = 0, diff120 = 0;
-                for (float y = -60f; y <= 60f; y += 2.5f)
-                    for (float p = -60f; p <= 60f; p += 2.5f)
-                    {
-                        var a = WishAngles(y, p, 60f, null, true);
-                        var b = WishAngles(y, p, 60f, null, false);
-                        if (!a.Equals(b)) diff++;
-                        // 射出口ごと 120 でも、直した式は既定の rig の丸めと同じ
-                        var c = WishAngles(y, p, 60f, new[] { 120f }, true);
-                        if (!c.Equals(b)) diff120++;
-                    }
-                Check("球の狙いが既定の丸めと一致(スティック全範囲 49×49 点)", diff == 0 && diff120 == 0, $"既定で違い {diff} 件、射出口ごと120で違い {diff120} 件");
-                // 向き・点での狙い(見張りなど)は射出口ごとの角度で切る(80 度の向きは 120 の射出口では切られない)
-                Vector3 w80 = Vector3.Transform(Vector3.UnitZ, Euler(0, 80, 0));
-                float dirMode = UAngle(Vector3.UnitZ, WishAngles(80, 0, 60f, new[] { 120f }, false));
-                Check("向きでの狙いは射出口ごとの角度で切る", Math.Abs(dirMode - 80f) < 0.01f, $"{dirMode:F1} 度");
+                float diagDefault = UAngle(Vector3.UnitZ, WishAngles(60, 60, null));
+                float diag120 = UAngle(Vector3.UnitZ, WishAngles(60, 60, new[] { 120f }));
+                Check("球の斜めいっぱい(左右60・上下60): 空は 60 度で切り、120 は切らない",
+                    diagDefault <= 60.001f && Math.Abs(diag120 - diagRaw) < 0.01f,
+                    $"丸めなし {diagRaw:F1} 度 / 空 {diagDefault:F1} 度 / 射出口ごと120 {diag120:F1} 度");
             }
 
             sb.AppendLine(fails == 0 ? "全部 OK" : $"NG {fails} 件");

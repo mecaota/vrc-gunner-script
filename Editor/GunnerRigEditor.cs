@@ -124,7 +124,6 @@ namespace Mecaota.Gunner.EditorTools
                 emitter.isExpanded = EditorGUI.Foldout(new Rect(row.x + 12f, row.y, CardHead - 12f, row.height), emitter.isExpanded, CardTitle(rig, i), true);
                 EditorGUI.PropertyField(new Rect(row.x + CardHead, row.y, row.width - CardHead, row.height), emitter, GUIContent.none);
                 if (emitter.isExpanded) DrawCardBody(rig, i);
-                // 外すボタンは開く三角や欄から離し、番号がずれる注意と並べる。
                 // レイアウトの段階では行の幅が分からないので、インスペクタの幅から余白を引いて高さを見積もる。
                 var note = new GUIContent(T("GunnerRig.emitters.removeNote"));
                 float noteHeight = EditorStyles.wordWrappedMiniLabel.CalcHeight(note, EditorGUIUtility.currentViewWidth - RemoveWidth - 48f);

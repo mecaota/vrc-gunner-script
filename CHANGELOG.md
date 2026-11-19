@@ -13,10 +13,10 @@ Breaking: four `GunnerRig` fields are removed (see "Breaking changes"). Values i
 ### Breaking changes / 互換性のない変更
 
 - `hitPlayers` and `excludeOwner` are removed. Shots always hit players, including the rig's owner, and `GunnerAutoAim` can target the owner. A rig that had `hitPlayers` off or `excludeOwner` on now behaves differently. `excludeOwner` was on by default, including in the package prefab, so rigs placed from the prefab are affected: shots fired from near the shooter (a held object, the shooter's own bones) can now hit the shooter, and there is no way to turn this off.
-- `aimMaxAngle` is removed. Set the aim limit on each emitter card (`aimMaxAngles`). An empty or 0 value means 60 degrees. If a rig had `aimMaxAngle` other than 60, enter that value on each card whose aim limit was empty or 0. The hand-held ball's stick aim is still limited to 60 degrees.
+- `aimMaxAngle` is removed. Set the aim limit on each emitter card (`aimMaxAngles`). An empty or 0 value means 60 degrees. If a rig had `aimMaxAngle` other than 60, enter that value on each card whose aim limit was empty or 0. The hand-held ball's stick aim is now limited by each emitter's aim limit too (before, by `aimMaxAngle`), so a card set above 60 lets the stick turn further.
 - `streamCollide` is removed. Set stream collision on each emitter card (`streamCollides`, empty = On). If a rig had `streamCollide` off, set it to Off on every card.
 - `hitPlayers` と `excludeOwner` を削除しました。弾は、rig の持ち主も含めて、常に人に当たります。`GunnerAutoAim` も持ち主を狙います。`hitPlayers` を切っていた rig や、`excludeOwner` を入れていた rig は、動きが変わります。`excludeOwner` は既定で入っていて、パッケージのプレハブでも入っていたので、プレハブから置いた rig も動きが変わります。撃つ人の近く(手に持つ物や自分のボーンなど)から出る弾は、撃った本人にも当たるようになり、これを切る方法はありません。
-- `aimMaxAngle` を削除しました。可動域は、射出口のカードの `aimMaxAngles` で決めます。空または 0 なら 60 度です。`aimMaxAngle` を 60 以外にしていた rig は、可動域が空または 0 だったカードに、その値を入れ直してください。手に持つ球のスティックで狙える範囲は、今までどおり 60 度までです。
+- `aimMaxAngle` を削除しました。可動域は、射出口のカードの `aimMaxAngles` で決めます。空または 0 なら 60 度です。`aimMaxAngle` を 60 以外にしていた rig は、可動域が空または 0 だったカードに、その値を入れ直してください。手に持つ球のスティックで狙える範囲も、射出口ごとの可動域で決まるようになりました(以前は `aimMaxAngle` でした)。カードの可動域を 60 より大きく設定すると、スティックでも最大でその角度まで回せるようになります。
 - `streamCollide` を削除しました。連射の当たり判定は、射出口のカードの `streamCollides` で決めます(空なら「記録する」)。`streamCollide` を切っていた rig は、すべてのカードで「記録しない」にしてください。
 
 ### Added / 追加

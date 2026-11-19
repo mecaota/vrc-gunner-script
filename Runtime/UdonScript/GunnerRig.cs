@@ -21,7 +21,7 @@ namespace Mecaota.Gunner
         public const int AimTarget = 2;      // 1 は空き番(旧 AimDirection)。同期する値なので番号は詰めない
         public const int AimAngles = 3;
         public const int MaxEmitters = 16;
-        public const float DefaultAimLimit = 60f;  // aimMaxAngles が空・0 以下の射出口の狙える角度(度)
+        public const float DefaultAimLimit = 60f;
 
         /// <summary>
         /// 同期する記録の輪の長さ。どのビルドでも同じ(PC と Android で合っていないと、輪の読み方が
@@ -221,8 +221,8 @@ namespace Mecaota.Gunner
         private bool streamMine;
         private bool streamWas;
         private bool streamBusy;
-        private bool collideOn = true;  // 連射の当たり判定の入り切り(_SetCollision)
-        private int collideMask;        // streamCollides が 0 でない射出口の組
+        private bool collideOn = true;
+        private int collideMask;
         private bool dirty;             // 持ち主: 記録が変わったがまだ送っていない
         private bool aimPending;        // 持ち主: 狙いが変わったがまだ送っていない
         private float nextSendAt;
@@ -1742,10 +1742,6 @@ namespace Mecaota.Gunner
             w = w.normalized;
             Vector3 rest = RestWorld(i) * Vector3.forward;
             float limit = AimLimit(i);
-            // 角度での狙い(手に持つ球のスティック)は、射出口ごとの角度が広くても DefaultAimLimit で切る。
-            // スティックは左右・上下を別々に切るので、斜めいっぱいは可動域より広い(60/60 で約75度)。
-            // 射出口ごとの角度は「どの射出口で狙うかを選ぶ・向く」ためのもので、手の操作の範囲は変えない。
-            if (mode == AimAngles && DefaultAimLimit < limit) limit = DefaultAimLimit;
             if (Vector3.Angle(rest, w) > limit) w = Vector3.RotateTowards(rest, w, limit * Mathf.Deg2Rad, 0f);
             wish = w;
             return true;

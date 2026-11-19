@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Components;
@@ -41,7 +42,8 @@ namespace Mecaota.Gunner.EditorTools
             for (int i = 0; i < emitters.Length; i++) if (emitters[i] == null) nullEmitter = true;
             if (nullEmitter)
                 into.Add(new GunnerCheck(E.Error, "check.rig.null_emitter", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "linkBones", "aimMaxAngles"))));
+                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "linkBones", "aimMaxAngles",
+                        "fireClips", "fireVolumes", "impactClips", "impactVolumes", "impactParticles", "impactBursts"))));
 
             var particles = rig.shotParticles ?? new ParticleSystem[0];
             for (int i = 0; i < emitters.Length && i < GunnerRig.MaxEmitters; i++)
@@ -69,9 +71,10 @@ namespace Mecaota.Gunner.EditorTools
                     into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), label));
             }
 
-            var impact = rig.impactParticles;
-            if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
-                into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
+            // 同じパーティクルを複数の射出口で使うことがあるので、1つにつき1回だけ出す。
+            foreach (var impact in (rig.impactParticles ?? new ParticleSystem[0]).Distinct())
+                if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
+                    into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
 
             if (rig.fireMode == GunnerRig.FireStream && rig.stream == null)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_stream", rig, () => GunnerSetup.EnsureStream(rig)));

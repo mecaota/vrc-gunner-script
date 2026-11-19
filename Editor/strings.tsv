@@ -50,7 +50,7 @@ GunnerRig.section.hit	当たり判定	Hit detection
 GunnerRig.section.shot	射撃	Shooting
 GunnerRig.section.stream	連射	Stream
 GunnerRig.section.bone	ボーン連動	Bone link
-GunnerRig.section.sound	効果音とパーティクル	Sounds and particles
+GunnerRig.section.sound	効果音	Sounds
 GunnerRig.about	指定した位置から弾やパーティクルを撃ち出す部品。	Shoots bullets or particles from the set positions.
 GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
@@ -128,14 +128,14 @@ GunnerRig.boneMinSpeed	最低の速さ	Minimum speed
 GunnerRig.boneMinSpeed.tip	度毎秒	Degrees per second
 GunnerRig.boneMaxSpeed	最高の速さ	Maximum speed
 GunnerRig.boneMaxSpeed.tip	骨が追従して回る速さの上限(度毎秒)。0 なら上限なし	Upper limit of the bone's follow speed (degrees per second). 0 = no limit
-GunnerRig.fireClip	発射音	Fire sound
-GunnerRig.fireClip.tip	撃った射出口の位置で鳴らす。空なら鳴らさない	Played at the emitter that fired. Empty = silent
-GunnerRig.impactClip	着弾音	Impact sound
-GunnerRig.impactClip.tip	当たった点で鳴らす。空なら鳴らさない	Played at the hit point. Empty = silent
-GunnerRig.fireVolume	発射音の音量	Fire volume
-GunnerRig.fireVolume.tip	発射音を鳴らす音源の音量(0〜1)	Source volume for fire sounds (0-1)
-GunnerRig.impactVolume	着弾音の音量	Impact volume
-GunnerRig.impactVolume.tip	着弾音を鳴らす音源の音量(0〜1)	Source volume for impact sounds (0-1)
+GunnerRig.fireClips	発射音	Fire sound
+GunnerRig.fireClips.tip	この射出口の位置で鳴らす。空なら鳴らさない	Played at this emitter. Empty = silent
+GunnerRig.impactClips	着弾音	Impact sound
+GunnerRig.impactClips.tip	この射出口の弾が当たった点で鳴らす。空なら鳴らさない	Played where this emitter's shot hits. Empty = silent
+GunnerRig.fireVolumes	発射音の音量	Fire volume
+GunnerRig.fireVolumes.tip	0〜1。0 なら無音	0-1. 0 = silent
+GunnerRig.impactVolumes	着弾音の音量	Impact volume
+GunnerRig.impactVolumes.tip	0〜1。0 なら無音	0-1. 0 = silent
 GunnerRig.pitchJitter	高さの揺れ	Pitch jitter
 GunnerRig.pitchJitter.tip	鳴らすたびに音の高さを少し変える。0 で切	Varies the pitch a little each time. 0 = off
 GunnerRig.fireVoices	発射音の音源	Fire sources
@@ -143,9 +143,9 @@ GunnerRig.fireVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource �
 GunnerRig.impactVoices	着弾音の音源	Impact sources
 GunnerRig.impactVoices.tip	同時に鳴る数の上限。VRC_SpatialAudioSource を付けた AudioSource を入れる(実行時には足せない)	How many can play at once. Use AudioSources with a VRC_SpatialAudioSource (it cannot be added at runtime)
 GunnerRig.impactParticles	着弾のパーティクル	Impact particles
-GunnerRig.impactParticles.tip	当たった点で出すパーティクル。空なら出さない。+Z が飛び散る向き。Simulation Space は World にする	Particles shown at the hit point. Empty = none. +Z is the splash direction. Set Simulation Space to World
-GunnerRig.impactBurst	パーティクルの数	Burst
-GunnerRig.impactBurst.tip	1回の着弾で出すパーティクルの数(最低1)	Particles per hit (at least 1)
+GunnerRig.impactParticles.tip	この射出口の弾が当たった点で出すパーティクル。空なら出さない。+Z が飛び散る向き。Simulation Space は World にする	Particles shown where this emitter's shot hits. Empty = none. +Z is the splash direction. Set Simulation Space to World
+GunnerRig.impactBursts	着弾パーティクルの数	Impact burst
+GunnerRig.impactBursts.tip	1回の着弾で出す数(最低1)	Particles per hit (at least 1)
 GunnerRig.fireMinInterval	発射音の間引き	Fire min interval
 GunnerRig.fireMinInterval.tip	これより短い間隔の発射音は鳴らさない(秒)	Fire sounds closer together than this are dropped (seconds)
 GunnerRig.impactMinInterval	着弾音の間引き	Impact min interval

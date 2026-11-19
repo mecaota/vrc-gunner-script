@@ -4,14 +4,41 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
-## [Unreleased] / 未公開
+## [0.10.0] - unreleased / 未公開
+
+Breaking: the fire and impact sounds, their volumes and the impact particles are now set per emitter. Values set in 0.9.0 for the six fields below are lost on update.
+
+互換性のない変更です。発射音・着弾音・その音量・着弾のパーティクルを、射出口ごとに設定するようにしました。0.9.0 で下の6つの欄に入れた値は、更新すると消えます。
+
+To update: before updating, note the six values on each rig. After updating, enter them again on each emitter's card. Leave a volume empty for 1. Up to 0.9.0, the impact particles were shared by all emitters. From this version onward, set them on every emitter's card; without them, hits from emitter 1 onward show no particles.
+
+更新の手順: 更新の前に、各 rig の6つの欄の値を控えてください。更新した後に、射出口ごとのカードに入れ直してください。音量は、空のままなら 1 です。0.9.0 までは、着弾パーティクルを全部の射出口で共有していました。更新した後は、各射出口のカードにそれぞれ入れてください。入れていない場合、射出口 1 以降の着弾ではパーティクルが出ません。
 
 ### Changed / 変更
 
+- `fireClips`, `impactClips`, `fireVolumes`, `impactVolumes`, `impactParticles` and `impactBursts` are arrays with the same index as `emitters`, shown on each emitter's card. A volume of 0 is silent; a missing volume is 1. A missing or 0 burst is 1. Removing an emitter removes its entries too. The inspector's **Sounds and particles** section is now **Sounds**.
+- Value JSON (`GunnerValueBake`): the old keys `impactBurst`, `fireVolume` and `impactVolume` are skipped with a yellow "unknown key" and do not stop the import. The new arrays turn red when their length differs from the current length.
 - The `GunnerRig` emitter card now shows its linked bones in a single list, parent to child, with the lead bone last. **+** adds the top bone's parent, **-** removes the selected bone. The "Add n parent bones" button has been removed.
+- `fireClips`、`impactClips`、`fireVolumes`、`impactVolumes`、`impactParticles`、`impactBursts` は、`emitters` と同じ番号の配列になり、射出口ごとのカードに表示されます。音量は 0 なら無音、値が無ければ 1 です。パーティクルの数は、値が無いか 0 なら 1 です。射出口を外すと、その番号の値も外れます。インスペクタの **効果音とパーティクル** の節は **効果音** になりました。
+- 数値の JSON(`GunnerValueBake`): 古いキーの `impactBurst`、`fireVolume`、`impactVolume` は、黄の「知らないキー」としてスキップされ、読み込みは中断されません。新しい配列の欄は、現在の長さと異なると赤になります。
 - `GunnerRig` の射出口のカードで、連動ボーンを1つの一覧にまとめました。親から子の順に並び、最後の行が先頭の骨です。「+」でいちばん上の骨の親を足し、「-」で選んだ骨を外します。「親の骨を n 個足す」ボタンは削除しました。
 
-## [0.9.0] - unreleased / 未公開
+### Removed / 削除
+
+- `fireClip`. Move it to `fireClips`.
+- `impactClip`. Move it to `impactClips`.
+- `impactParticles` (one for the rig). Move it to `impactParticles` (one per emitter).
+- `impactBurst`. Move it to `impactBursts`.
+- `fireVolume`. Move it to `fireVolumes`.
+- `impactVolume`. Move it to `impactVolumes`.
+- `fireClip`。`fireClips` へ移してください。
+- `impactClip`。`impactClips` へ移してください。
+- `impactParticles`(rig に1つ)。`impactParticles`(射出口ごと)へ移してください。
+- `impactBurst`。`impactBursts` へ移してください。
+- `fireVolume`。`fireVolumes` へ移してください。
+- `impactVolume`。`impactVolumes` へ移してください。
+
+## [0.9.0] - 2026-11-18
 
 ### Added / 追加
 
@@ -23,7 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `GunnerHitSplash` and the **Add Hit Splash** menu and button. Move its particle system to `impactParticles` and its `burst` to `impactBurst`.
 - `GunnerHitSplash` と、メニューとボタンの **Add Hit Splash**。粒子は `impactParticles` へ、`burst` は `impactBurst` へ移してください。
 
-## [0.8.0] - unreleased / 未公開
+## [0.8.0] - 2026-11-18
 
 Removals and clean-up. Members nobody called, and fields that a Unity or VRChat feature already covers, are removed.
 
@@ -54,7 +81,7 @@ Removals and clean-up. Members nobody called, and fields that a Unity or VRChat 
 - `flightFlown`。`flightLength` と `flightSlot` は private になりました(`flightOn` は公開のまま)。
 - `GunnerStream._Step`(rig は `_StepMasked` を呼びます)。
 
-## [0.7.0] - unreleased / 未公開
+## [0.7.0] - released in 0.8.0 / 0.8.0 に含めて公開
 
 ### Added / 追加
 
@@ -68,7 +95,7 @@ Removals and clean-up. Members nobody called, and fields that a Unity or VRChat 
 - Nothing existing changes. With `fireAnimator` empty, behaviour is the same as 0.6.0.
 - 既存の動きは変わりません。`fireAnimator` が空なら 0.6.0 と同じ動きです。
 
-## [0.6.0] - unreleased / 未公開
+## [0.6.0] - released in 0.8.0 / 0.8.0 に含めて公開
 
 ### Added / 追加
 

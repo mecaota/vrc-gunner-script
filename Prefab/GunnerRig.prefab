@@ -98,8 +98,10 @@ MonoBehaviour:
   bonePitchDownMax: 15
   boneSmooth: 10
   boneMinSpeed: 30
-  impactParticles: {fileID: 5364667933971096382}
-  impactBurst: 30
+  impactParticles:
+  - {fileID: 5364667933971096382}
+  impactBursts:
+  - 30
 --- !u!114 &7152672476999587889
 MonoBehaviour:
   m_ObjectHideFlags: 0

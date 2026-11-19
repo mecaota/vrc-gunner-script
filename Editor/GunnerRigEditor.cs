@@ -25,7 +25,7 @@ namespace Mecaota.Gunner.EditorTools
             // 並べ替えは付けない: 番号は GunnerPre の番号や、ほかの部品の番号の配列と対応している。
             cards = new ReorderableList(serializedObject, serializedObject.FindProperty("emitters"), false, false, true, true)
             {
-                elementHeightCallback = i => cards.serializedProperty.GetArrayElementAtIndex(i).isExpanded ? 3 * Line + Links(i).GetHeight() : Line,
+                elementHeightCallback = i => cards.serializedProperty.GetArrayElementAtIndex(i).isExpanded ? 9 * Line + Links(i).GetHeight() : Line,
                 drawElementCallback = (rect, i, active, focused) => DrawCard(rect, i),
                 onCanAddCallback = list => list.count < GunnerRig.MaxEmitters,
                 onAddCallback = _ =>
@@ -79,8 +79,7 @@ namespace Mecaota.Gunner.EditorTools
                 Fields("fireMode", "shotSpeed", "maxRange", "castRadius", "aimMaxAngle", "fireAnimator");
 
             if (Foldout("GunnerRig.section.sound"))
-                Fields("fireClip", "impactClip", "fireVolume", "impactVolume", "pitchJitter", "fireVoices", "impactVoices",
-                    "impactParticles", "impactBurst", "fireMinInterval", "impactMinInterval",
+                Fields("pitchJitter", "fireVoices", "impactVoices", "fireMinInterval", "impactMinInterval",
                     "soundOnPlayers", "soundOnWorld", "soundOnMoving", "soundCullDistance");
 
             if (Foldout("GunnerRig.section.hit", false))
@@ -178,15 +177,25 @@ namespace Mecaota.Gunner.EditorTools
             row.y += Line;
             ObjectAt(row, "shotParticles", i, typeof(ParticleSystem));
             row.y += Line;
-            var angles = serializedObject.FindProperty("aimMaxAngles");
-            bool hasAngle = i < angles.arraySize;
-            float angle = hasAngle ? angles.GetArrayElementAtIndex(i).floatValue : 0f;
-            var angleLabel = Label("GunnerRig.aimMaxAngles.row");
-            if (hasAngle) angleLabel = EditorGUI.BeginProperty(row, angleLabel, angles.GetArrayElementAtIndex(i));
-            EditorGUI.BeginChangeCheck();
-            angle = EditorGUI.FloatField(row, angleLabel, angle);
-            if (EditorGUI.EndChangeCheck()) Grow(angles, i).floatValue = Mathf.Clamp(angle, 0f, 180f);
-            if (hasAngle) EditorGUI.EndProperty();
+            ObjectAt(row, "fireClips", i, typeof(AudioClip));
+            row.y += Line;
+            FloatAt(row, "fireVolumes", i, "GunnerRig.fireVolumes", 1f, 1f);
+            row.y += Line;
+            ObjectAt(row, "impactClips", i, typeof(AudioClip));
+            row.y += Line;
+            FloatAt(row, "impactVolumes", i, "GunnerRig.impactVolumes", 1f, 1f);
+            row.y += Line;
+            ObjectAt(row, "impactParticles", i, typeof(ParticleSystem));
+            row.y += Line;
+            var bursts = serializedObject.FindProperty("impactBursts");
+            if (i < bursts.arraySize) EditorGUI.PropertyField(row, bursts.GetArrayElementAtIndex(i), Label("GunnerRig.impactBursts"));
+            else
+            {
+                int burst = Mathf.Max(1, EditorGUI.IntField(row, Label("GunnerRig.impactBursts"), 1));
+                if (burst != 1) Grow(bursts, i, 1).intValue = burst;
+            }
+            row.y += Line;
+            FloatAt(row, "aimMaxAngles", i, "GunnerRig.aimMaxAngles.row", 0f, 180f);
             row.y += Line;
             var list = Links(i);
             list.DoList(new Rect(row.x, row.y, row.width, list.GetHeight()));
@@ -219,8 +228,21 @@ namespace Mecaota.Gunner.EditorTools
             if (value != null) Grow(arr, i).objectReferenceValue = value;
         }
 
-        // arraySize を増やすと末尾の値が写るので、間に増えた要素は空に戻す。
-        static SerializedProperty Grow(SerializedProperty arr, int i)
+        // 要素が無いときは empty を出す。empty は実行時が要素の無い射出口に使う値と同じにする。
+        void FloatAt(Rect row, string array, int i, string labelKey, float empty, float max)
+        {
+            var arr = serializedObject.FindProperty(array);
+            bool has = i < arr.arraySize;
+            var label = Label(labelKey);
+            if (has) label = EditorGUI.BeginProperty(row, label, arr.GetArrayElementAtIndex(i));
+            EditorGUI.BeginChangeCheck();
+            float value = EditorGUI.FloatField(row, label, has ? arr.GetArrayElementAtIndex(i).floatValue : empty);
+            if (EditorGUI.EndChangeCheck()) Grow(arr, i, empty).floatValue = Mathf.Clamp(value, 0f, max);
+            if (has) EditorGUI.EndProperty();
+        }
+
+        // arraySize を増やすと末尾の値が写るので、間に増えた要素は fill に戻す。
+        static SerializedProperty Grow(SerializedProperty arr, int i, float fill = 0f)
         {
             int from = arr.arraySize;
             if (from <= i) arr.arraySize = i + 1;
@@ -228,7 +250,8 @@ namespace Mecaota.Gunner.EditorTools
             {
                 var e = arr.GetArrayElementAtIndex(n);
                 if (e.propertyType == SerializedPropertyType.ObjectReference) e.objectReferenceValue = null;
-                else e.floatValue = 0f;
+                else if (e.propertyType == SerializedPropertyType.Integer) e.intValue = (int)fill;
+                else e.floatValue = fill;
             }
             return arr.GetArrayElementAtIndex(i);
         }
@@ -236,7 +259,8 @@ namespace Mecaota.Gunner.EditorTools
         /// <summary>射出口 i を、同じ番号の欄とその追加の骨ごと外す。</summary>
         static void RemoveEmitter(SerializedObject so, int i)
         {
-            foreach (var name in new[] { "emitters", "shotParticles", "linkBones", "aimMaxAngles" })
+            foreach (var name in new[] { "emitters", "shotParticles", "linkBones", "aimMaxAngles",
+                "fireClips", "fireVolumes", "impactClips", "impactVolumes", "impactParticles", "impactBursts" })
             {
                 var arr = so.FindProperty(name);
                 if (i < arr.arraySize) GunnerEditorUtil.RemoveAt(arr, i);

@@ -26,7 +26,7 @@ namespace Mecaota.Gunner.Tests.Models
         {
             public Vector3[] pos;
             public Vector3[] rest;      // 休みの向き(ワールド、長さ1)
-            public float aimMaxAngle = 60f;
+            public const float DefaultAimLimit = 60f;
             public float[] aimMaxAngles;
             public float maxRange = 30f;
             public List<(Vector3 c, float r)> walls = new List<(Vector3, float)>();
@@ -51,11 +51,11 @@ namespace Mecaota.Gunner.Tests.Models
             public float AimLimit(int i)
             {
                 if (aimMaxAngles != null && i < aimMaxAngles.Length && aimMaxAngles[i] > 0f) return aimMaxAngles[i];
-                return aimMaxAngle;
+                return DefaultAimLimit;
             }
 
-            // 0.3.0 / 0.4.0 の元の _SolveFor(比べる相手)
-            public int OldSolveFor(Vector3 point, out Vector3 dirOut)
+            // 0.3.0 / 0.4.0 の元の _SolveFor(比べる相手)。limit は当時の rig の aimMaxAngle
+            public int OldSolveFor(Vector3 point, float limit, out Vector3 dirOut)
             {
                 int best = -1; float bestAngle = 1e9f; dirOut = default;
                 for (int i = 0; i < Count; i++)
@@ -64,7 +64,7 @@ namespace Mecaota.Gunner.Tests.Models
                     if (dist < 0.0001f || dist > maxRange) continue;
                     Vector3 dir = to / dist;
                     float angle = UAngle(rest[i], dir);
-                    if (angle > aimMaxAngle || angle >= bestAngle) continue;
+                    if (angle > limit || angle >= bestAngle) continue;
                     if (Blocked(pos[i], dir, dist)) continue;
                     best = i; bestAngle = angle; dirOut = dir;
                 }
@@ -182,14 +182,14 @@ namespace Mecaota.Gunner.Tests.Models
                 for (int k = 0; k < 5000; k++)
                 {
                     var p = RandPoint();
-                    int a = r.OldSolveFor(p, out var da);
+                    int a = r.OldSolveFor(p, Rig.DefaultAimLimit, out var da);
                     int b = r.SolveWithin(p, 0f);
                     if (a != b || (a >= 0 && !da.Equals(r.solveDir))) diff++;
                 }
                 Check("既定値で _SolveFor が元と同じ(5000点)", diff == 0, $"違い {diff} 件");
             }
 
-            // 2. _SolveWithin(p, 角度) は「aimMaxAngle を一時的に書き換えて _SolveFor」と同じ結果で、rig の欄は変えない
+            // 2. _SolveWithin(p, 角度) は、元の _SolveFor をその角度で解いた結果と同じ
             {
                 var r = TwoEmitterRig(0, 0, false);
                 int diff = 0;
@@ -198,18 +198,13 @@ namespace Mecaota.Gunner.Tests.Models
                     for (int k = 0; k < 2000; k++)
                     {
                         var p = RandPoint();
-                        float before = r.aimMaxAngle;
                         int b = r.SolveWithin(p, use);
                         var db = r.solveDir;
-                        if (r.aimMaxAngle != before) diff++;
-                        // 元のやり方(書き換えて解いて戻す)
-                        r.aimMaxAngle = use;
-                        int a = r.OldSolveFor(p, out var da);
-                        r.aimMaxAngle = before;
+                        int a = r.OldSolveFor(p, use, out var da);
                         if (a != b || (a >= 0 && !da.Equals(db))) diff++;
                     }
                 }
-                Check("_SolveWithin = 書き換え式の結果、rig の aimMaxAngle は 60 のまま", diff == 0 && r.aimMaxAngle == 60f, $"違い {diff} 件、aimMaxAngle {r.aimMaxAngle}");
+                Check("_SolveWithin = 元の _SolveFor をその角度で解いた結果", diff == 0, $"違い {diff} 件");
             }
 
             // 3. 狙い 0/20/40/60/80 度: 射出口ごとの角度で切る所(Wish の円錐)
@@ -221,7 +216,7 @@ namespace Mecaota.Gunner.Tests.Models
                     // 休みの向き +Z から左右に aim 度
                     Vector3 rest = Vector3.UnitZ;
                     Vector3 w = new Vector3((float)Math.Sin(aim * Deg), 0, (float)Math.Cos(aim * Deg));
-                    float clampDefault = Math.Min(UAngle(rest, w), 60f);    // aimMaxAngle 60
+                    float clampDefault = Math.Min(UAngle(rest, w), 60f);    // DefaultAimLimit 60
                     float clampWide = Math.Min(UAngle(rest, w), 100f);      // aimMaxAngles 100
                     float expDef = Math.Min(aim, 60f), expWide = aim;
                     if (Math.Abs(clampDefault - expDef) > 0.01f || Math.Abs(clampWide - expWide) > 0.01f) ok = false;
@@ -229,7 +224,7 @@ namespace Mecaota.Gunner.Tests.Models
                 }
                 Check("狙いの角度(既定60 / 射出口ごと100)", ok, sbLine.ToString());
                 var r = TwoEmitterRig(100, 0, true);
-                Check("AimLimit: [100, 0] → お尻 100、口は aimMaxAngle 60", r.AimLimit(0) == 100f && r.AimLimit(1) == 60f && r.AimLimit(5) == 60f,
+                Check("AimLimit: [100, 0] → お尻 100、口は DefaultAimLimit 60", r.AimLimit(0) == 100f && r.AimLimit(1) == 60f && r.AimLimit(5) == 60f,
                     $"{r.AimLimit(0)} / {r.AimLimit(1)} / 範囲外 {r.AimLimit(5)}");
             }
 
@@ -420,7 +415,7 @@ namespace Mecaota.Gunner.Tests.Models
 
             // 8. 手に持つ球の角度での狙い(AimAngles): 射出口ごとの角度を 120 にしても、斜めいっぱいは今までの可動域 60 度で切る
             {
-                // Wish の写し: limit = AimLimit(i)、角度での狙いなら min(limit, aimMaxAngle)。RotateTowards は角度だけ回す。
+                // Wish の写し: limit = AimLimit(i)、角度での狙いなら min(limit, DefaultAimLimit)。RotateTowards は角度だけ回す。
                 Vector3 WishAngles(float yaw, float pitch, float aimMax, float[] perEmitter, bool angleMode)
                 {
                     Vector3 rest = Vector3.UnitZ;

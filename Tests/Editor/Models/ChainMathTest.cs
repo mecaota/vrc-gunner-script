@@ -36,7 +36,7 @@ namespace Mecaota.Gunner.Tests.Models
         {
             var sb = new StringBuilder();
             int fails = 0;
-            // 階層: P(親) → tip → mid → X(鎖に入らない間の骨) → lead → 射出口
+            // 階層: P(親) → tip → mid → X(鎖に入らない間のボーン) → lead → 射出口
             Quaternion P = Euler(10, 35, -5);
             Quaternion[] baseLocal = { Euler(-20, 5, 8), Euler(12, -7, 3), Euler(4, 9, -6), Euler(-15, 2, 1) }; // tip, mid, X, lead
             bool[] inChain = { true, true, false, true };
@@ -58,7 +58,7 @@ namespace Mecaota.Gunner.Tests.Models
             int n = 3;
             float yawMax = 30, upMax = 25, downMax = 12;
 
-            // 休みの座標系(RestWorld): 上の親から、鎖の骨は休みの値、間の骨は今の値
+            // 休みの座標系(RestWorld): 上の親から、鎖のボーンは休みの値、間のボーンは今の値
             Quaternion RestWorld(Quaternion[] cur)
             {
                 Quaternion r = P;
@@ -81,7 +81,7 @@ namespace Mecaota.Gunner.Tests.Models
                 float a1 = AngleOf(Inv(baseLocal[1]) * cur[1]);
                 float a3 = AngleOf(Inv(baseLocal[3]) * cur[3]);
                 float total = a0 + a1 + a3;
-                // 骨と一緒に動いた射出口の座標系の前方と、狙いの向き
+                // ボーンと一緒に動いた射出口の座標系の前方と、狙いの向き
                 Vector3 boneFwd = Fwd(w[3] * restRelLead);
                 Vector3 wish = Fwd(F * Euler(-aimPitch, aimYaw, 0));
                 Vector3 limited = Fwd(F * Q);
@@ -91,7 +91,7 @@ namespace Mecaota.Gunner.Tests.Models
                 bool sumOk = Math.Abs(total - expectTotal) < 0.05f;
                 bool ok = same && sumOk && err < 0.5f && restDrift < 0.01f;
                 if (!ok) fails++;
-                sb.AppendLine($"狙い 左右{aimYaw,4} 上下{aimPitch,4} 合計上限{chainYaw,3}: 骨の角度 {a0:F3} / {a1:F3} / {a3:F3}  合計 {total:F3}(期待 {expectTotal})  骨の先と狙い(上限後)の差 {err:F4}°  狙いとの差 {AngleBetween(boneFwd, wish):F3}°  休みの座標系のずれ {restDrift:F4}°  {(ok ? "OK" : "NG")}");
+                sb.AppendLine($"狙い 左右{aimYaw,4} 上下{aimPitch,4} 合計上限{chainYaw,3}: ボーンの角度 {a0:F3} / {a1:F3} / {a3:F3}  合計 {total:F3}(期待 {expectTotal})  ボーンの先と狙い(上限後)の差 {err:F4}°  狙いとの差 {AngleBetween(boneFwd, wish):F3}°  休みの座標系のずれ {restDrift:F4}°  {(ok ? "OK" : "NG")}");
             }
 
             Case(0, 0, 0, 0);
@@ -105,7 +105,7 @@ namespace Mecaota.Gunner.Tests.Models
             Case(40, 10, 0, comb);
             // 鎖の合計上限 45 度: 狙い 60 度でも合計 45 度で止まる
             Case(60, 0, 45, 45);
-            // 骨1本あたりの上限が効く(下向き 12 × 3 = 36 度)
+            // ボーン1本あたりの上限が効く(下向き 12 × 3 = 36 度)
             Case(0, -50, 0, 36);
 
             // 戻す: 休みのローカル回転へ戻すと全部 0 度
@@ -118,7 +118,7 @@ namespace Mecaota.Gunner.Tests.Models
                 sb.AppendLine($"戻した後の角度の合計 {sum:F4}  {(ok ? "OK" : "NG")}");
             }
 
-            // 骨1本(n = 1)では 0.3.0 の式とビット単位で同じ
+            // ボーン1本(n = 1)では 0.3.0 の式とビット単位で同じ
             {
                 Quaternion P1 = Euler(3, 50, 7);
                 Quaternion base1 = Euler(-11, 13, 2);
@@ -139,7 +139,7 @@ namespace Mecaota.Gunner.Tests.Models
                     if (!oldWrite.Equals(newWrite) || !oldRest.Equals(newRest) || lim != lim1) allSame = false;
                 }
                 if (!allSame) fails++;
-                sb.AppendLine($"骨1本で 0.3.0 と同じ値: {(allSame ? "OK" : "NG")}");
+                sb.AppendLine($"ボーン1本で 0.3.0 と同じ値: {(allSame ? "OK" : "NG")}");
             }
 
             sb.AppendLine(fails == 0 ? "全部 OK" : $"NG {fails} 件");

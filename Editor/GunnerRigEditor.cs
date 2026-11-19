@@ -25,7 +25,7 @@ namespace Mecaota.Gunner.EditorTools
             if (targets.Length == 1) CountAt(GUILayoutUtility.GetLastRect(), emitters.arraySize);
             if (open)
             {
-                // rig ごとに追加の骨の並びが違うので、カードは1つを選んだときだけ。
+                // rig ごとに追加のボーンの並びが違うので、カードは1つを選んだときだけ。
                 if (targets.Length == 1)
                 {
                     for (int i = 0; i < emitters.arraySize; i++) DrawCard(rig, emitters, i);
@@ -37,7 +37,6 @@ namespace Mecaota.Gunner.EditorTools
                             GUIUtility.ExitGUI();
                         }
                     }
-                    EditorGUILayout.LabelField(T("GunnerRig.emitters.removeNote"), EditorStyles.wordWrappedMiniLabel);
                     DrawOrphanBones(rig);
                 }
                 else
@@ -45,7 +44,7 @@ namespace Mecaota.Gunner.EditorTools
                 EditorGUILayout.Space();
                 using (new EditorGUI.DisabledScope(targets.Length != 1))
                 {
-                    if (GUILayout.Button(T("button.place_hand")))
+                    if (GUILayout.Button(Label("button.place_hand")))
                     {
                         Selection.activeObject = GunnerSetup.PlaceHand(rig).gameObject;
                         GUIUtility.ExitGUI();
@@ -61,13 +60,10 @@ namespace Mecaota.Gunner.EditorTools
             }
 
             if (Foldout("GunnerRig.section.shot"))
-                Fields("fireMode", "aimMaxAngle", "fireAnimator");
+                Fields("fireMode", "stream", "fireAnimator");
 
             if (Foldout("GunnerRig.section.hit", false))
-                Fields("receivers", "movers", "hitPlayers", "excludeOwner", "playerRadius", "maxHits");
-
-            if (Foldout("GunnerRig.section.stream", false))
-                Fields("stream", "streamCollide");
+                Fields("receivers", "movers", "playerRadius", "maxHits");
 
             if (Foldout("GunnerRig.section.bone", false))
                 Field("boneFollow");
@@ -86,7 +82,7 @@ namespace Mecaota.Gunner.EditorTools
             return k < owners.arraySize ? owners.GetArrayElementAtIndex(k).intValue : -1;
         }
 
-        // 根元から先端の順: 追加の骨を浅い順に、最後に先端の骨(-1)。
+        // 根元から先端の順: 追加のボーンを浅い順に、最後に先端のボーン(-1)。
         List<int> BoneRows(int i)
         {
             var rows = new List<int>();
@@ -126,13 +122,19 @@ namespace Mecaota.Gunner.EditorTools
             {
                 var row = EditorGUILayout.GetControlRect();
                 emitter.isExpanded = EditorGUI.Foldout(new Rect(row.x + 12f, row.y, CardHead - 12f, row.height), emitter.isExpanded, CardTitle(rig, i), true);
-                EditorGUI.PropertyField(new Rect(row.x + CardHead, row.y, row.width - CardHead - RemoveWidth - 4f, row.height), emitter, GUIContent.none);
-                if (GUI.Button(new Rect(row.xMax - RemoveWidth, row.y, RemoveWidth, row.height), T("GunnerRig.emitters.remove")))
+                EditorGUI.PropertyField(new Rect(row.x + CardHead, row.y, row.width - CardHead, row.height), emitter, GUIContent.none);
+                if (emitter.isExpanded) DrawCardBody(rig, i);
+                // 外すボタンは開く三角や欄から離し、番号がずれる注意と並べる。
+                // レイアウトの段階では行の幅が分からないので、インスペクタの幅から余白を引いて高さを見積もる。
+                var note = new GUIContent(T("GunnerRig.emitters.removeNote"));
+                float noteHeight = EditorStyles.wordWrappedMiniLabel.CalcHeight(note, EditorGUIUtility.currentViewWidth - RemoveWidth - 48f);
+                var foot = EditorGUILayout.GetControlRect(false, Mathf.Max(EditorGUIUtility.singleLineHeight, noteHeight));
+                EditorGUI.LabelField(new Rect(foot.x, foot.y, foot.width - RemoveWidth - 8f, foot.height), note, EditorStyles.wordWrappedMiniLabel);
+                if (GUI.Button(new Rect(foot.xMax - RemoveWidth, foot.y + (foot.height - EditorGUIUtility.singleLineHeight) / 2f, RemoveWidth, EditorGUIUtility.singleLineHeight), T("GunnerRig.emitters.remove")))
                 {
                     GunnerEditorUtil.Edit(rig, so => RemoveEmitter(so, i));
                     GUIUtility.ExitGUI();
                 }
-                if (emitter.isExpanded) DrawCardBody(rig, i);
             }
             EditorGUILayout.Space(2f);
         }
@@ -144,6 +146,7 @@ namespace Mecaota.Gunner.EditorTools
 
             Heading("GunnerRig.card.fire");
             ObjectAt("fireSources", i, typeof(AudioSource));
+            ObjectAt("fireClips", i, typeof(AudioClip));
             FloatAt("fireMinIntervals", i, "GunnerRig.fireMinIntervals", 0f, float.MaxValue);
             FloatAt("shotSpeeds", i, "GunnerRig.shotSpeeds", 25f, float.MaxValue);
             FloatAt("maxRanges", i, "GunnerRig.maxRanges", 30f, float.MaxValue);
@@ -151,6 +154,7 @@ namespace Mecaota.Gunner.EditorTools
 
             Heading("GunnerRig.card.impact");
             ObjectAt("impactSources", i, typeof(AudioSource));
+            ObjectAt("impactClips", i, typeof(AudioClip));
             FloatAt("impactMinIntervals", i, "GunnerRig.impactMinIntervals", 0f, float.MaxValue);
             ObjectAt("impactParticles", i, typeof(ParticleSystem));
             var bursts = serializedObject.FindProperty("impactBursts");
@@ -166,6 +170,7 @@ namespace Mecaota.Gunner.EditorTools
             PopupAt("streamJoins", i, "GunnerRig.streamJoins", GunnerStream.JoinLine);
             PopupAt("streamHitModes", i, "GunnerRig.streamHitModes", GunnerStream.HitOnce);
             FloatAt("streamHitIntervals", i, "GunnerRig.streamHitIntervals", 0.25f, float.MaxValue);
+            PopupAt("streamCollides", i, "GunnerRig.streamCollides", 1);
 
             Heading("GunnerRig.card.aim");
             FloatAt("aimMaxAngles", i, "GunnerRig.aimMaxAngles.row", 0f, 180f);
@@ -174,7 +179,7 @@ namespace Mecaota.Gunner.EditorTools
             EditorGUI.indentLevel--;
         }
 
-        // 追従の値は連動ごとに1組で、実行時は同じ先端の骨を持つ射出口のうち番号の最も若いものの値を使う。
+        // 追従の値は連動ごとに1組で、実行時は同じ先端のボーンを持つ射出口のうち番号の最も若いものの値を使う。
         void DrawFollow(GunnerRig rig, int i)
         {
             var bone = LeadBone(rig, i);
@@ -198,22 +203,33 @@ namespace Mecaota.Gunner.EditorTools
             FloatAt("boneMaxSpeeds", i, "GunnerRig.boneMaxSpeeds", 0f, float.MaxValue);
         }
 
-        // 骨1本を1つの箱に入れ、欄はほかの欄と同じ位置に並べる。箱はラベルの文字が線に接しないよう少し左へ広げる。
+        // ボーンの並びを1つの枠に入れ、欄はほかの欄と同じ位置に並べる。親のボーンは根元側に足すので、足すボタンは枠の上。
+        // 枠とボタンはラベルの文字が線に接しないよう少し左へ広げる。
         void DrawBones(GunnerRig rig, int i)
         {
             var rows = BoneRows(i);
             var head = EditorGUILayout.GetControlRect();
             EditorGUI.LabelField(head, Label("GunnerRig.linkExtraBones"));
             CountAt(head, rows.Count - (LeadBone(rig, i) == null ? 1 : 0));
-            var bones = serializedObject.FindProperty("linkExtraBones");
+            var add = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
+            add.xMin -= 4f;
+            using (new EditorGUI.DisabledScope(LeadBone(rig, i) == null))
+            {
+                if (GUI.Button(add, T("GunnerRig.bones.add")))
+                {
+                    GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, i, 1));
+                    GUIUtility.ExitGUI();
+                }
+            }
+            float line = EditorGUIUtility.singleLineHeight + 2f;
+            var box = EditorGUILayout.GetControlRect(false, rows.Count * line + 4f);
+            var frame = EditorGUI.IndentedRect(box);
+            frame.xMin -= 4f;
+            GUI.Box(frame, GUIContent.none, EditorStyles.helpBox);
             for (int r = 0; r < rows.Count; r++)
             {
-                var box = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight + 4f);
-                var frame = EditorGUI.IndentedRect(box);
-                frame.xMin -= 4f;
-                GUI.Box(frame, GUIContent.none, EditorStyles.helpBox);
-                var row = new Rect(box.x, box.y + 2f, box.width, EditorGUIUtility.singleLineHeight);
-                if (rows[r] >= 0) ExtraRow(row, rig, rows[r], r == 0 ? Label("GunnerRig.linkRoot") : new GUIContent(" "));
+                var row = new Rect(box.x, box.y + 2f + r * line, box.width, EditorGUIUtility.singleLineHeight);
+                if (rows[r] >= 0) ExtraRow(row, rig, rows[r], r == 0 ? Label("GunnerRig.linkRoot") : new GUIContent(string.Format(T("GunnerRig.linkMiddle"), r)));
                 else
                 {
                     ObjectAt("linkBones", i, typeof(Transform), FieldPart(row));
@@ -226,14 +242,6 @@ namespace Mecaota.Gunner.EditorTools
                         });
                         GUIUtility.ExitGUI();
                     }
-                }
-            }
-            using (new EditorGUI.DisabledScope(LeadBone(rig, i) == null))
-            {
-                if (GUILayout.Button(T("GunnerRig.bones.add")))
-                {
-                    GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, i, 1));
-                    GUIUtility.ExitGUI();
                 }
             }
         }
@@ -313,11 +321,11 @@ namespace Mecaota.Gunner.EditorTools
 
         /// <summary>emitters と同じ番号の配列。</summary>
         internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles",
-            "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts",
-            "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals",
+            "fireSources", "fireClips", "fireMinIntervals", "impactSources", "impactClips", "impactMinIntervals", "impactParticles", "impactBursts",
+            "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals", "streamCollides",
             "boneStrengths", "boneYawMaxes", "bonePitchUpMaxes", "bonePitchDownMaxes", "boneSmooths", "boneMinSpeeds", "boneMaxSpeeds" };
 
-        /// <summary>射出口 i を、同じ番号の欄とその追加の骨ごと外す。</summary>
+        /// <summary>射出口 i を、同じ番号の欄とその追加のボーンごと外す。</summary>
         static void RemoveEmitter(SerializedObject so, int i)
         {
             foreach (var name in PerEmitter.Prepend("emitters"))
@@ -339,12 +347,12 @@ namespace Mecaota.Gunner.EditorTools
         {
             var angles = rig.aimMaxAngles;
             if (angles != null && i < angles.Length && angles[i] > 0f) return angles[i];
-            return rig.aimMaxAngle;
+            return GunnerRig.DefaultAimLimit;
         }
 
         // ---------------- 追加の連動ボーン ----------------
 
-        // どの射出口にも属さない骨(点検が赤を出す)。消せるように並べる。
+        // どの射出口にも属さないボーン(点検が赤を出す)。消せるように並べる。
         void DrawOrphanBones(GunnerRig rig)
         {
             int emitters = serializedObject.FindProperty("emitters").arraySize;
@@ -375,7 +383,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        /// <summary>射出口 i の先端の骨(実行時と同じ決め方)。連動しない射出口は null。</summary>
+        /// <summary>射出口 i の先端のボーン(実行時と同じ決め方)。連動しない射出口は null。</summary>
         internal static Transform LeadBone(GunnerRig rig, int i)
         {
             if (rig == null || rig.emitters == null || i < 0 || i >= rig.emitters.Length) return null;
@@ -389,14 +397,14 @@ namespace Mecaota.Gunner.EditorTools
             return bone;
         }
 
-        /// <summary>射出口の鎖のいちばん上(先端の骨か、登録済みの追加の骨のうち最も上)から、親を n 個足す。</summary>
+        /// <summary>射出口の鎖のいちばん上(先端のボーンか、登録済みの追加のボーンのうち最も上)から、親を n 個足す。</summary>
         internal static void AddParentBones(GunnerRig rig, SerializedObject so, int emitter, int n)
         {
             Transform lead = LeadBone(rig, emitter);
             if (lead == null) return;
             var bones = so.FindProperty("linkExtraBones");
             var owners = so.FindProperty("linkExtraEmitter");
-            // 同じ先端の骨を持つ射出口は1つの鎖になるので、そのどれかに登録済みの骨をすべて数える(重複を作らない)。
+            // 同じ先端のボーンを持つ射出口は1つの鎖になるので、そのどれかに登録済みのボーンをすべて数える(重複を作らない)。
             var mine = new HashSet<Transform>();
             for (int k = 0; k < bones.arraySize && k < owners.arraySize; k++)
                 if (LeadBone(rig, owners.GetArrayElementAtIndex(k).intValue) == lead)
@@ -416,7 +424,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        /// <summary>追加の骨を1つ除く(組の射出口番号も一緒に)。</summary>
+        /// <summary>追加のボーンを1つ除く(組の射出口番号も一緒に)。</summary>
         internal static void RemoveExtraAt(SerializedObject so, int k)
         {
             var bones = so.FindProperty("linkExtraBones");
@@ -498,8 +506,6 @@ namespace Mecaota.Gunner.EditorTools
                 GunnerEditorUtil.Edit(rig, so => Grow(so.FindProperty("maxRanges"), index, 30f).floatValue = nextRange);
             }
 
-            // 既定の可動域は rig のもの: 最初の射出口でだけ編集する(射出口ごとの角度はインスペクタで)。
-            if (index != 0) return;
             Handles.color = FanLine;
             Vector3 edge = pos + Quaternion.AngleAxis(angle, up) * fwd * fan;
             EditorGUI.BeginChangeCheck();
@@ -509,14 +515,8 @@ namespace Mecaota.Gunner.EditorTools
                 Vector3 flat = Vector3.ProjectOnPlane(moved - pos, up);
                 if (flat.sqrMagnitude > 1e-8f)
                 {
-                    float nextAngle = Mathf.Clamp(Vector3.Angle(fwd, flat), 1f, 180f);
-                    // 射出口0に自分の角度があればそれを、無ければ可動域を動かす(見えている扇と同じ値)。
-                    bool own0 = rig.aimMaxAngles != null && rig.aimMaxAngles.Length > 0 && rig.aimMaxAngles[0] > 0f;
-                    GunnerEditorUtil.Edit(rig, so =>
-                    {
-                        if (own0) so.FindProperty("aimMaxAngles").GetArrayElementAtIndex(0).floatValue = Mathf.Round(nextAngle);
-                        else so.FindProperty("aimMaxAngle").floatValue = Mathf.Round(nextAngle);
-                    });
+                    float nextAngle = Mathf.Round(Mathf.Clamp(Vector3.Angle(fwd, flat), 1f, 180f));
+                    GunnerEditorUtil.Edit(rig, so => Grow(so.FindProperty("aimMaxAngles"), index).floatValue = nextAngle);
                 }
             }
         }

@@ -4,6 +4,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.12.0] - 2026-11-20
+
+Breaking: four `GunnerRig` fields are removed (see "Breaking changes"). Values in them are lost on update.
+
+互換性のない変更です。`GunnerRig` の欄を4つ削除しました(詳細は下の「互換性のない変更」を参照)。これらの欄の値は、更新すると失われます。
+
+### Breaking changes / 互換性のない変更
+
+- `hitPlayers` and `excludeOwner` are removed. Shots always hit players, including the rig's owner, and `GunnerAutoAim` can target the owner. A rig that had `hitPlayers` off or `excludeOwner` on now behaves differently. `excludeOwner` was on by default, including in the package prefab, so rigs placed from the prefab are affected: shots fired from near the shooter (a held object, the shooter's own bones) can now hit the shooter, and there is no way to turn this off.
+- `aimMaxAngle` is removed. Set the aim limit on each emitter card (`aimMaxAngles`). An empty or 0 value means 60 degrees. If a rig had `aimMaxAngle` other than 60, enter that value on each card whose aim limit was empty or 0. The hand-held ball's stick aim is still limited to 60 degrees.
+- `streamCollide` is removed. Set stream collision on each emitter card (`streamCollides`, empty = On). If a rig had `streamCollide` off, set it to Off on every card.
+- `hitPlayers` と `excludeOwner` を削除しました。弾は、rig の持ち主も含めて、常に人に当たります。`GunnerAutoAim` も持ち主を狙います。`hitPlayers` を切っていた rig や、`excludeOwner` を入れていた rig は、動きが変わります。`excludeOwner` は既定で入っていて、パッケージのプレハブでも入っていたので、プレハブから置いた rig も動きが変わります。撃つ人の近く(手に持つ物や自分のボーンなど)から出る弾は、撃った本人にも当たるようになり、これを切る方法はありません。
+- `aimMaxAngle` を削除しました。可動域は、射出口のカードの `aimMaxAngles` で決めます。空または 0 なら 60 度です。`aimMaxAngle` を 60 以外にしていた rig は、可動域が空または 0 だったカードに、その値を入れ直してください。手に持つ球のスティックで狙える範囲は、今までどおり 60 度までです。
+- `streamCollide` を削除しました。連射の当たり判定は、射出口のカードの `streamCollides` で決めます(空なら「記録する」)。`streamCollide` を切っていた rig は、すべてのカードで「記録しない」にしてください。
+
+### Added / 追加
+
+- Each emitter card takes a fire clip and an impact clip (`fireClips`, `impactClips`). When the rig plays a sound, it puts the clip on the source first; empty = the clip already on the source (with a source shared by several emitters, the clip put on it last).
+- 射出口のカードに、発射音と着弾音のクリップの欄(`fireClips`、`impactClips`)を足しました。rig が鳴らすときに、そのクリップを音源に入れます。空なら、音源に入っているクリップを鳴らします(音源を複数の射出口で共有していると、最後に入れたクリップが鳴ります)。
+
+### Changed / 変更
+
+- `GunnerRig` inspector: **+ Add parent bone** is above the bone list, which is drawn in one frame with labelled rows. **Remove** and its note are at the bottom of each card. Some field names now say what their values mean (for example, "0 = no limit" on **Maximum speed**), and **Place hand controller** has a tooltip. The **Stream** section is gone: `stream` is under **Shooting**, and stream collision is on the cards. Text in the inspector says "ボーン" instead of "骨" in Japanese.
+- In the Scene view, the aim limit handle now appears on every emitter and edits that emitter's `aimMaxAngles` value (before, only emitter 0).
+- `GunnerRig` のインスペクタ: **+ 親のボーンを足す** をボーンの一覧の上に移し、一覧を1つの枠で囲んで、各行に名前を付けました。**外す** とその注意書きは、各カードの下に移しました。いくつかの欄の名前に値の意味を書き足し(例: **最高の速さ** に「0 = 上限なし」)、**操作用の球を置く** に説明を付けました。「連射」の節をなくし、`stream` は「射撃」の節へ、連射の当たり判定は各カードへ移しました。インスペクタの文言の「骨」を「ボーン」にそろえました。
+- シーンビューの可動域のハンドルを、すべての射出口に出し、各射出口の `aimMaxAngles` の値を変えられるようにしました(以前は射出口0だけでした)。
+
+### Fixed / 修正
+
+- The fire sound at the start of a stream now plays from the first emitter in the aim set (`_SetAimEmitters`) that has a fire sound source, on every device. If no emitter in the aim set has one, no sound plays (before, the first emitter with a fire sound source played it, whatever the set).
+- 連射を始めたときの発射音を、狙う射出口の組(`_SetAimEmitters`)のうち、発射音の音源がある先頭の射出口で鳴らすようにしました。どの端末でも同じ射出口で鳴ります。組の中に発射音の音源がある射出口がなければ、音は鳴りません(以前は、組と関係なく、発射音の音源がある先頭の射出口で鳴っていました)。
+
 ## [0.11.0] - 2026-11-20
 
 Breaking: most `GunnerRig` fields move to the emitter cards, and the sounds move to AudioSources. Values in the removed fields are lost on update.

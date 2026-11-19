@@ -21,7 +21,7 @@ namespace Mecaota.Gunner
         // AfterRelease: 押している間の連射は何でも素通りし、放すとその粒子が最初に触れたものに1回当たる。
         public int collideMode = CollideAlways;
         public float releaseWindow = 3f;          // AfterRelease: 放した粒子がまだ当たってよい秒数の上限
-        public bool followBone;                   // 持っている間は rig の骨の連動を on にする(終わったら戻す)
+        public bool followBone;                   // 持っている間は rig のボーンの連動を on にする(終わったら戻す)
         public bool resetAimOnEnd = true;
         // 持っている間に rig へ入れる「狙う射出口の組」(ビット i = 射出口 i。rig._SetAimEmitters)。0 = 触らない(今までどおり)。
         // 終わったら全部に戻す。狙いの基準(スティックの角度)は今までどおり射出口0の休みの向き。
@@ -50,7 +50,7 @@ namespace Mecaota.Gunner
             {
                 // 後で窓を閉じる Update が無いので、rig の設定を今すぐ戻す。
                 closePending = false;
-                if (rig != null) rig._SetCollision(rig.streamCollide);
+                if (rig != null) rig._SetCollision(true);
             }
         }
 
@@ -110,8 +110,8 @@ namespace Mecaota.Gunner
 
         private void Activate()
         {
-            // 骨の連動を使う球は、拾った時に rig のオーナーを取る(狙いを拾った時点から全員へ送るため)。
-            // rig の骨の連動が最初から入の時は下の _SetBoneFollow が呼ばれずオーナーを取らないので、ここで取る。
+            // ボーンの連動を使う球は、拾った時に rig のオーナーを取る(狙いを拾った時点から全員へ送るため)。
+            // rig のボーンの連動が最初から入の時は下の _SetBoneFollow が呼ばれずオーナーを取らないので、ここで取る。
             // followBone が偽の球は今までどおり、最初に撃つ時にオーナーを取る。
             if (followBone) rig._TakeOwnership();
             active = true;
@@ -142,7 +142,7 @@ namespace Mecaota.Gunner
             streaming = false;
             if (hold != null) hold._Release();
             if (rig == null) return;
-            // 狙いを先に外す。下の停止と骨の連動 off が「狙いなし」を送り、ほかの人の画面の射出口が休みに戻る。
+            // 狙いを先に外す。下の停止とボーンの連動 off が「狙いなし」を送り、ほかの人の画面の射出口が休みに戻る。
             if (resetAimOnEnd) rig.ResetAim();
             if (emittersChanged)
             {
@@ -154,7 +154,7 @@ namespace Mecaota.Gunner
                 StopOwnStream();
                 if (collideMode == CollideAfterRelease) OpenWindow(false);
             }
-            else if (collideMode == CollideAfterRelease && !closePending) rig._SetCollision(rig.streamCollide);
+            else if (collideMode == CollideAfterRelease && !closePending) rig._SetCollision(true);
             if (boneChanged)
             {
                 boneChanged = false;
@@ -193,7 +193,7 @@ namespace Mecaota.Gunner
             if (rig == null) { closePending = false; return; }
             if (Time.time < closeAt && rig._IsStreamInFlight()) return;
             closePending = false;
-            rig._SetCollision(active && collideMode == CollideAfterRelease ? false : rig.streamCollide);
+            rig._SetCollision(!(active && collideMode == CollideAfterRelease));
         }
     }
 }

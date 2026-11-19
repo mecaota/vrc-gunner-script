@@ -74,11 +74,8 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967291
-  hitPlayers: 1
-  excludeOwner: 1
   playerRadius: 0.12
   fireMode: 0
-  aimMaxAngle: 60
   streamRate: 12
   streamWidth: 0.08
   streamTaper:
@@ -90,7 +87,6 @@ MonoBehaviour:
   streamJoin: 1
   streamHitMode: 0
   streamHitInterval: 0.25
-  streamCollide: 1
   boneFollow: 0
   boneStrength: 1
   boneYawMax: 30

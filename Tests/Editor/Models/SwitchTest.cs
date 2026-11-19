@@ -1,8 +1,8 @@
-// 狙える角度 120 の連動で、見張り(向きでの狙い)→ 球(角度での狙い)→ 見張りと替えた時の骨の動きを確かめる。
-// 今の式(ユーザー決定 11-13): 球だけ今までの左右・上下に移し替える(SwitchFollow)。切り替えた瞬間に骨が1回動くことは許容。
+// 狙える角度 120 の連動で、見張り(向きでの狙い)→ 球(角度での狙い)→ 見張りと替えた時のボーンの動きを確かめる。
+// 今の式(ユーザー決定 11-13): 球だけ今までの左右・上下に移し替える(SwitchFollow)。切り替えた瞬間にボーンが1回動くことは許容。
 // 比べる式(取り込まない案 a): 球も軸と角度で追う(移し替えが無い)。
-// 合格の条件: 1フレームの骨の跳びが 25 度以内(ねじれの差の最大 約20度+余裕)、球の向きは同じ。
-// 見るもの: 1フレームの骨の回転の変化が、追従の値の動き(と上限の丸め)で説明できる大きさを超えた分(跳び)。
+// 合格の条件: 1フレームのボーンの跳びが 25 度以内(ねじれの差の最大 約20度+余裕)、球の向きは同じ。
+// 見るもの: 1フレームのボーンの回転の変化が、追従の値の動き(と上限の丸め)で説明できる大きさを超えた分(跳び)。
 using System;
 using System.Numerics;
 using System.Text;
@@ -87,7 +87,7 @@ namespace Mecaota.Gunner.Tests.Models
                 Quaternion bone = euler ? EulerU(-cp, cy, 0) : AxisTurn(cy, cp);
                 if (n > 1) bone = Quaternion.Slerp(Quaternion.Identity, bone, 1f / n);
                 float change = QAngle(prevBone, bone);
-                // 追従の値の動きで説明できる大きさ(1フレームの値の動き ÷ 骨の数 + 余裕)。超えた分が跳び
+                // 追従の値の動きで説明できる大きさ(1フレームの値の動き ÷ ボーンの数 + 余裕)。超えた分が跳び
                 float allowed = Math.Min(left, step) / n + 0.05f;
                 if (frame > 0) maxJump = Math.Max(maxJump, change - allowed);
                 prevBone = bone;
@@ -124,7 +124,7 @@ namespace Mecaota.Gunner.Tests.Models
                     }
                     bool ok = worstNew < 25f && worstDir < 0.03f;
                     if (!ok) fails++;
-                    sb.AppendLine($"骨{n}本・見張り {w.name} → 球 → 見張り: 切り替えの瞬間の骨の動き 最大 {worstNew:F1} 度(許容。案 a なら {worstOld:F2} 度)、球の向きの差 最大 {worstDir:F3} 度 {(ok ? "OK" : "NG")}");
+                    sb.AppendLine($"ボーン{n}本・見張り {w.name} → 球 → 見張り: 切り替えの瞬間のボーンの動き 最大 {worstNew:F1} 度(許容。案 a なら {worstOld:F2} 度)、球の向きの差 最大 {worstDir:F3} 度 {(ok ? "OK" : "NG")}");
                 }
             sb.AppendLine(fails == 0 ? "全部 OK" : $"NG {fails} 件");
             return sb.ToString();

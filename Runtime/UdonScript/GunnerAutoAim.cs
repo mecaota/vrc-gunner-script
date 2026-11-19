@@ -203,17 +203,14 @@ namespace Mecaota.Gunner
         {
             // 撃つ前のアニメを待っている間は、射出口を替えず、撃たない。
             if (rig._IsPreFiring()) return;
-            // 1. 一覧の中で、範囲の中心に一番近い人。rig の excludeOwner が真なら、この端末の本人(= rig の持ち主)は
-            //    弾が当たらないので選ばない。
+            // 1. 一覧の中で、範囲の中心に一番近い人。
             Vector3 center = ZoneCenter();
-            bool skipLocal = rig.excludeOwner;
             VRCPlayerApi target = null;
             float best = float.MaxValue;
             for (int i = 0; i < listedCount; i++)
             {
                 VRCPlayerApi p = VRCPlayerApi.GetPlayerById(listed[i]);
                 if (!Utilities.IsValid(p)) continue;
-                if (skipLocal && p.isLocal) continue;
                 float d = (p.GetPosition() - center).sqrMagnitude;
                 if (d >= best) continue;
                 best = d;

@@ -77,25 +77,20 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 
 ### Built-in sounds and impact particles
 
-`GunnerRig` can play a fire sound and an impact sound, and burst particles at the hit point, by itself. The clips, volumes and impact particles are set per emitter on each emitter's card; the other fields are in the **Sounds** section and shared by all emitters. Every device plays them from the fire and hit events; nothing extra is synced.
+`GunnerRig` can play a fire sound and an impact sound, and burst particles at the hit point, by itself. All of them are set per emitter on each emitter's card. Every device plays them from the fire and hit events; nothing extra is synced.
 
 | Field | Default | Meaning |
 |---|---|---|
-| `fireClips` / `impactClips` | empty | Per emitter. Empty = silent. |
-| `fireVolumes` / `impactVolumes` | empty = 1 | Per emitter. Source volume (0-1). 0 = silent. |
-| `pitchJitter` | 0.05 | Random pitch change per sound. 0 = off. |
-| `fireVoices` / `impactVoices` | empty | AudioSources for each sound. Several can play at once; when all are busy, the oldest is stopped and reused. |
+| `fireSources` / `impactSources` | empty | Per emitter. The AudioSource to play. Set the clip, volume, pitch and range on it. Empty = silent. |
+| `fireMinIntervals` / `impactMinIntervals` | empty = 0 | Per emitter. While the sound is playing, the next one is skipped until it has played this many seconds; once it ends, the next one plays. 0 = restart it every time. |
 | `impactParticles` | empty | Per emitter. Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
 | `impactBursts` | empty = 1 | Per emitter. Particles per hit (at least 1). |
-| `fireMinInterval` / `impactMinInterval` | 0.05 / 0.08 | Sounds closer together in time than this are dropped, whichever emitter they come from. Unless `fireMinInterval` is 0, only the first emitter with a configured sound (a clip and a volume above 0) plays its fire sound in a volley. |
-| `soundOnPlayers` / `soundOnWorld` / `soundOnMoving` | on / on / on | Which hits play the impact sound and burst the impact particles. |
-| `soundCullDistance` | 0 | Sounds farther than this from the listener's head are not played. 0 = the source's Max Distance. |
 
-- The fire sound plays at the emitter that fired (a stream start uses the first valid emitter). The impact sound and particles play at the hit point. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
+- The fire sound source is moved to the emitter that fired (a stream start uses the first emitter with a fire sound source), and the impact sound source and particles to the hit point. A source plays one sound at a time; the next sound restarts it. Keep impact sound sources outside moving bones, or they move with the bone while playing. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
 - To shoot two kinds of shots from one place (for example a bullet and a web from the mouth), add two emitters there as two separate Transforms and set each card. Do not register the same Transform as two emitters; they overwrite each other's aim every frame.
 - `Fire()`, `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.
-- Udon cannot add `VRC_SpatialAudioSource` at runtime. Add one to every AudioSource in the editor and match its Far to the AudioSource's Max Distance. The Check Window does not check the rig's sources.
+- Udon cannot add `VRC_SpatialAudioSource` at runtime. Add it to the AudioSources in the editor.
 
 ## Auto aim (`GunnerAutoAim`)
 
@@ -135,7 +130,7 @@ How it works:
 
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
 2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
-3. For fire and impact sounds and impact particles, set the clips and impact particles on each emitter's card, and the AudioSources in the rig's **Sounds** section. For anything else, add your own `GunnerHitReceiver`.
+3. For fire and impact sounds and impact particles, set the AudioSources and impact particles on each emitter's card. For anything else, add your own `GunnerHitReceiver`.
 4. Call `TriggerDown()` / `TriggerUp()` from your own script, or use **Place Hand Controller** for a ready-made hand-held ball.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
 

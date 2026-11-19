@@ -62,10 +62,6 @@ namespace Mecaota.Gunner.EditorTools
             if (Foldout("GunnerRig.section.shot"))
                 Fields("fireMode", "shotSpeed", "maxRange", "castRadius", "aimMaxAngle", "fireAnimator");
 
-            if (Foldout("GunnerRig.section.sound"))
-                Fields("pitchJitter", "fireVoices", "impactVoices", "fireMinInterval", "impactMinInterval",
-                    "soundOnPlayers", "soundOnWorld", "soundOnMoving", "soundCullDistance");
-
             if (Foldout("GunnerRig.section.hit", false))
                 Fields("receivers", "movers", "hitMask", "hitPlayers", "excludeOwner", "playerRadius", "maxHits");
 
@@ -147,12 +143,12 @@ namespace Mecaota.Gunner.EditorTools
             EditorGUI.indentLevel++;
 
             Heading("GunnerRig.card.fire");
-            ObjectAt("fireClips", i, typeof(AudioClip));
-            FloatAt("fireVolumes", i, "GunnerRig.fireVolumes", 1f, 1f);
+            ObjectAt("fireSources", i, typeof(AudioSource));
+            FloatAt("fireMinIntervals", i, "GunnerRig.fireMinIntervals", 0f, float.MaxValue);
 
             Heading("GunnerRig.card.impact");
-            ObjectAt("impactClips", i, typeof(AudioClip));
-            FloatAt("impactVolumes", i, "GunnerRig.impactVolumes", 1f, 1f);
+            ObjectAt("impactSources", i, typeof(AudioSource));
+            FloatAt("impactMinIntervals", i, "GunnerRig.impactMinIntervals", 0f, float.MaxValue);
             ObjectAt("impactParticles", i, typeof(ParticleSystem));
             var bursts = serializedObject.FindProperty("impactBursts");
             if (i < bursts.arraySize) EditorGUILayout.PropertyField(bursts.GetArrayElementAtIndex(i), Label("GunnerRig.impactBursts"));
@@ -270,7 +266,7 @@ namespace Mecaota.Gunner.EditorTools
         static void RemoveEmitter(SerializedObject so, int i)
         {
             foreach (var name in new[] { "emitters", "shotParticles", "linkBones", "aimMaxAngles",
-                "fireClips", "fireVolumes", "impactClips", "impactVolumes", "impactParticles", "impactBursts" })
+                "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts" })
             {
                 var arr = so.FindProperty(name);
                 if (i < arr.arraySize) GunnerEditorUtil.RemoveAt(arr, i);

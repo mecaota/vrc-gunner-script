@@ -43,7 +43,7 @@ namespace Mecaota.Gunner.EditorTools
             if (nullEmitter)
                 into.Add(new GunnerCheck(E.Error, "check.rig.null_emitter", rig,
                     () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", "shotParticles", "linkBones", "aimMaxAngles",
-                        "fireClips", "fireVolumes", "impactClips", "impactVolumes", "impactParticles", "impactBursts"))));
+                        "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts"))));
 
             var particles = rig.shotParticles ?? new ParticleSystem[0];
             for (int i = 0; i < emitters.Length && i < GunnerRig.MaxEmitters; i++)
@@ -75,6 +75,13 @@ namespace Mecaota.Gunner.EditorTools
             foreach (var impact in (rig.impactParticles ?? new ParticleSystem[0]).Distinct())
                 if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
                     into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
+
+            // 着弾音の音源は当たった点へ動かすので、動く骨の子だと鳴っている間に骨と一緒に流れる。
+            var linked = Enumerable.Range(0, emitters.Length).Select(e => GunnerRigEditor.LeadBone(rig, e))
+                .Concat(rig.linkExtraBones ?? new Transform[0]).Where(b => b != null).ToList();
+            foreach (var source in (rig.impactSources ?? new AudioSource[0]).Distinct())
+                if (source != null && linked.Any(b => source.transform.IsChildOf(b)))
+                    into.Add(new GunnerCheck(E.Warning, "check.rig.impact_on_bone", source, null, source.name));
 
             if (rig.fireMode == GunnerRig.FireStream && rig.stream == null)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_stream", rig, () => GunnerSetup.EnsureStream(rig)));

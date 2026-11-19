@@ -121,24 +121,14 @@ namespace Mecaota.Gunner
         // 速さの変わり方も BoneRampTime 秒で 0 から上限に届く割合までにする(狙いが急に跳んでも、射出口と骨がなめらかに追う)。
         public float boneMaxSpeed;
 
-        // 任意: 発射音と着弾音。6つの配列は emitters と同じ番号。クリップが空ならその音は鳴らさない。音量は要素が無ければ 1。
-        // 同期は持たず、各端末が発射と着弾の知らせ(NotifyFire / NotifyHit)から鳴らす。連射中の発射音の繰り返しは持たない。
-        public AudioClip[] fireClips;
-        public AudioClip[] impactClips;
-        public float[] fireVolumes;
-        public float[] impactVolumes;
-        public float pitchJitter = 0.05f;         // 同じ音が続けて並んだ時の単調さを和らげる。0 で切
-        // 音源は発射用と着弾用で分け、それぞれ複数持てる。Udon は実行時に VRC_SpatialAudioSource を足せないので、エディタで付けておく
-        public AudioSource[] fireVoices;
-        public AudioSource[] impactVoices;
+        // 任意: emitters と同じ番号。音・音量・距離は音源の AudioSource(と VRC_SpatialAudioSource)で決める。
+        // 同期は持たず、各端末が発射と着弾の知らせ(NotifyFire / NotifyHit)から鳴らす。
+        public AudioSource[] fireSources;
+        public AudioSource[] impactSources;
+        public float[] fireMinIntervals;          // 鳴っている音がこの秒数に達するまで、次を鳴らさない。無ければ 0
+        public float[] impactMinIntervals;
         public ParticleSystem[] impactParticles;
         public int[] impactBursts;
-        public float fireMinInterval = 0.05f;     // 同じフレームの一斉射撃を1回にまとめる
-        public float impactMinInterval = 0.08f;   // 当たり続ける連射で鳴りすぎないように
-        public bool soundOnPlayers = true;
-        public bool soundOnWorld = true;
-        public bool soundOnMoving = true;
-        public float soundCullDistance = 0f;      // 0 = 音源の maxDistance。遠い音で近い音の枠を奪わないように
         public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。入れたら、全部の射出口に bool GunnerPre0, GunnerPre1, ... が要る
 
         // ---------------- 同期(Manual) ----------------
@@ -300,12 +290,6 @@ namespace Mecaota.Gunner
         private VRCPlayerApi keepPlayer;
         private int recBone;            // FinishCast の結果
 
-        // 音: 音源ごとの鳴らし始めた時刻(Init で作る。null = まだ鳴らさない)と、間引きの時計。
-        private float[] fireVoiceStarted;
-        private float[] impactVoiceStarted;
-        private float lastFireSound = -1000f;
-        private float lastImpact = -1000f;
-
         // ================= 起動と終了 =================
 
         private void Start()
@@ -353,7 +337,6 @@ namespace Mecaota.Gunner
             for (int i = 0; i < emitterCount; i++) if (emitters[i] != null) restLocal[i] = emitters[i].localRotation;
             InitAimFrames();
             RecountLate();
-            InitSound();
             if (stream != null) stream._Init(this);
         }
 
@@ -564,8 +547,8 @@ namespace Mecaota.Gunner
         {
             // 戻してくれる PostLateUpdate が無いので、連動した骨はすぐに戻す。
             if (initialized) ReleaseLinks();
-            StopVoices(fireVoices);
-            StopVoices(impactVoices);
+            StopSources(fireSources);
+            StopSources(impactSources);
         }
 
         private void ReleaseLinks()
@@ -655,43 +638,30 @@ namespace Mecaota.Gunner
 
         // ================= 音 =================
 
-        private void InitSound()
-        {
-            if (fireVoices == null) fireVoices = new AudioSource[0];
-            if (impactVoices == null) impactVoices = new AudioSource[0];
-            fireVoiceStarted = new float[fireVoices.Length];
-            impactVoiceStarted = new float[impactVoices.Length];
-        }
-
-        // 発射音は撃った射出口の位置で鳴らす。e < 0(連射の開始)は先頭の有効な射出口。
+        // 発射音は撃った射出口の位置で鳴らす。e < 0(連射の開始)は発射音の音源がある先頭の射出口。
         // 入室時に既に続いていた連射(replay)は今撃たれたのではないので鳴らさない。
         private void PlayFireSound(int e, bool replay)
         {
-            if (replay || fireVoiceStarted == null) return;
-            if (Time.time - lastFireSound < fireMinInterval) return;
+            if (replay) return;
             int at = e;
             if (at < 0)
             {
                 for (int i = 0; i < emitterCount; i++)
                 {
-                    if (!ValidEmitter(i)) continue;
+                    if (!ValidEmitter(i) || Source(fireSources, i) == null) continue;
                     at = i;
                     break;
                 }
             }
             if (!ValidEmitter(at)) return;
-            if (PlaySound(fireVoices, fireVoiceStarted, Clip(fireClips, at), Volume(fireVolumes, at), emitters[at].position)) lastFireSound = Time.time;
+            PlaySound(Source(fireSources, at), Value(fireMinIntervals, at), emitters[at].position);
         }
 
         private void PlayImpact()
         {
             if (hitReplay || !hitResolved) return;
-            if (hitKind == KindWorld && !soundOnWorld) return;
-            if (hitKind == KindMoving && !soundOnMoving) return;
-            if (hitKind == KindPlayer && !soundOnPlayers) return;
             EmitImpactParticles();
-            if (Time.time - lastImpact < impactMinInterval) return;
-            if (PlaySound(impactVoices, impactVoiceStarted, Clip(impactClips, hitEmitter), Volume(impactVolumes, hitEmitter), hitPoint)) lastImpact = Time.time;
+            PlaySound(Source(impactSources, hitEmitter), Value(impactMinIntervals, hitEmitter), hitPoint);
         }
 
         // 着弾の記録には面の向きが無いので、Raycast で取り直す。
@@ -718,49 +688,19 @@ namespace Mecaota.Gunner
             ps.Emit(Mathf.Max(1, impactBursts != null && hitEmitter < impactBursts.Length ? impactBursts[hitEmitter] : 0));
         }
 
-        // 鳴っていない音源を先に使い、全部鳴っていればいちばん古い音を止めて使う。
-        // PlayOneShot は使わない。1つの音源に重ねると、音ごとに位置を変えられないため。
-        private bool PlaySound(AudioSource[] voices, float[] started, AudioClip clip, float volume, Vector3 point)
+        // 鳴っている途中でも、最短間隔を過ぎていれば頭から鳴らし直す。PlayOneShot は音ごとに位置を変えられないので使わない。
+        private void PlaySound(AudioSource source, float minInterval, Vector3 point)
         {
-            if (clip == null || volume <= 0f || voices == null || started == null || voices.Length == 0) return false;
-            int pick = -1;
-            int oldest = -1;
-            for (int i = 0; i < voices.Length && i < started.Length; i++)
-            {
-                AudioSource v = voices[i];
-                if (v == null) continue;
-                if (!v.isPlaying) { pick = i; break; }
-                if (oldest < 0 || started[i] < started[oldest]) oldest = i;
-            }
-            if (pick < 0) pick = oldest;
-            if (pick < 0) return false;
-            AudioSource voice = voices[pick];
-            if (SoundOutOfReach(voice, point)) return false;
-            voice.Stop();
-            voice.transform.position = point;
-            voice.clip = clip;
-            voice.volume = volume;
-            voice.pitch = 1f + Random.Range(-pitchJitter, pitchJitter);
-            voice.Play();
-            started[pick] = Time.time;
-            return true;
+            if (source == null || (source.isPlaying && source.time < minInterval)) return;
+            source.Stop();
+            source.transform.position = point;
+            source.Play();
         }
 
-        // 聞く人(この端末の頭)から遠い音は鳴らさない。
-        private bool SoundOutOfReach(AudioSource voice, Vector3 point)
+        private void StopSources(AudioSource[] sources)
         {
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return false;
-            float reach = soundCullDistance > 0f ? soundCullDistance : voice.maxDistance;
-            if (reach <= 0f) return false;
-            Vector3 head = local.GetTrackingData(VRCPlayerApi.TrackingDataType.Head).position;
-            return (point - head).sqrMagnitude > reach * reach;
-        }
-
-        private void StopVoices(AudioSource[] voices)
-        {
-            if (voices == null) return;
-            for (int i = 0; i < voices.Length; i++) if (voices[i] != null) voices[i].Stop();
+            if (sources == null) return;
+            for (int i = 0; i < sources.Length; i++) if (sources[i] != null) sources[i].Stop();
         }
 
         // ================= 公開の操作 =================
@@ -2120,9 +2060,9 @@ namespace Mecaota.Gunner
 
         private ParticleSystem Particles(ParticleSystem[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : null; }
 
-        private AudioClip Clip(AudioClip[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : null; }
+        private AudioSource Source(AudioSource[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : null; }
 
-        private float Volume(float[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : 1f; }
+        private float Value(float[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : 0f; }
 
         private float Speed() { return Mathf.Max(shotSpeed, 0.01f); }
 

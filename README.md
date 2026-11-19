@@ -68,11 +68,13 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `streamHitIntervals` | empty = 0.25 | Per emitter. Keep hitting: seconds between records. |
 | `streamCollide` | on | Initial stream collision state. |
 | `boneFollow` | off | Turn linked bones with the aim. |
-| `boneStrength` | 1 | Share of the aim the bones take (0-1). |
-| `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
-| `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
+| `boneStrengths` | empty = 1 | Per emitter. Share of the aim the bones take (0-1). |
+| `boneYawMaxes` / `bonePitchUpMaxes` / `bonePitchDownMaxes` | empty = 30 / 30 / 15 | Per emitter. Per-bone limits in degrees. |
+| `boneSmooths` / `boneMinSpeeds` / `boneMaxSpeeds` | empty = 10 / 30 / 0 | Per emitter. Follow speed. `boneMaxSpeeds` 0 = no limit. |
 
 Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there (`hitPlayers` decides). An emitter without a particle system hits no layers (it can still hit players). `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+
+Emitters with the same lead bone turn that bone together, using the bone fields of the lowest-numbered one; the other cards do not show them.
 
 ### Built-in sounds and impact particles
 
@@ -160,6 +162,15 @@ Both are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnLoad]`
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
+
+## Changes in 0.11.0
+
+Breaking: most rig fields moved to the emitter cards, and old values are lost on update. Note them before updating and set them again (see the migration steps in CHANGELOG.md).
+
+- Sounds: each card takes one fire and one impact AudioSource; the clip, volume and range are set on the AudioSource.
+- Shot speed, range, shot radius, the stream fields and the bone link values are set per emitter. Shots hit the layers in each emitter particle system's **Collision > Collides With** (`hitMask` is removed). An emitter without a particle system no longer hits objects. Shot particles made by the setup tools, and those in the sample scene, leave out layers 2 (Ignore Raycast) and 13 (the hand ball); the prefab's leave out only layer 2.
+- The emitter cards and linked bones are drawn in frames; emitters are removed with **Remove** on their card.
+- JSON export and import of number fields is removed, including `GunnerValueSchemas.Register`.
 
 ## Changes in 0.10.0
 

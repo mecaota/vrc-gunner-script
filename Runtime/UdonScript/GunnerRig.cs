@@ -68,11 +68,11 @@ namespace Mecaota.Gunner
         // 暴れ止め: 休みの向きから上下にこの角度(度)を超える狙いでは、左右の角度を前の値のまま保つ。
         // 狙える角度がこれ以下の射出口では起きないので、既定の rig(60 度)は今までと同じ。
         private const float FlipPitch = 80f;
-        // boneMaxSpeed を使う時、追従の速さが 0 から上限に届くまでの時間(秒)。加速の上限 = boneMaxSpeed / BoneRampTime。
+        // boneMaxSpeeds を使う時、追従の速さが 0 から上限に届くまでの時間(秒)。加速の上限 = 上限 / BoneRampTime。
         private const float BoneRampTime = 0.25f;
-        // boneMaxSpeed を使う時、目標にこの角度(度)より近く、速さも小さければ、目標に合わせて止める。
+        // boneMaxSpeeds を使う時、目標にこの角度(度)より近く、速さも小さければ、目標に合わせて止める。
         private const float SettleAngle = 0.01f;
-        // boneMaxSpeed を使う時、1フレームの計算に使う時間の上限(秒)。処理落ちで行き過ぎないように。
+        // boneMaxSpeeds を使う時、1フレームの計算に使う時間の上限(秒)。処理落ちで行き過ぎないように。
         private const float BoneStepMax = 0.1f;
 
         // ---------------- セットアップ(エディタが書く) ----------------
@@ -104,15 +104,16 @@ namespace Mecaota.Gunner
         public bool streamCollide = true;        // 開始時の当たり判定(持ち主の端末だけ。_SetCollision で変わる)
 
         public bool boneFollow;                   // 初期値。BoneFollowOn / Off で変えると同期する
-        public float boneStrength = 1f;           // 狙いのうち骨が受け持つ割合
-        public float boneYawMax = 30f;
-        public float bonePitchUpMax = 30f;
-        public float bonePitchDownMax = 15f;
-        public float boneSmooth = 10f;            // 1秒あたり: 残りの角度を詰める割合
-        public float boneMinSpeed = 30f;          // 最低でも1秒あたりこの角度
-        // 追従の回る速さの上限(度/秒)。0 = 上限なし(今までどおり)。0 より大きい時は、速さをこの上限で切り、
+        // 任意: emitters と同じ番号。連動ごとに、その連動の最初の射出口(linkLead)の値だけを使う。無ければ既定値
+        public float[] boneStrengths;             // 狙いのうち骨が受け持つ割合。既定 1
+        public float[] boneYawMaxes;              // 既定 30
+        public float[] bonePitchUpMaxes;          // 既定 30
+        public float[] bonePitchDownMaxes;        // 既定 15
+        public float[] boneSmooths;               // 1秒あたり: 残りの角度を詰める割合。既定 10
+        public float[] boneMinSpeeds;             // 最低でも1秒あたりこの角度。既定 30
+        // 追従の回る速さの上限(度/秒)。既定 0 = 上限なし。0 より大きい時は、速さをこの上限で切り、
         // 速さの変わり方も BoneRampTime 秒で 0 から上限に届く割合までにする(狙いが急に跳んでも、射出口と骨がなめらかに追う)。
-        public float boneMaxSpeed;
+        public float[] boneMaxSpeeds;
 
         // 任意: emitters と同じ番号。音・音量・距離は音源の AudioSource(と VRC_SpatialAudioSource)で決める。
         // 同期は持たず、各端末が発射と着弾の知らせ(NotifyFire / NotifyHit)から鳴らす。
@@ -255,7 +256,7 @@ namespace Mecaota.Gunner
         // 連動ごと: 追従の2つの値の表し方。true = 軸と角度(狙える角度が 90 度を超える連動を、角度での狙い以外で狙う時)、
         // false = 左右・上下(今までの式)。表し方が替わる時は、同じ向きのまま値を移し替える。
         private bool[] followAxis;
-        // 連動ごと: boneMaxSpeed を使う時の追従の速度(2つの値の1秒あたりの変化)。
+        // 連動ごと: boneMaxSpeeds を使う時の追従の速度(2つの値の1秒あたりの変化)。
         private float[] followVelYaw;
         private float[] followVelPitch;
         private float[] turnYaw;
@@ -1848,10 +1849,10 @@ namespace Mecaota.Gunner
                 float dy = ty - followYaw[b];
                 float dp = tp - followPitch[b];
                 float left = Mathf.Sqrt(dy * dy + dp * dp);
-                if (boneMaxSpeed > 0f) StepFollowLimited(b, ty, tp, dy, dp, left, dt);
+                if (Value(boneMaxSpeeds, lead, 0f) > 0f) StepFollowLimited(b, ty, tp, dy, dp, left, dt);
                 else
                 {
-                    float step = Mathf.Max(boneMinSpeed, left * boneSmooth) * dt;
+                    float step = Mathf.Max(Value(boneMinSpeeds, lead, 30f), left * Value(boneSmooths, lead, 10f)) * dt;
                     if (left <= step)
                     {
                         followYaw[b] = ty;
@@ -1871,9 +1872,10 @@ namespace Mecaota.Gunner
                     turnPitch[b] = 0f;
                     continue;
                 }
-                float k = Mathf.Clamp01(boneStrength);
-                turnYaw[b] = Mathf.Clamp(followYaw[b] * k, -boneYawMax * cn, boneYawMax * cn);
-                turnPitch[b] = Mathf.Clamp(followPitch[b] * k, -bonePitchDownMax * cn, bonePitchUpMax * cn);
+                float k = Mathf.Clamp01(Value(boneStrengths, lead, 1f));
+                float yawMax = Value(boneYawMaxes, lead, 30f) * cn;
+                turnYaw[b] = Mathf.Clamp(followYaw[b] * k, -yawMax, yawMax);
+                turnPitch[b] = Mathf.Clamp(followPitch[b] * k, -Value(bonePitchDownMaxes, lead, 15f) * cn, Value(bonePitchUpMaxes, lead, 30f) * cn);
                 // 鎖全体の回転を n 等分する(同じ軸で角度だけ 1/n)。n 回重ねると全体の回転になる。
                 // 狙える角度が 90 度を超える連動は、2つの値を軸と角度の回転にする(上限は今までどおり左右・上下とみなして切る)。
                 Quaternion q = wide ? AxisTurn(turnYaw[b], turnPitch[b]) : Quaternion.Euler(-turnPitch[b], turnYaw[b], 0f);
@@ -1890,7 +1892,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // boneMaxSpeed を使う追従: 目標へ向かう速度を、速さの上限と加速の上限の中で寄せる。止まれる速さ(残りの角度から)を
+        // boneMaxSpeeds を使う追従: 目標へ向かう速度を、速さの上限と加速の上限の中で寄せる。止まれる速さ(残りの角度から)を
         // 超えないので、目標が止まればほとんど行き過ぎずに追いつく(急に止めないので、わずかに行き過ぎて戻ることはある)。目標が急に跳んでも(相手が瞬間的に動いた、届いた位置が飛んだ)、
         // 射出口と骨は上限の速さでなめらかに回る。
         private void StepFollowLimited(int b, float ty, float tp, float dy, float dp, float left, float dt)
@@ -1898,8 +1900,10 @@ namespace Mecaota.Gunner
             // 処理落ちの長いフレームでも速度が大きく変わらないよう、計算に使う時間を上限で切る。
             float h = dt < BoneStepMax ? dt : BoneStepMax;
             if (h <= 0f) return;
-            float accel = boneMaxSpeed / BoneRampTime;
-            float want = Mathf.Min(Mathf.Max(boneMinSpeed, left * boneSmooth), boneMaxSpeed);
+            int lead = linkLead[b];
+            float max = Value(boneMaxSpeeds, lead, 0f);
+            float accel = max / BoneRampTime;
+            float want = Mathf.Min(Mathf.Max(Value(boneMinSpeeds, lead, 30f), left * Value(boneSmooths, lead, 10f)), max);
             // 止まれる速さ(連続の式)と、1フレームで残りを越えない速さ(フレームの刻みの式)の両方で切る。
             want = Mathf.Min(want, Mathf.Sqrt(2f * accel * left));
             want = Mathf.Min(want, left / h);

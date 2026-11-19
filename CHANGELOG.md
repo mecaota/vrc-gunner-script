@@ -4,23 +4,69 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
-## [Unreleased]
+## [0.11.0] - 2026-11-20
+
+Breaking: most `GunnerRig` fields move to the emitter cards, and the sounds move to AudioSources. Values in the removed fields are lost on update.
+
+互換性のない変更です。`GunnerRig` の欄の多くを射出口のカードへ移し、音は AudioSource で決める形にしました。削除した欄の値は、更新すると失われます。
+
+To update from 0.10.0: before updating, note each rig's values for the fields under "Removed". After updating, set them again as listed there. A card field left empty uses the old default, so only values that differ from the default need to be entered. A value on one card does not apply to the other emitters.
+
+0.10.0 からの更新の手順: 更新の前に、下の「削除」に挙げた欄の値を rig ごとに控えてください。更新した後に、各項目に書いた移し先へ入れ直してください。カードの欄は、空なら以前の既定値で動くので、入れ直すのは既定値と違う値だけで済みます。1枚のカードに入れた値は、ほかの射出口には反映されません。
+
+- Fire sound sources play where they are; place each one near its emitter. Impact sound sources are moved to the hit point; place them outside the rig (for example under `GunnerRig/Parts`), not under a linked bone.
+- Shots now hit the layers in each emitter particle system's **Collision > Collides With**. Unity's default includes Ignore Raycast, while the old `hitMask` default left it out. To keep the old behaviour, untick Ignore Raycast there (and any layer you had removed from `hitMask`). An emitter without a particle system no longer hits objects (whether it hits players still follows `hitPlayers`); give it a particle system if it should hit objects.
+- When emitters share a lead bone, enter the bone link values on the lowest-numbered card; the other cards do not show them. If you remove that card, the link uses the values of the next-lowest-numbered card.
+- 発射音の音源は、置いた場所で鳴ります。各射出口の近くに置いてください。着弾音の音源は、rig が当たった点へ動かして鳴らします。そのため、連動ボーンの子ではなく、rig の外(例: `GunnerRig/Parts` の下)に置いてください。
+- 弾が当たるレイヤーは、射出口のパーティクルの **Collision > Collides With** で決まります。Unity の既定では Ignore Raycast が含まれますが、以前の `hitMask` の既定では含まれていませんでした。今までと同じにするには、Collides With で Ignore Raycast を外してください(`hitMask` で外していたレイヤーも外してください)。パーティクルを入れていない射出口の弾は、物に当たらなくなりました(人に当たるかどうかは、今までどおり `hitPlayers` に従います)。弾を物に当てたい射出口には、パーティクルを入れてください。
+- 同じ先頭の骨を使う射出口が複数あるときは、ボーン連動の値を、番号の最も若いカードに入れてください。ほかのカードには、その欄が表示されません。値を入れたカードを外すと、連動には次に番号が若いカードの値が使われます。
+
+### Breaking changes / 互換性のない変更
+
+- Each emitter card takes one fire sound source and one impact sound source (`fireSources`, `impactSources`). The clip, volume, pitch and range are set on those AudioSources. A source plays one sound at a time; the next sound restarts it. Impact particles now show whatever is hit.
+- Shot speed, range, shot radius, the stream rate, look, hit mode and hit interval, the sound min intervals and the bone link values are set per emitter on its card (`shotSpeeds`, `maxRanges`, `castRadii`, `streamRates`, `streamJoins`, `streamHitModes`, `streamHitIntervals`, `fireMinIntervals`, `impactMinIntervals`, `boneStrengths`, `boneYawMaxes`, `bonePitchUpMaxes`, `bonePitchDownMaxes`, `boneSmooths`, `boneMinSpeeds`, `boneMaxSpeeds`). Empty = the old default, except the min intervals, which default to 0.
+- Shots hit the layers in each emitter particle system's **Collision > Collides With**, even when the Collision module is off. An emitter without a particle system hits no layers (it can still hit players).
+- The public Editor API `GunnerValueSchemas.Register` is removed with the JSON feature.
+- 射出口のカードに、発射音と着弾音の音源(`fireSources`、`impactSources`)を1つずつ割り当てる形にしました。クリップ・音量・音の高さ・聞こえる距離は、その AudioSource で決めます。1つの音源は一度に1つの音を鳴らし、次の音が来ると最初から鳴らし直します。着弾パーティクルは、当たった相手によらず出ます。
+- 弾の速さ・射程・弾の半径、連射の量・見た目・当たり方・当たりの間隔、音の最短間隔、ボーン連動の値を、射出口のカードで決める形にしました(`shotSpeeds`、`maxRanges`、`castRadii`、`streamRates`、`streamJoins`、`streamHitModes`、`streamHitIntervals`、`fireMinIntervals`、`impactMinIntervals`、`boneStrengths`、`boneYawMaxes`、`bonePitchUpMaxes`、`bonePitchDownMaxes`、`boneSmooths`、`boneMinSpeeds`、`boneMaxSpeeds`)。空の欄は以前の既定値で動きます。ただし、最短間隔の既定値は 0 です。
+- 弾が当たるレイヤーは、射出口のパーティクルの **Collision > Collides With** で決まります。Collision モジュールを無効にしていても、この値を使います。パーティクルを入れていない射出口の弾は、どのレイヤーにも当たりません(ただし、人には当たります)。
+- JSON の機能とともに、Editor の公開 API `GunnerValueSchemas.Register` を削除しました。
 
 ### Changed / 変更
 
-- `GunnerRig` inspector: each emitter card and each linked bone has its own frame. Add emitters with **+ Add emitter** below the cards and remove one with **Remove** on its card. Add bones with **+ Add parent bone** below the bone list and remove one from the list with **-** on its row. Units are shown in the field names.
-- `GunnerRig` のインスペクタ: 射出口のカードと連動ボーンを、1つずつ枠で囲みました。射出口はカードの下の **+ 射出口を足す** で足し、各カードの **外す** で外します。骨は、一覧の下の **+ 親の骨を足す** で足し、各行の **-** で一覧から外します。欄の名前に単位を付けました。
-- Breaking: each emitter card takes one fire sound source and one impact sound source (`fireSources`, `impactSources`); set the clip, volume and range on those AudioSources. `fireMinInterval` / `impactMinInterval` are now per emitter (`fireMinIntervals`, `impactMinIntervals`). `fireClips`, `impactClips`, `fireVolumes`, `impactVolumes`, `pitchJitter`, `fireVoices`, `impactVoices`, `soundOnPlayers`, `soundOnWorld`, `soundOnMoving` and `soundCullDistance` are removed, and impact particles now show whatever is hit; set the sounds again on each card.
-- 互換性のない変更: 射出口のカードに、発射音と着弾音の音源(`fireSources`、`impactSources`)を1つずつ割り当てる形にしました。クリップ・音量・聞こえる距離は、その AudioSource で決めます。`fireMinInterval` / `impactMinInterval` は射出口ごと(`fireMinIntervals`、`impactMinIntervals`)になりました。`fireClips`、`impactClips`、`fireVolumes`、`impactVolumes`、`pitchJitter`、`fireVoices`、`impactVoices`、`soundOnPlayers`、`soundOnWorld`、`soundOnMoving`、`soundCullDistance` は削除し、着弾パーティクルは、当たった相手によらず出るようにしました。各カードで音を設定し直してください。
-- Breaking: shot speed, range, shot radius and the stream rate, look, hit mode and hit interval are set on each emitter card (`shotSpeeds`, `maxRanges`, `castRadii`, `streamRates`, `streamJoins`, `streamHitModes`, `streamHitIntervals`; empty = the old defaults). `hitMask` is removed; shots hit the layers in each emitter particle system's **Collision > Collides With** (Unity's default is every layer, including Ignore Raycast); an emitter without a particle system hits no layers. Set these again on each card and particle system.
-- 互換性のない変更: 弾の速さ・射程・弾の半径と、連射の量・見た目・当たり方・当たりの間隔を、射出口のカードで決める形にしました(`shotSpeeds`、`maxRanges`、`castRadii`、`streamRates`、`streamJoins`、`streamHitModes`、`streamHitIntervals`。空なら以前の既定値)。`hitMask` は削除し、弾が当たるレイヤーは、射出口のパーティクルの **Collision > Collides With** で決めます(Unity の既定は、Ignore Raycast を含むすべてのレイヤーです)。パーティクルを入れていない射出口の弾は、どのレイヤーにも当たらないようにしました。各カードとパーティクルで設定し直してください。
+- `GunnerRig` inspector: each emitter card and each linked bone has its own frame. Add emitters with **+ Add emitter** below the cards and remove one with **Remove** on its card. Add bones with **+ Add parent bone** below the bone list and remove one with **-** on its row. Units are shown in the field names. The bone link values are under **Link settings** on the card.
+- Shot particle systems made by the editor tools leave out layers 2 (Ignore Raycast) and 13 (the hand ball) in **Collides With**. The sample scene uses the new per-emitter fields, and its Shot particles also leave out the same layers. The prefab's Shot particles leave out only layer 2 (Ignore Raycast).
+- `GunnerRig` のインスペクタ: 射出口のカードと連動ボーンを、1つずつ枠で囲みました。射出口はカードの下の **+ 射出口を足す** で足し、各カードの **外す** で外します。骨は、一覧の下の **+ 親の骨を足す** で足し、各行の **-** で外します。欄の名前に単位を付けました。ボーン連動の値は、カードの **連動の設定** にあります。
+- エディタの道具で作る Shot パーティクルは、**Collides With** からレイヤー 2(Ignore Raycast)と 13(手の球)を外した状態になります。サンプルシーンでは、設定を射出口ごとの新しい欄に移し、Shot パーティクルからも同じレイヤーを外しました。プレハブの Shot パーティクルでは、レイヤー 2(Ignore Raycast)だけを外してあります。
 
 ### Removed / 削除
 
+- `shotSpeed`, `maxRange`, `castRadius`. Move them to `shotSpeeds`, `maxRanges`, `castRadii` on each card.
+- `hitMask`. Move it to **Collision > Collides With** on each emitter's particle system.
+- `streamRate`, `streamJoin`, `streamHitMode`, `streamHitInterval`. Move them to `streamRates`, `streamJoins`, `streamHitModes`, `streamHitIntervals` on each card.
+- `fireClips`, `fireVolumes`. Move them to the AudioClip and Volume of the AudioSource in `fireSources`.
+- `impactClips`, `impactVolumes`. Move them to the AudioClip and Volume of the AudioSource in `impactSources`.
+- `fireVoices`, `impactVoices`. Move one source per emitter to `fireSources`, `impactSources`.
+- `pitchJitter`. No replacement; the pitch is the AudioSource's Pitch and no longer varies.
+- `soundOnPlayers`, `soundOnWorld`, `soundOnMoving`. No replacement; sounds and impact particles play on every hit.
+- `soundCullDistance`. Move it to the Far of the `VRC_SpatialAudioSource` on each source.
+- `fireMinInterval`, `impactMinInterval` (old defaults 0.05 / 0.08). Move them to `fireMinIntervals`, `impactMinIntervals` on each card.
+- `boneStrength`, `boneYawMax`, `bonePitchUpMax`, `bonePitchDownMax`, `boneSmooth`, `boneMinSpeed`, `boneMaxSpeed`. Move them to `boneStrengths`, `boneYawMaxes`, `bonePitchUpMaxes`, `bonePitchDownMaxes`, `boneSmooths`, `boneMinSpeeds`, `boneMaxSpeeds` on each card.
 - JSON export and import of number fields (the inspector's **JSON (values)** section, **Values JSON** in the right-click menu, and `GunnerValueSchemas.Register`).
+- `shotSpeed`、`maxRange`、`castRadius`。各カードの `shotSpeeds`、`maxRanges`、`castRadii` へ移してください。
+- `hitMask`。各射出口のパーティクルの **Collision > Collides With** へ移してください。
+- `streamRate`、`streamJoin`、`streamHitMode`、`streamHitInterval`。各カードの `streamRates`、`streamJoins`、`streamHitModes`、`streamHitIntervals` へ移してください。
+- `fireClips`、`fireVolumes`。`fireSources` に入れた AudioSource の AudioClip と Volume へ移してください。
+- `impactClips`、`impactVolumes`。`impactSources` に入れた AudioSource の AudioClip と Volume へ移してください。
+- `fireVoices`、`impactVoices`。射出口ごとに1つずつ、`fireSources`、`impactSources` へ移してください。
+- `pitchJitter`。代わりはありません。音の高さは AudioSource の Pitch で決まり、毎回同じになります。
+- `soundOnPlayers`、`soundOnWorld`、`soundOnMoving`。代わりはありません。どの着弾でも、音と着弾パーティクルが出ます。
+- `soundCullDistance`。各音源の `VRC_SpatialAudioSource` の Far へ移してください。
+- `fireMinInterval`、`impactMinInterval`(以前の既定値は 0.05 / 0.08)。各カードの `fireMinIntervals`、`impactMinIntervals` へ移してください。
+- `boneStrength`、`boneYawMax`、`bonePitchUpMax`、`bonePitchDownMax`、`boneSmooth`、`boneMinSpeed`、`boneMaxSpeed`。各カードの `boneStrengths`、`boneYawMaxes`、`bonePitchUpMaxes`、`bonePitchDownMaxes`、`boneSmooths`、`boneMinSpeeds`、`boneMaxSpeeds` へ移してください。
 - 数値の欄を JSON に書き出す機能と、JSON から読み込む機能(インスペクタの **JSON(数値)** の節、右クリックのメニューの **Values JSON**、`GunnerValueSchemas.Register`)を削除しました。
 
-## [0.10.0] - unreleased / 未公開
+## [0.10.0] - 2026-11-19
 
 Breaking: the fire and impact sounds, their volumes and the impact particles are now set per emitter. Values set in 0.9.0 for the six fields below are lost on update.
 

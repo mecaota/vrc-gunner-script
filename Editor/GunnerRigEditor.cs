@@ -70,8 +70,7 @@ namespace Mecaota.Gunner.EditorTools
                 Fields("stream", "streamCollide");
 
             if (Foldout("GunnerRig.section.bone", false))
-                Fields("boneFollow", "boneStrength", "boneYawMax", "bonePitchUpMax", "bonePitchDownMax",
-                    "boneSmooth", "boneMinSpeed", "boneMaxSpeed");
+                Field("boneFollow");
         }
 
         void Fields(params string[] names)
@@ -171,7 +170,32 @@ namespace Mecaota.Gunner.EditorTools
             Heading("GunnerRig.card.aim");
             FloatAt("aimMaxAngles", i, "GunnerRig.aimMaxAngles.row", 0f, 180f);
             DrawBones(rig, i);
+            DrawFollow(rig, i);
             EditorGUI.indentLevel--;
+        }
+
+        // 追従の値は連動ごとに1組で、実行時は同じ先端の骨を持つ射出口のうち番号の最も若いものの値を使う。
+        void DrawFollow(GunnerRig rig, int i)
+        {
+            var bone = LeadBone(rig, i);
+            if (bone == null) return;
+            int first = 0;
+            while (LeadBone(rig, first) != bone) first++;
+            if (first != i)
+            {
+                EditorGUILayout.LabelField(string.Format(T("GunnerRig.follow.shared"), first), EditorStyles.wordWrappedMiniLabel);
+                return;
+            }
+            var fold = serializedObject.FindProperty("boneStrengths");
+            fold.isExpanded = EditorGUILayout.Foldout(fold.isExpanded, T("GunnerRig.card.follow"), true);
+            if (!fold.isExpanded) return;
+            FloatAt("boneStrengths", i, "GunnerRig.boneStrengths", 1f, 1f);
+            FloatAt("boneYawMaxes", i, "GunnerRig.boneYawMaxes", 30f, float.MaxValue);
+            FloatAt("bonePitchUpMaxes", i, "GunnerRig.bonePitchUpMaxes", 30f, float.MaxValue);
+            FloatAt("bonePitchDownMaxes", i, "GunnerRig.bonePitchDownMaxes", 15f, float.MaxValue);
+            FloatAt("boneSmooths", i, "GunnerRig.boneSmooths", 10f, float.MaxValue);
+            FloatAt("boneMinSpeeds", i, "GunnerRig.boneMinSpeeds", 30f, float.MaxValue);
+            FloatAt("boneMaxSpeeds", i, "GunnerRig.boneMaxSpeeds", 0f, float.MaxValue);
         }
 
         // 骨1本を1つの箱に入れ、欄はほかの欄と同じ位置に並べる。箱はラベルの文字が線に接しないよう少し左へ広げる。
@@ -290,7 +314,8 @@ namespace Mecaota.Gunner.EditorTools
         /// <summary>emitters と同じ番号の配列。</summary>
         internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles",
             "fireSources", "fireMinIntervals", "impactSources", "impactMinIntervals", "impactParticles", "impactBursts",
-            "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals" };
+            "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals",
+            "boneStrengths", "boneYawMaxes", "bonePitchUpMaxes", "bonePitchDownMaxes", "boneSmooths", "boneMinSpeeds", "boneMaxSpeeds" };
 
         /// <summary>射出口 i を、同じ番号の欄とその追加の骨ごと外す。</summary>
         static void RemoveEmitter(SerializedObject so, int i)

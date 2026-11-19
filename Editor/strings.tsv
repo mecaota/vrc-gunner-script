@@ -54,8 +54,6 @@ GunnerRig.section.sound	効果音	Sounds
 GunnerRig.about	指定した位置から弾やパーティクルを撃ち出す部品。	Shoots bullets or particles from the set positions.
 GunnerRig.showHandles	シーンで編集	Edit in scene
 GunnerRig.showHandles.tip	射出口の位置と向き、射程、可動域をシーンビューで動かします	Move the emitters, range and aim limit in the Scene view
-GunnerRig.emitters	射出口	Emitters
-GunnerRig.emitters.tip	+Z が撃つ向き。最大16	+Z is the shooting direction. Up to 16
 GunnerRig.emitters.removeNote	外すと後ろの番号が1つずつ前にずれるので、GunnerPre の番号と useEmitters も直す	Removing an emitter moves later emitters up one number, so update GunnerPre and useEmitters
 GunnerRig.emitters.multi	複数選択中は射出口を編集できません	Emitters cannot be edited while multiple objects are selected
 GunnerRig.emitters.add	+ 射出口を足す	+ Add emitter
@@ -72,9 +70,6 @@ GunnerRig.linkRoot.tip	連動ボーンのうち、いちばん上の骨	The top 
 GunnerRig.linkExtraBones	連動ボーン(根元 → 先端)	Linked bones (root → tip)
 GunnerRig.linkExtraBones.tip	狙いで回す骨。狙いの角度を骨の数で等分して回す。同じ先端の骨を持つ射出口は、骨の鎖を共有する	Bones the aim turns. The aim angle is split evenly across the bones. Emitters with the same tip bone share a chain
 GunnerRig.bones.add	+ 親の骨を足す	+ Add parent bone
-GunnerRig.bones.remove	− 根元の骨を外す	− Remove root bone
-GunnerRig.linkExtraEmitter	追加の骨の射出口	Extra bone emitters
-GunnerRig.linkExtraEmitter.tip	追加の骨(連動ボーンのうち、先端の骨より上の骨)が属する射出口の番号。追加の骨と同じ番号に入れる	The emitter index each extra bone (a linked bone above the tip bone) belongs to. Same index as the extra bones
 GunnerRig.extra.orphan	無い射出口を指す骨	Bones pointing at a missing emitter
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
@@ -105,8 +100,6 @@ GunnerRig.playerRadius	体の太さ	Body radius
 GunnerRig.playerRadius.tip	目の高さに対する割合	Share of the eye height
 GunnerRig.aimMaxAngle	既定の可動域(度)	Default aim limit (°)
 GunnerRig.aimMaxAngle.tip	射出口が狙える角度の上限(度)。撃つ向きの初期値から測る	Limit of the emitter's aim (degrees), measured from the rest direction
-GunnerRig.aimMaxAngles	射出口ごとの可動域	Per-emitter aim limit
-GunnerRig.aimMaxAngles.tip	射出口ごとの狙える角度の上限(度)。0 か空なら全体の「可動域」を使う	Aim limit for each emitter (degrees). 0 or empty uses the overall Aim limit
 GunnerRig.aimMaxAngles.row	可動域(度)	Aim limit (°)
 GunnerRig.aimMaxAngles.row.tip	この射出口が狙える角度の上限(度)。0 なら「既定の可動域」の値を使う	Aim limit for this emitter (degrees). Set to 0 to use "Default aim limit"
 GunnerRig.streamRate	連射の量(個/秒)	Stream rate (/s)

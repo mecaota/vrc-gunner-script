@@ -19,13 +19,14 @@ namespace Mecaota.Gunner.EditorTools
         {
             var rig = (GunnerRig)target;
 
-            if (Foldout("GunnerRig.section.emitters"))
+            bool open = Foldout("GunnerRig.section.emitters");
+            var emitters = serializedObject.FindProperty("emitters");
+            if (targets.Length == 1) CountAt(GUILayoutUtility.GetLastRect(), emitters.arraySize);
+            if (open)
             {
                 // rig ごとに追加の骨の並びが違うので、カードは1つを選んだときだけ。
                 if (targets.Length == 1)
                 {
-                    var emitters = serializedObject.FindProperty("emitters");
-                    CountAt(GUILayoutUtility.GetLastRect(), emitters.arraySize);
                     for (int i = 0; i < emitters.arraySize; i++) DrawCard(rig, emitters, i);
                     using (new EditorGUI.DisabledScope(emitters.arraySize >= GunnerRig.MaxEmitters))
                     {
@@ -182,33 +183,27 @@ namespace Mecaota.Gunner.EditorTools
                 frame.xMin -= 4f;
                 GUI.Box(frame, GUIContent.none, EditorStyles.helpBox);
                 var row = new Rect(box.x, box.y + 2f, box.width, EditorGUIUtility.singleLineHeight);
-                if (rows[r] < 0) ObjectAt("linkBones", i, typeof(Transform), row);
-                else EditorGUI.PropertyField(row, bones.GetArrayElementAtIndex(rows[r]), r == 0 ? Label("GunnerRig.linkRoot") : new GUIContent(" "));
-            }
-            var lead = serializedObject.FindProperty("linkBones");
-            bool hasLead = i < lead.arraySize && lead.GetArrayElementAtIndex(i).objectReferenceValue != null;
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                using (new EditorGUI.DisabledScope(LeadBone(rig, i) == null))
+                if (rows[r] >= 0) ExtraRow(row, rig, rows[r], r == 0 ? Label("GunnerRig.linkRoot") : new GUIContent(" "));
+                else
                 {
-                    if (GUILayout.Button(T("GunnerRig.bones.add")))
+                    ObjectAt("linkBones", i, typeof(Transform), FieldPart(row));
+                    if (MinusAt(row))
                     {
-                        GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, i, 1));
-                        GUIUtility.ExitGUI();
-                    }
-                }
-                using (new EditorGUI.DisabledScope(rows.Count == 1 && !hasLead))
-                {
-                    if (GUILayout.Button(T("GunnerRig.bones.remove")))
-                    {
-                        int k = rows[0];
                         GunnerEditorUtil.Edit(rig, so =>
                         {
-                            if (k >= 0) RemoveExtraAt(so, k);
-                            else so.FindProperty("linkBones").GetArrayElementAtIndex(i).objectReferenceValue = null;
+                            var lead = so.FindProperty("linkBones");
+                            if (i < lead.arraySize) lead.GetArrayElementAtIndex(i).objectReferenceValue = null;
                         });
                         GUIUtility.ExitGUI();
                     }
+                }
+            }
+            using (new EditorGUI.DisabledScope(LeadBone(rig, i) == null))
+            {
+                if (GUILayout.Button(T("GunnerRig.bones.add")))
+                {
+                    GunnerEditorUtil.Edit(rig, so => AddParentBones(rig, so, i, 1));
+                    GUIUtility.ExitGUI();
                 }
             }
         }
@@ -311,15 +306,19 @@ namespace Mecaota.Gunner.EditorTools
                 if (owner >= 0 && owner < emitters) continue;
                 if (!labelShown) EditorGUILayout.LabelField(T("GunnerRig.extra.orphan"));
                 labelShown = true;
-                ExtraRow(EditorGUILayout.GetControlRect(), rig, k);
+                ExtraRow(EditorGUILayout.GetControlRect(), rig, k, GUIContent.none);
             }
         }
 
-        void ExtraRow(Rect row, GunnerRig rig, int k)
+        static Rect FieldPart(Rect row) => new Rect(row.x, row.y, row.width - 28f, row.height);
+
+        static bool MinusAt(Rect row) => GUI.Button(new Rect(row.xMax - 24f, row.y, 24f, row.height), "-");
+
+        void ExtraRow(Rect row, GunnerRig rig, int k, GUIContent label)
         {
             var bones = serializedObject.FindProperty("linkExtraBones");
-            EditorGUI.PropertyField(new Rect(row.x, row.y, row.width - 28f, row.height), bones.GetArrayElementAtIndex(k), GUIContent.none);
-            if (GUI.Button(new Rect(row.xMax - 24f, row.y, 24f, row.height), "-"))
+            EditorGUI.PropertyField(FieldPart(row), bones.GetArrayElementAtIndex(k), label);
+            if (MinusAt(row))
             {
                 GunnerEditorUtil.Edit(rig, so => RemoveExtraAt(so, k));
                 GUIUtility.ExitGUI();

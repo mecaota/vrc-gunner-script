@@ -8,8 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed / 変更
 
-- `GunnerRig` inspector: each emitter card and each linked bone has its own frame. Add emitters with **+ Add emitter** below the cards and remove one with **Remove** on its card. Add or remove bones with the buttons below the bone list. Units are shown in the field names.
-- `GunnerRig` のインスペクタ: 射出口のカードと連動ボーンを、1つずつ枠で囲みました。射出口はカードの下の **+ 射出口を足す** で足し、各カードの **外す** で外します。骨は、一覧の下のボタンで足したり外したりします。欄の名前に単位を付けました。
+- `GunnerRig` inspector: each emitter card and each linked bone has its own frame. Add emitters with **+ Add emitter** below the cards and remove one with **Remove** on its card. Add bones with **+ Add parent bone** below the bone list and remove one from the list with **-** on its row. Units are shown in the field names.
+- `GunnerRig` のインスペクタ: 射出口のカードと連動ボーンを、1つずつ枠で囲みました。射出口はカードの下の **+ 射出口を足す** で足し、各カードの **外す** で外します。骨は、一覧の下の **+ 親の骨を足す** で足し、各行の **-** で一覧から外します。欄の名前に単位を付けました。
 
 ### Removed / 削除
 

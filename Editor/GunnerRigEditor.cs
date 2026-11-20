@@ -26,7 +26,7 @@ namespace Mecaota.Gunner.EditorTools
                     {
                         if (GUILayout.Button(T("GunnerRig.emitters.add")))
                         {
-                            GunnerSetup.AddEmitter(rig, rig.transform, rig.transform.position, rig.transform.rotation);
+                            GunnerSetup.AddEmitter(rig, null, rig.transform.position, rig.transform.rotation);
                             GUIUtility.ExitGUI();
                         }
                     }

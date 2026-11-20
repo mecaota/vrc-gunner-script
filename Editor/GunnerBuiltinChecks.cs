@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Components;
+using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.SDKBase;
 using E = Mecaota.Gunner.EditorTools.GunnerCheckLevel;
 
@@ -35,7 +36,7 @@ namespace Mecaota.Gunner.EditorTools
             var muzzles = rig.muzzles ?? new GunnerEmitter[0];
             if (muzzles.Length == 0)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_emitter", rig,
-                    () => GunnerSetup.AddEmitter(rig, rig.transform, rig.transform.position, rig.transform.rotation)));
+                    () => GunnerSetup.AddEmitter(rig, null, rig.transform.position, rig.transform.rotation)));
             if (muzzles.Length > GunnerRig.MaxEmitters)
                 into.Add(new GunnerCheck(E.Error, "check.rig.too_many_emitters", rig, null, GunnerRig.MaxEmitters.ToString()));
             if (muzzles.Contains(null))
@@ -134,9 +135,10 @@ namespace Mecaota.Gunner.EditorTools
                 if (parent != null) fix = () => GunnerEditorUtil.Edit(parent, so => GunnerEditorUtil.Append(so.FindProperty("muzzles"), m));
                 into.Add(new GunnerCheck(E.Warning, "check.emitter.unlisted", m, fix));
             }
+            // Constraint の付いた Transform を pivot にすると、狙いが上書きされる。
             if (m.pivot == null)
-                into.Add(new GunnerCheck(E.Error, "check.emitter.no_pivot", m,
-                    () => GunnerEditorUtil.Edit(m, so => so.FindProperty("pivot").objectReferenceValue = m.transform)));
+                into.Add(new GunnerCheck(E.Error, "check.emitter.no_pivot", m, m.GetComponent<VRCParentConstraint>() != null ? null :
+                    (System.Action)(() => GunnerEditorUtil.Edit(m, so => so.FindProperty("pivot").objectReferenceValue = m.transform))));
 
             var ps = m.shotParticle;
             if (ps == null)
@@ -174,6 +176,24 @@ namespace Mecaota.Gunner.EditorTools
                     () => GunnerEditorUtil.Edit(m, so => so.FindProperty("aimMaxAngle").floatValue = LinkMax), angle.ToString("0.#")));
 
             LinkBones(m, into);
+            Constraint(m, into);
+        }
+
+        // 先端のボーンの下にない射出口は、Parent Constraint が無いとボーンに付いて行かない。
+        static void Constraint(GunnerEmitter m, List<GunnerCheck> into)
+        {
+            var c = m.GetComponent<VRCParentConstraint>();
+            if (c == null)
+            {
+                var tip = GunnerEmitterEditor.Tip(m);
+                if (tip != null && m.pivot != null && !m.pivot.IsChildOf(tip))
+                    into.Add(new GunnerCheck(E.Warning, "check.emitter.no_constraint", m,
+                        m.pivot != m.transform ? () => GunnerSetup.Follow(m, tip) : (System.Action)null, tip.name));
+                return;
+            }
+            bool empty = c.Sources.Count == 0;
+            for (int i = 0; i < c.Sources.Count; i++) if (c.Sources[i].SourceTransform == null) empty = true;
+            if (empty) into.Add(new GunnerCheck(E.Warning, "check.emitter.constraint_no_source", c));
         }
 
         // 実行時は、赤のボーンを無視して残りで鎖を作る。

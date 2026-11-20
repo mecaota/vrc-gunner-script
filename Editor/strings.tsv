@@ -29,6 +29,8 @@ check.rig.angle_over	狙える角度が180度を超えています: {0}	Aim limi
 check.rig.angle_link	狙える角度が170度を超えています。真後ろ近くでボーンが跳ぶことがあるので、連動する射出口は170度までにしてください: {0}	Aim limit over 170 degrees. Bones can jump near straight back, so keep linked emitters at 170 degrees or less: {0}
 check.emitter.no_pivot	向ける部分がありません	No pivot set
 check.emitter.unlisted	どの GunnerRig の射出口の一覧にも入っていません	Not in any GunnerRig's emitter list
+check.emitter.no_constraint	向ける部分(pivot)が先端のボーン {0} の下になく、VRC Parent Constraint もないため、ボーンに追従しません	The pivot is not under the tip bone {0} and there is no VRC Parent Constraint, so it does not follow the bone
+check.emitter.constraint_no_source	VRC Parent Constraint の Source が空です	The VRC Parent Constraint has an empty source
 check.particle.not_world	パーティクル {0} が World simulation space ではありません	Particles {0} are not in World simulation space
 check.particle.autoplay	パーティクル {0} が自動で再生されます(Play On Awake / Looping)	Particles {0} play by themselves (Play On Awake / Looping)
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
@@ -70,6 +72,8 @@ GunnerEmitter.follow.shared	射出口 {0} と同じボーンです。連動の�
 GunnerEmitter.shotParticle	パーティクル	Particles
 GunnerEmitter.shotParticle.tip	撃つときに出すパーティクル。Simulation Space は World にする。弾が当たるレイヤーは、このパーティクルの Collision > Collides With で決める(Collision を切っていても、この値は使う)	Particles shot from the emitter. Set Simulation Space to World. Shots hit the layers in this particle system's Collision > Collides With (used even when Collision is off)
 GunnerEmitter.bones.add	+ 親のボーンを足す	+ Add parent bone
+GunnerEmitter.followed	追従先(VRC Parent Constraint)	Follows (VRC Parent Constraint)
+GunnerEmitter.followed.none	なし	None
 GunnerRig.movers	動く物	Moving objects
 GunnerRig.movers.tip	当たった跡がこの物に付いて動く	Hits on these follow them
 GunnerRig.receivers	受け手	Receivers

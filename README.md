@@ -110,7 +110,7 @@ Setup:
 | `rig` | empty | The `GunnerRig` to drive. |
 | `zone` | empty = the BoxCollider on this GameObject | The box. |
 | `interval` | 0.2 | Seconds between target and aim updates. |
-| `fireInterval` | 3 | Seconds between shots. It aims only when a shot is due. |
+| `fireInterval` | 3 | Seconds between shots. It starts aiming one or two ticks (`interval` each) before a shot is due. |
 | `aimHeight` | 0.7 | Aim height as a share of the target's eye height. |
 | `emitterMask` | -1 | Emitters it may aim with (bit i = emitter i, -1 = all; emitters a and c of a, b, c = 5). With none in the set, it does not shoot. |
 | `recheckInterval` | 1 | Seconds between position rechecks of the list. 0 = no periodic recheck. |
@@ -118,7 +118,7 @@ Setup:
 How it works:
 
 - Every device keeps the list of players in the zone: `OnPlayerTriggerEnter` adds, `OnPlayerTriggerExit` and `OnPlayerLeft` remove.
-- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). Only on the tick when `fireInterval` has passed, it picks the listed player nearest to the zone centre, then the emitter in `emitterMask` nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)`, `_SetAimTarget(point)` and `_FireWith(emitter, firePayloads[emitter])`. At any other time, and with nobody listed, it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest. While the pre-fire animation plays, it keeps the aim.
+- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). From one or two ticks before a shot is due, it picks the listed player nearest to the zone centre, then the emitter in `emitterMask` nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)` and `_SetAimTarget(point)`, then, once `fireInterval` has passed, `_FireWith(emitter, firePayloads[emitter])`. At any other time, and with nobody listed, it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest. While the pre-fire animation plays, it keeps the aim.
 - When this device becomes the rig's owner, it rechecks the list once, waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
 - Teleporting, respawning, joining and sitting in a station can skip the enter and exit events. Every `recheckInterval` seconds each device fixes its list from positions: a listed player whose feet are more than 0.75 m outside the box is removed, and a player whose feet are inside the box is added. The margin is only for removing, because the trigger counts a player as inside as soon as the body capsule touches the box.
 - Respawn: `OnPlayerRespawn` only reaches the player who respawned, and that device removes the player at once. On the other devices (including the rig's owner) the player is removed by `OnPlayerTriggerExit` if it arrives; if it does not, the recheck removes them within `recheckInterval`, and only when the respawn point is more than 0.75 m outside the box. With `recheckInterval` 0, other devices do not remove them in that case.

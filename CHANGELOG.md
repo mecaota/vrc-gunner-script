@@ -22,8 +22,8 @@ Breaking: `GunnerAutoAim.switchWait` is removed. The value in it is lost on upda
 
 ### Changed / 変更
 
-- `GunnerAutoAim` aims only when it is time to shoot (every `fireInterval`), then shoots. Between shots the emitters return to rest. The aim is kept while the pre-fire animation plays.
-- `GunnerAutoAim` は、撃つ間隔(`fireInterval`)が来た時にだけ狙って撃ちます。撃つ合間は、射出口が休みの向きへ戻ります。撃つ前アニメの間は、狙いを保ちます。
+- `GunnerAutoAim` starts aiming one or two ticks (`interval` each) before each shot (one every `fireInterval`), so the bones have time to turn, then shoots. Between shots the emitters return to rest. The aim is kept while the pre-fire animation plays.
+- `GunnerAutoAim` は、`fireInterval` ごとに撃つ、その `interval` 秒の1〜2回前から狙い始め、ボーンが向く時間を取ってから撃ちます。撃つ合間は、射出口が休みの向きへ戻ります。撃つ前アニメの間は、狙いを保ちます。
 
 ## [0.13.0] - 2026-11-20
 

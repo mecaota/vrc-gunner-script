@@ -198,10 +198,11 @@ namespace Mecaota.Gunner
         {
             // 撃つ前のアニメを待っている間は、狙いを保つ。
             if (rig._IsPreFiring()) return;
-            // 撃つ間隔が来た時だけ、狙って撃つ。それ以外は休みの向きへ戻す。
+            // 撃つ前の1〜2 tick から狙い始め、間隔が来た tick で撃つ(ボーンが向く時間を取る。フレームのずれで狙う tick が抜けないよう、窓は tick 2つ分)。それ以外は休みの向きへ戻す。
+            float waited = now - lastFireAt;
             int e = -1;
             Vector3 point = Vector3.zero;
-            if (now - lastFireAt >= fireInterval)
+            if (waited >= fireInterval - 2f * Mathf.Max(interval, 0.02f))
             {
                 // 1. 一覧の中で、範囲の中心に一番近い人。
                 Vector3 center = ZoneCenter();
@@ -231,10 +232,11 @@ namespace Mecaota.Gunner
                 return;
             }
 
-            // 3. その射出口だけを狙う組に入れ、狙う点へ向けて撃つ(この順で呼ぶ)。
+            // 3. その射出口だけを狙う組に入れ、狙う点へ向ける。間隔が来ていれば撃つ(この順で呼ぶ)。
             rig._SetAimEmitters(1 << e);
             rig._SetAimTarget(point);
             aiming = true;
+            if (waited < fireInterval) return;
             lastFireAt = now;
             rig._FireWith(e, firePayloads != null && e < firePayloads.Length ? firePayloads[e] : 0);
         }

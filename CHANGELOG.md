@@ -6,14 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Breaking: `GunnerEmitter.streamJoin` is removed. Whether the stream is joined into a line is now the particle system's **Trails > Mode**.
+Breaking: a stream set to Joined line (the old `streamJoin` default) is no longer joined after the update if **Trails > Mode** is set to Particles, the default. To join it, set **Trails > Mode** to Ribbon.
 
-互換性のない変更です。`GunnerEmitter.streamJoin` を削除しました。連射を線につなぐかどうかは、パーティクルの **Trails > Mode** で決まります。
+互換性のない変更です。「線につなぐ」(旧 `streamJoin` の既定)だった連射は、**Trails > Mode** が既定の Particles のままだと、更新後はつながらなくなります。つなぐには **Trails > Mode** を Ribbon にしてください。
 
 ### Breaking changes / 互換性のない変更
 
-- `GunnerEmitter.streamJoin` is removed. For a joined stream, turn on Trails on the emitter's particle system and set **Mode** to Ribbon. With Trails off, or Mode left at Particles, the stream is not joined. A stream that used Joined line (the old `streamJoin` default) with Trails Mode at Particles (the default) is now unjoined; to join it, set Trails Mode to Ribbon.
-- `GunnerEmitter.streamJoin` を削除しました。つなぐ連射にするには、射出口のパーティクルの Trails を ON にして **Mode** を Ribbon にします。Trails が OFF か、Mode が Particles のままなら、つながない連射です。「線につなぐ」(旧 `streamJoin` の既定)で Trails の Mode が Particles(既定値)のままの連射は、すべてつながない連射になります。つなぐには Trails の Mode を Ribbon にしてください。
+- `GunnerEmitter.streamJoin` is removed. The stream is joined only when the emitter's particle system has Trails on and **Mode** set to Ribbon.
+- `GunnerEmitter.streamJoin` を削除しました。連射がつながるのは、射出口のパーティクルの Trails が ON で **Mode** が Ribbon のときだけです。
 - `GunnerStream.span` is removed.
 - `GunnerStream.span` を削除しました。
 - Removed: `GunnerStream.JoinParticles`, `GunnerStream.JoinLine`, `GunnerRig._StreamJoin` and `GunnerStream._PreSimulate`. `_StepMasked` now returns void.

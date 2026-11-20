@@ -124,9 +124,6 @@ namespace Mecaota.Gunner.EditorTools
     [CustomEditor(typeof(GunnerPickupInput)), CanEditMultipleObjects]
     public class GunnerPickupInputEditor : GunnerInspectorBase { }
 
-    [CustomEditor(typeof(GunnerStickAim)), CanEditMultipleObjects]
-    public class GunnerStickAimEditor : GunnerInspectorBase { }
-
     [CustomEditor(typeof(GunnerMoveHold)), CanEditMultipleObjects]
     public class GunnerMoveHoldEditor : GunnerInspectorBase { }
 

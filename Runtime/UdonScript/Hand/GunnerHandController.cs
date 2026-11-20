@@ -13,7 +13,6 @@ namespace Mecaota.Gunner
 
         public GunnerRig rig;
         public GunnerPickupInput input;
-        public GunnerStickAim aim;                // 任意: 無ければスティックで狙わない
         public GunnerMoveHold hold;               // 任意: 撃っている間もプレイヤーが歩ける
 
         public int emitter = -1;                  // -1 = 全部の射出口。それぞれ射出口の撃ち方で撃つ
@@ -24,13 +23,12 @@ namespace Mecaota.Gunner
         public bool followBone;                   // 持っている間は rig のボーンの連動を on にする(終わったら戻す)
         public bool resetAimOnEnd = true;
         // 持っている間に rig へ入れる「狙う射出口の組」(ビット i = 射出口 i。rig._SetAimEmitters)。0 = 触らない(今までどおり)。
-        // 終わったら全部に戻す。狙いの基準(スティックの角度)は今までどおり射出口0の休みの向き。
+        // 終わったら全部に戻す。
         public int useEmitters;
 
         private bool active;
         private bool triggerDown;
         private bool streaming;
-        private bool aimSent;
         private bool boneChanged;
         private bool emittersChanged;
         private bool closePending;
@@ -39,7 +37,7 @@ namespace Mecaota.Gunner
         private void Update()
         {
             _Refresh();
-            if (active) StepAim();
+            if (active) rig._SetAimTarget(input.transform.position + input.transform.forward * rig._Range(Mathf.Max(emitter, 0)));
             if (closePending) StepWindow();
         }
 
@@ -114,9 +112,7 @@ namespace Mecaota.Gunner
             if (followBone) rig._TakeOwnership();
             active = true;
             triggerDown = false;
-            aimSent = false;
             if (hold != null) hold._Hold();
-            if (aim != null) aim._Reset();
             if (useEmitters != 0)
             {
                 rig._SetAimEmitters(useEmitters);
@@ -167,16 +163,6 @@ namespace Mecaota.Gunner
         }
 
         // ---------------- 毎フレーム ----------------
-
-        private void StepAim()
-        {
-            if (aim == null || input == null) return;
-            input._ReadStick();
-            bool changed = aim._Step(input.stickX, input.stickY, Time.deltaTime);
-            if (!changed && aimSent) return;
-            rig._SetAimAngles(aim.yaw, aim.pitch);
-            aimSent = true;
-        }
 
         private void OpenWindow(bool collide)
         {

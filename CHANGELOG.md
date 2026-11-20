@@ -16,12 +16,16 @@ Breaking: `GunnerRig.fireMode` is replaced by the per-emitter `fireModes`. The v
 - `TriggerDown()` starts the stream on the Stream emitters and fires the Single emitters once, and `TriggerUp()` stops the stream. The hand controller does the same; with `emitter` set to one emitter, it uses that emitter's fire mode.
 - `Fire()` and `_FireWith(-1, payload)` fire only the Single emitters in the aim set. `_FireWith(emitter, payload)` with an emitter number still fires that emitter, whatever its fire mode. `_FireVolley()` is unchanged.
 - A stream comes out only of the Stream emitters in the aim set. With no Stream emitter in the aim set, `StartStream()` does nothing: the stream does not start, nothing is synced and `_OnFire` is not called.
+- The hand-held ball (`GunnerHandController`) now aims at the point straight ahead of the ball (as far as the emitter's range), using `_SetAimTarget` like `GunnerAutoAim`. Stick aiming is removed: `GunnerStickAim`, `GunnerHandController.aim`, `GunnerPickupInput.desktopStick` / `invertVertical`, and `GunnerRig._SetAimAngles`. Remove the GunnerStickAim component left on the ball prefab and on balls in your scenes (it shows as a missing script).
+- On links whose aim limit is over 90 degrees, the bones now follow the hand-held ball with the axis-and-angle form instead of yaw and pitch, the same as for `GunnerAutoAim`.
 - **Place Hand Controller** is removed from the `GunnerRig` inspector and the `GameObject/Gunner` menu (`GunnerSetup.PlaceHand` too). The ball components and the sample prefab stay, so the ball can still be used for debugging.
 - `fireMode` を削除しました。撃ち方(単発・連射)は、射出口のカードの `fireModes` で決めます(空なら単発)。`fireMode` を連射にしていた rig は、すべてのカードで連射にしてください。単発のままの rig は、変更する必要はありません。
 - `TriggerDown()` を呼ぶと、連射の射出口で連射を始め、単発の射出口で1回撃ちます。`TriggerUp()` は連射を止めます。手に持つ球(`GunnerHandController`)も同じように撃ちます。`emitter` に射出口の番号を入れた球は、その射出口の撃ち方で撃ちます。
 - `Fire()` と `_FireWith(-1, payload)` は、狙う射出口の組のうち、単発の射出口だけから撃ちます。`_FireWith(emitter, payload)` に射出口の番号を渡したときは、これまでどおり、撃ち方に関係なくその射出口で撃ちます。`_FireVolley()` は変わりません。
 - 連射は、狙う射出口の組のうち、連射の射出口だけから出ます。狙う射出口の組に連射の射出口がない場合は、`StartStream()` を呼んでも連射は始まりません。同期も `_OnFire` の呼び出しも行われません。
 - `GunnerRig` のインスペクタと `GameObject/Gunner` メニューから **操作用の球を置く**(Place Hand Controller)を削除しました。`GunnerSetup.PlaceHand` も削除しました。操作用の球はデバッグ用として引き続き使えるよう、球のコンポーネントとサンプルのプレハブは残しています。
+- 手に持つ球(`GunnerHandController`)は、球の正面方向で、射出口の射程の距離にある点を狙うようにしました。`GunnerAutoAim` と同じく `_SetAimTarget` を使うようにしました。スティックで狙う機能は削除しました。これに伴い、`GunnerStickAim`、`GunnerHandController.aim`、`GunnerPickupInput.desktopStick` / `invertVertical`、`GunnerRig._SetAimAngles` を削除しました。球のプレハブやシーン内の球に残った `GunnerStickAim` のコンポーネントは、見つからないスクリプト(Missing Script)として表示されるため、手動で削除してください。
+- 狙える角度が 90 度を超える連動では、手に持つ球で狙うときのボーンの追従の計算を、左右・上下ではなく、軸と角度で行うようにしました(`GunnerAutoAim` と同じです)。
 
 ## [0.12.0] - 2026-11-20
 

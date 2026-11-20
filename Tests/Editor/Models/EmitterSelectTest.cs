@@ -413,27 +413,6 @@ namespace Mecaota.Gunner.Tests.Models
                 Check("暴れ止めの境目で上の軸が連続", maxDiff < 0.05f, $"差 {maxDiff:F4} 度");
             }
 
-            // 8. 手に持つ球の角度での狙い(AimAngles)も、射出口ごとの角度(AimLimit)で切る
-            {
-                // Wish の写し: limit = AimLimit(i)(空なら DefaultAimLimit)。RotateTowards は角度だけ回す。
-                Vector3 WishAngles(float yaw, float pitch, float[] perEmitter)
-                {
-                    Vector3 rest = Vector3.UnitZ;
-                    Vector3 w = Vector3.Transform(Vector3.UnitZ, Euler(-pitch, yaw, 0));
-                    float limit = perEmitter != null && perEmitter.Length > 0 && perEmitter[0] > 0f ? perEmitter[0] : Rig.DefaultAimLimit;
-                    float a = UAngle(rest, w);
-                    if (a <= limit) return w;
-                    Vector3 axis = Vector3.Normalize(Vector3.Cross(rest, w));
-                    return Vector3.Transform(rest, Quaternion.CreateFromAxisAngle(axis, limit * Deg));
-                }
-                float diagRaw = UAngle(Vector3.UnitZ, Vector3.Transform(Vector3.UnitZ, Euler(-60, 60, 0)));
-                float diagDefault = UAngle(Vector3.UnitZ, WishAngles(60, 60, null));
-                float diag120 = UAngle(Vector3.UnitZ, WishAngles(60, 60, new[] { 120f }));
-                Check("球の斜めいっぱい(左右60・上下60): 空は 60 度で切り、120 は切らない",
-                    diagDefault <= 60.001f && Math.Abs(diag120 - diagRaw) < 0.01f,
-                    $"丸めなし {diagRaw:F1} 度 / 空 {diagDefault:F1} 度 / 射出口ごと120 {diag120:F1} 度");
-            }
-
             sb.AppendLine(fails == 0 ? "全部 OK" : $"NG {fails} 件");
             return sb.ToString();
         }

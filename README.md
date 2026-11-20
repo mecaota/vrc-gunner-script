@@ -7,7 +7,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 - Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.13.0). APIs will change.
+Status: early (0.15.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -79,7 +79,7 @@ On each `GunnerEmitter`:
 | `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
 | `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
 
-Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). The rig copies the emitters' values when it starts. In Play mode in the editor, a change on a `GunnerEmitter` is copied again, except `pivot`, `shotParticle`, the fire mode, `streamCollide`, `linkBones` and the values the stream reads (`shotSpeed`, `maxRange`, `streamRate`, `streamJoin`, `streamHitMode`, `streamHitInterval`), which are read once when the rig starts; to switch stream collision at runtime, use `_SetCollision(on)`. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). The rig copies the emitters' values when it starts. In Play mode in the editor, a change on a `GunnerEmitter` takes effect at once for single shots, sounds, `castRadius` and the like. The values the stream (`GunnerStream`) reads (`shotSpeed`, `maxRange`, `streamRate`, `streamJoin`, `streamHitMode`, `streamHitInterval`), the fire mode, `streamCollide`, `linkBones` and the rest pose apply from the next Play. `pivot` and `shotParticle` change for single shots at once, but the stream and the rest pose use the old ones until the next Play. To be sure, Play again; to switch stream collision at runtime, use `_SetCollision(on)`. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
 
 Emitters with the same tip bone turn that bone together, using the bone fields of the lowest-numbered one; the others do not show them. When that emitter changes (it is removed from the list, or its tip bone is changed), the new lowest-numbered emitter's values are used.
 
@@ -139,7 +139,7 @@ How it works:
 ## Quick start
 
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
-2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
+2. Select the emitter's `Pivot` and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
 3. For fire and impact sounds and impact particles, set the AudioSources and impact particles on each `GunnerEmitter`. For anything else, add your own `GunnerHitReceiver`.
 4. Call `TriggerDown()` / `TriggerUp()` from your own script.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
@@ -153,6 +153,7 @@ Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 - **Add Gunner Rig**: a new rig (or a child rig on an object with VRC Object Sync), with one emitter and a `GunnerStream`.
 - **Add Emitter**: an emitter at `rig/muzzles/<name>` (a `GunnerEmitter`, a child `Pivot` and its own particles), added to the rig's list. On a bone, it starts at the bone and follows it with a VRC Parent Constraint (offset = the pose when it was made). The bone can be outside the rig, in an armature next to it under the same Animator.
 - **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator). The emitter follows the bone in the same way.
+- **+ Add parent bone** (on the `GunnerEmitter` inspector, for `linkBones`): an emitter made by these commands has an empty `linkBones`; with the list empty, the button adds the bone its VRC Parent Constraint follows, and each press after that adds the parent of the first one.
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 
@@ -170,6 +171,19 @@ Both are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnLoad]`
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
+
+## Changes in 0.15.0
+
+Breaking: each emitter is now a `GunnerEmitter` component, and the rig's per-emitter arrays are gone. Emitters sit under `rig/muzzles` and follow bones with a VRC Parent Constraint. Old values are lost on update; note them first and see the migration steps in CHANGELOG.md.
+
+```
+Spider                (has the Animator)
+├─ Armature            (the bone is here)
+└─ GunnerRig
+   └─ muzzles
+      └─ mouth      GunnerEmitter + VRC Parent Constraint (source: the bone)
+         └─ Pivot   the pivot: the aim turns this
+```
 
 ## Changes in 0.13.0
 

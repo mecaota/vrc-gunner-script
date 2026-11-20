@@ -4,54 +4,56 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
-## [Unreleased]
+## [0.15.0] - 2026-11-20
 
-Breaking: each emitter's settings move from the rig's per-emitter arrays to a new component, `GunnerEmitter`. The values in the old arrays are lost on update.
+Breaking: the rig's per-emitter arrays are replaced by one `GunnerEmitter` component per emitter. Values in the old arrays are lost on update.
 
-互換性のない変更です。射出口ごとの設定を、rig の射出口ごとの配列から、新しい部品 `GunnerEmitter` へ移しました。古い配列の値は、更新すると失われます。
+互換性のない変更です。rig の射出口ごとの配列を、射出口1つにつき部品 `GunnerEmitter` 1つに置き換えました。古い配列の値は、更新すると失われます。
 
 ### Breaking changes / 互換性のない変更
 
-- `GunnerRig` no longer has `emitters`, `shotParticles`, `linkBones`, `linkExtraBones`, `linkExtraEmitter`, `fireModes`, `aimMaxAngles` or the other per-emitter arrays (bone, sound, impact, shot and stream). Each emitter is a `GunnerEmitter` with the same fields in the singular (`pivot` takes the place of the emitter Transform). The rig lists them in `muzzles`, and the order gives the emitter numbers.
-- `GunnerRig` から、`emitters`、`shotParticles`、`linkBones`、`linkExtraBones`、`linkExtraEmitter`、`fireModes`、`aimMaxAngles` と、そのほかの射出口ごとの配列(ボーン、音、着弾、弾、連射)を削除しました。射出口は1つずつ `GunnerEmitter` になり、欄の名前は単数形になりました(射出口の Transform は `pivot` に入れます)。rig の `muzzles` に射出口を並べ、その順が射出口の番号になります。
-- Linked bones are one list per emitter, `GunnerEmitter.linkBones`, from root to tip; the last one is the tip. The emitter's parent is no longer used as the tip when the list is empty, and the emitter no longer has to be under the tip bone. To keep a link that used the emitter's parent, put that bone in `linkBones`.
-- 連動ボーンは、射出口ごとに1つの一覧 `GunnerEmitter.linkBones`(根元 → 先端)にまとめました。最後のボーンが先端です。一覧が空のときに射出口の親を先端として使うことはなくなり、射出口が先端のボーンの下にある必要もなくなりました。射出口の親で連動していた場合は、そのボーンを `linkBones` に入れてください。
-- `GunnerSetup.AddEmitter` returns the new `GunnerEmitter`. Its second parameter is now the bone to follow (`null` = none), and the emitter is made at `rig/muzzles/<name>` instead of under that object.
-- `GunnerSetup.AddEmitter` は、作った `GunnerEmitter` を返します。2つ目の引数は、追従するボーンになりました(`null` なら追従しません)。射出口は、渡した物の下ではなく、常に `rig/muzzles/<名前>` に作ります。
-- `GunnerSetup.RigFor`: when no rig is above the object, it returns the first rig under the nearest Animator above the object.
-- `GunnerSetup.RigFor` は、上に rig が無いとき、祖先のうち最も近い Animator の下で最初に見つかった rig を返します。
+- `GunnerRig` loses `emitters`, `shotParticles`, `linkBones`, `linkExtraBones`, `linkExtraEmitter` and every other per-emitter array. Each emitter is a `GunnerEmitter` with the same fields in the singular (`pivot` replaces the emitter Transform). List them in the rig's `muzzles`; the order gives the emitter numbers.
+- `GunnerRig` から、`emitters`、`shotParticles`、`linkBones`、`linkExtraBones`、`linkExtraEmitter` と、そのほかの射出口ごとの配列を削除しました。射出口は1つずつ `GunnerEmitter` になり、欄の名前は単数形です(射出口の Transform は `pivot` に入れます)。rig の `muzzles` に並べ、その順が射出口の番号になります。
+- Linked bones are one list per emitter, `GunnerEmitter.linkBones`, from root to tip. An empty list no longer falls back to the emitter's parent, and the emitter need not be under the tip bone. To keep a link that used the emitter's parent as the tip, put that bone in `linkBones`.
+- 連動ボーンは、射出口ごとの1つの一覧 `GunnerEmitter.linkBones`(根元 → 先端)にまとめました。空のとき射出口の親を使うことはなくなり、射出口が先端のボーンの下にある必要もありません。射出口の親を先端として連動していた場合は、そのボーンを `linkBones` に入れてください。
+- `GunnerSetup.AddEmitter` returns the new `GunnerEmitter`; its second parameter is the bone to follow (`null` = none).
+- `GunnerSetup.AddEmitter` は作った `GunnerEmitter` を返し、2つ目の引数は追従するボーン(`null` なら追従しません)です。
+- `GunnerSetup.RigFor`: with no `GunnerRig` on the object or its parents, it uses the nearest Animator (the object itself included) and returns the first rig under it. With several rigs under one Animator, the first one is used.
+- `GunnerSetup.RigFor` は、自身か親に `GunnerRig` が無いとき、最も近い Animator(自身を含む)の下で最初に見つかった rig を返します。同じ Animator の下に rig が複数あるときは、最初の1つです。
 
 ### Added / 追加
 
-- The `GunnerEmitter` inspector and its Scene view handles. The rig's inspector lists the emitters; **+ Add emitter** makes the emitter with its `GunnerEmitter` and particles, and **Remove** only takes it off the list (the GameObject stays).
-- `GunnerEmitter` のインスペクターと、シーンビューのハンドルを足しました。rig のインスペクターには射出口の一覧を出します。「+ 射出口を足す」は `GunnerEmitter` とパーティクルを付けた射出口を作り、「外す」は一覧から外すだけで、GameObject は消しません。
-- Checks: no `pivot`, and a `GunnerEmitter` that is in no rig's list (Fix adds it to the rig above it).
-- 点検を2つ足しました: `pivot` が空のとき、`GunnerEmitter` がどの rig の一覧にも入っていないとき(「直す」で、親の rig の一覧に足します)。
-- In Play mode in the editor, a change on a `GunnerEmitter` takes effect at once (the rig copies the values again with `_LoadMuzzles`). `pivot`, `shotParticle`, the fire mode, `streamCollide`, `linkBones` and the values the stream reads still apply from the next Play.
-- エディターの Play 中に `GunnerEmitter` の値を変えると、すぐに効きます(rig が `_LoadMuzzles` で値を写し直します)。`pivot`、`shotParticle`、撃ち方、`streamCollide`、`linkBones`、連射が読む値は、次に Play したときから効きます。
-- **Add Emitter**, **Add Emitter At Body Part** and **+ Add emitter** make the emitter at `rig/muzzles/<name>` with a child `Pivot`, which is its `pivot` (the part the aim turns). Made on a bone, the emitter gets a VRC Parent Constraint that follows the bone, with the pose at that time as the offset. **Add Emitter** also works on a bone outside the rig, in an armature next to it under the same Animator.
-- 「Add Emitter」「Add Emitter At Body Part」「+ 射出口を足す」は、射出口を `rig/muzzles/<名前>` に作り、子 `Pivot` を `pivot`(狙いで回す部分)にします。ボーンを選んで作ると、そのボーンに追従する VRC Parent Constraint を射出口に付けます(作ったときの姿勢を Offset にします)。「Add Emitter」は、rig の外(同じ Animator の下で、rig と横に並んだ Armature の中)にあるボーンでも使えます。
-- Checks: linked bones while the `pivot` is not under the tip bone and there is no VRC Parent Constraint (Fix adds one that follows the tip bone, unless the `pivot` is the emitter itself), and a VRC Parent Constraint with an empty source. The Fix for no `pivot` is off when the emitter has a VRC Parent Constraint.
-- 点検を2つ足しました。連動ボーンがあるのに、`pivot` が先端のボーンの下になく、VRC Parent Constraint もない場合(`pivot` が射出口そのものでなければ、「直す」で先端のボーンに追従する Constraint を付けます)と、VRC Parent Constraint の Source が空の場合に知らせます。射出口に VRC Parent Constraint があるときは、`pivot` が空のときの点検の「直す」を出しません。
-- The `GunnerEmitter` inspector shows the bone its VRC Parent Constraint follows. With `linkBones` empty, **+ Add parent bone** adds that bone.
-- `GunnerEmitter` のインスペクターに、VRC Parent Constraint の追従先を表示します。`linkBones` が空のとき、「+ 親のボーンを足す」は、その追従先のボーンを入れます。
+- `GunnerEmitter` inspector and Scene view handles. The rig's inspector lists the emitters; **+ Add emitter** makes one (it follows no bone), and **Remove** only takes it off the list.
+- `GunnerEmitter` のインスペクターとシーンビューのハンドル。rig のインスペクターは射出口を一覧にし、「+ 射出口を足す」で作り(ボーンには追従しません)、「外す」は一覧から外すだけです。
+- Emitters are made at `rig/muzzles/<name>` with a child `Pivot` (the `pivot`, the part the aim turns). **Add Emitter** on a bone and **Add Emitter At Body Part** add a VRC Parent Constraint that follows the bone, with the pose at that time as the offset. **Add Emitter** also accepts a bone in an armature that sits next to the rig under the same Animator.
+- 射出口は `rig/muzzles/<名前>` と子 `Pivot`(`pivot`。狙いで回す部分)として作ります。ボーンの上で使う「Add Emitter」と「Add Emitter At Body Part」は、そのボーンに追従する VRC Parent Constraint を付け、そのときの姿勢を Offset にします。「Add Emitter」は、同じ Animator の下で rig と並ぶ Armature のボーンも使えます。
+- Do not use a Transform with a constraint as the `pivot`; the constraint overwrites the aim.
+- Constraint の付いた Transform は `pivot` にしないでください。狙いを Constraint が上書きします。
+- With `linkBones` empty, **+ Add parent bone** on the `GunnerEmitter` inspector adds the bone its VRC Parent Constraint follows.
+- `linkBones` が空のとき、`GunnerEmitter` のインスペクターの「+ 親のボーンを足す」は、VRC Parent Constraint の追従先のボーンを入れます。
+- In Play mode in the editor, a change on a `GunnerEmitter` takes effect at once for single shots, sounds, `castRadius` and the like. The values the stream (`GunnerStream`) reads, the fire mode, `streamCollide`, `linkBones` and the rest pose apply from the next Play. `pivot` and `shotParticle` change for single shots at once, but the stream and the rest pose use the old ones until the next Play. To be sure, Play again.
+- エディターの Play 中にインスペクターで値を変えると、単発の発射、音、`castRadius` などはすぐ変わります。連射(`GunnerStream`)が読む値、撃ち方、`streamCollide`、`linkBones`、休みの姿勢は、次の Play から効きます。`pivot` と `shotParticle` は単発だけ先に変わり、連射と休みの姿勢は次の Play からです。確実に確かめるときは、Play し直してください。
+- Checks: no `pivot`; a `GunnerEmitter` in no rig's list; the `pivot` is not under the tip bone and there is no VRC Parent Constraint; a VRC Parent Constraint with an empty source.
+- 点検の追加: `pivot` が空、どの rig の一覧にもない `GunnerEmitter`、`pivot` が先端のボーンの下になく VRC Parent Constraint もない、Source が空の VRC Parent Constraint。
 
 ### Removed / 削除
 
-- The checks for per-emitter arrays longer than the emitter list and for extra bones that point at a missing emitter.
-- 射出口より長い配列の点検と、無い射出口を指す追加のボーンの点検を削除しました。
+- The checks for per-emitter array lengths.
+- 射出口ごとの配列の長さの点検を削除しました。
 
 ### Migration / 入れ直しの手順
 
 1. Before updating, note each emitter's values on its card in the rig's inspector, including the linked bones.
-2. After updating, for each emitter make `muzzles/<name>` under the rig with the emitter's world position and rotation, and add a `GunnerEmitter` to it. If the emitter was under a bone, also add a VRC Parent Constraint there, set its source to that bone and press **Activate**. Move the emitter GameObject under `muzzles/<name>`, keeping its world pose, set `pivot` to it, and enter the values again. List the linked bones from root to tip, ending with the old tip bone (if the tip was empty and the emitter's parent was inside the rig, end with that parent). Do this only if the emitter was a descendant of that tip bone; otherwise it was not linked, so leave `linkBones` empty.
-3. Add the `GunnerEmitter`s to the rig's `muzzles` in the old order, so the emitter numbers stay the same.
-4. Open **Tools > Gunner > Check Window** and fix what it lists.
+2. After updating, for each emitter make `muzzles/<name>` under the rig at the emitter's world pose and add a `GunnerEmitter`. If the emitter was under a bone, add a VRC Parent Constraint there, set its source to that bone and press **Activate**. Move the old emitter GameObject under it keeping its world pose, set it as `pivot`, and enter the values again.
+3. If the emitter was a descendant of its tip bone, list `linkBones` from root to tip, ending with that old tip bone (if the tip field was empty and the emitter's parent was a bone under the rig, not the rig itself, end with that parent). Otherwise it was not linked: leave `linkBones` empty.
+4. Add the `GunnerEmitter`s to the rig's `muzzles` in the old order so the emitter numbers stay the same.
+5. Open **Tools > Gunner > Check Window** and fix what it lists.
 
 1. 更新の前に、rig のインスペクターで、射出口ごとのカードの値(連動ボーンを含む)を控えます。
-2. 更新した後、射出口ごとに、rig の下へ `muzzles/<名前>` を射出口と同じワールドの位置・向きで作り、`GunnerEmitter` を付けます。射出口がボーンの下にあった場合は、作った `muzzles/<名前>` に VRC Parent Constraint も付け、Source にそのボーンを入れて「Activate」を押します。射出口の GameObject をワールドの姿勢を保ったまま `muzzles/<名前>` の下へ移し、`pivot` に入れて、控えた値を入れ直します。連動ボーンは根元から先端の順に並べ、一覧の最後には更新前の先端のボーンを入れます(先端の欄が空で、射出口の親が rig の中にあった場合は、その親を最後に入れます)。ただし、入れるのは射出口がその先端のボーンの子孫だった場合だけです。子孫でなかった射出口は連動していなかったので、`linkBones` は空のままにします。
-3. rig の `muzzles` に、前と同じ順で `GunnerEmitter` を入れます(射出口の番号を変えないため)。
-4. **Tools > Gunner > Check Window** を開き、出た項目を直します。
+2. 更新した後、射出口ごとに rig の下へ `muzzles/<名前>` を射出口と同じワールドの姿勢で作り、`GunnerEmitter` を付けます。射出口がボーンの下にあった場合は、そこに VRC Parent Constraint も付け、Source にそのボーンを入れて「Activate」を押します。古い射出口の GameObject を、ワールドの姿勢を保ったままその下へ移して `pivot` に入れ、控えた値を入れ直します。
+3. 射出口が先端のボーンの子孫だった場合は、`linkBones` に根元から先端の順に並べ、最後に更新前の先端のボーンを入れます(先端の欄が空で、射出口の親が rig の下のボーン(rig 自身は除く)だった場合は、その親を最後に入れます)。子孫でなかった射出口は連動していなかったので、`linkBones` は空のままにします。
+4. rig の `muzzles` に、前と同じ順で `GunnerEmitter` を入れます(射出口の番号を変えないため)。
+5. **Tools > Gunner > Check Window** を開き、出た項目を直します。
 
 ## [0.14.0] - 2026-11-20
 

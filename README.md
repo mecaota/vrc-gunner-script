@@ -54,7 +54,7 @@ On the rig:
 
 | Field | Default | Meaning |
 |---|---|---|
-| `muzzles` | empty | The `GunnerEmitter`s. The order gives the emitter numbers (`GunnerPre<n>`, `useEmitters`, `emitterMask`). |
+| `muzzles` | empty | The `GunnerEmitter`s. The order gives the emitter numbers (`GunnerPre<n>`, `useEmitters`, `emitterSwitches`). |
 | `maxHits` | 16 | Hit records this device uses (1-16). |
 | `playerRadius` | 0.12 | Body radius as a share of the player's eye height. |
 | `boneFollow` | off | Initial state: whether linked bones turn with the aim at start. Switch at runtime with `BoneFollowOn` / `BoneFollowOff`. |
@@ -121,14 +121,15 @@ Setup:
 | `interval` | 0.2 | Seconds between target and aim updates. |
 | `fireInterval` | 3 | Seconds between shots. It starts aiming one or two ticks (`interval` each) before a shot is due. |
 | `aimHeight` | 0.7 | Aim height as a share of the target's eye height. |
-| `emitterMask` | -1 | Emitters it may aim with (bit i = emitter i, -1 = all; emitters a and c of a, b, c = 5). With none in the set, it does not shoot. |
+| `emitterSwitches` | empty | One mark GameObject per emitter, in emitter order. An emitter whose mark is inactive is not used; an empty slot or a missing entry is always used. With no usable emitter, it does not shoot. |
 
 How it works:
 
-- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). From one or two ticks before a shot is due, it picks, among all players whose feet are inside the box, the one nearest to the zone centre, then the emitter in `emitterMask` nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)` and `_SetAimTarget(point)`, then, once `fireInterval` has passed, `_FireWith(emitter, firePayloads[emitter])`. At any other time, and with nobody inside, it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest. While the pre-fire animation plays, it keeps the aim.
+- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). From one or two ticks before a shot is due, it picks, among all players whose feet are inside the box, the one nearest to the zone centre, then the usable emitter (see `emitterSwitches`) nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)` and `_SetAimTarget(point)`, then, once `fireInterval` has passed, `_FireWith(emitter, firePayloads[emitter])`. At any other time, and with nobody inside, it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest. While the pre-fire animation plays, it keeps the aim.
 - When this device becomes the rig's owner, it waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
 - Teleported, respawned and seated players count by where their feet are now.
 - The rig's owner (the local player on the owner's device) can be chosen as a target and hit too.
+- To switch emitters with a switch, put empty GameObjects in `emitterSwitches` and let the switch turn them on and off (for example LuraSwitch2's ModeSwitch with the marks in its `targets`). Use one switch per group of emitters (mouth, spinnerets) and keep one `GunnerAutoAim` per rig.
 - The aim is synced only while the rig syncs it (bone follow on with linked bones, or a stream started on this device). With bone follow off, other devices see the emitters stay at rest; the shots still fly to the recorded points.
 
 ## Quick start

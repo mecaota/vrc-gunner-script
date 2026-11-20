@@ -6,14 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Breaking: `GunnerAutoAim.recheckInterval` is removed. The value in it is lost on update.
+Breaking: `GunnerAutoAim.recheckInterval` is removed, and `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`. The values in them are lost on update.
 
-互換性のない変更です。`GunnerAutoAim` の `recheckInterval` を削除しました。この欄の値は、更新すると失われます。
+互換性のない変更です。`GunnerAutoAim` の `recheckInterval` を削除し、`emitterMask` を `emitterSwitches` に置き換えました。これらの欄の値は、更新すると失われます。
 
 ### Changed / 変更
 
 - `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. `recheckInterval` is removed.
 - `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。`recheckInterval` は削除しました。
+- `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`, one mark GameObject per emitter. An emitter whose mark is inactive is not used, so a switch can choose the emitters by turning marks on and off. Empty slots are always used. Leave it empty to use all emitters, as -1 did.
+- `GunnerAutoAim` の `emitterMask` を、射出口ごとの印の GameObject の配列 `emitterSwitches` に置き換えました。印が無効な射出口は使いません。スイッチで印を切り替えると、使う射出口を選べます。空の所は常に使います。配列が空なら、全部使います(旧 -1 と同じ)。
 
 ## [0.15.0] - 2026-11-20
 

@@ -4,6 +4,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [Unreleased]
+
+Breaking: `GunnerAutoAim.recheckInterval` is removed. The value in it is lost on update.
+
+互換性のない変更です。`GunnerAutoAim` の `recheckInterval` を削除しました。この欄の値は、更新すると失われます。
+
+### Changed / 変更
+
+- `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. `recheckInterval` is removed.
+- `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。`recheckInterval` は削除しました。
+
 ## [0.15.0] - 2026-11-20
 
 Breaking: the rig's per-emitter arrays are replaced by one `GunnerEmitter` component per emitter. Values in the old arrays are lost on update.

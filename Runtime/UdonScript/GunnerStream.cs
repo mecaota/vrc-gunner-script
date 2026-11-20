@@ -203,7 +203,7 @@ namespace Mecaota.Gunner
 
         // 全員、rig の PostLateUpdate から(狙いの後): 出す、経路を古くする、トレイルをつないだままにする。持ち主で
         // 当たり判定が on なら、経路が最初に当たった所を記録する。true = まだ動いている(連射中か粒子が飛んでいる)。
-        // mask = 粒子を出す射出口の組(ビット e = 射出口 e。0 = 全部)。組の外の射出口は新しく出さないが、
+        // mask = 粒子を出す射出口の組(ビット e = 射出口 e)。組の外の射出口は新しく出さないが、
         // もう飛んでいる粒子は今までどおり進み、当たる。collide = 当たりを記録する射出口の組(0 = どれも記録しない)。
         public bool _StepMasked(float now, bool streaming, bool owner, int collide, int mask)
         {
@@ -214,7 +214,7 @@ namespace Mecaota.Gunner
             for (int e = 0; e < count; e++)
             {
                 if (emitters[e] == null) continue;
-                bool emitHere = streaming && (mask == 0 || (mask & (1 << e)) != 0);
+                bool emitHere = streaming && (mask & (1 << e)) != 0;
                 if (emitHere && flightOn[e]) nextEmitAt[e] = now; // 単発が粒子を使っている。追いつかずに再開する
                 else if (emitHere)
                 {

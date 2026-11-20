@@ -7,7 +7,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 - Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.12.0). APIs will change.
+Status: early (0.13.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -27,9 +27,9 @@ Download `com.mecaota.gunner-x.y.z.zip` from [Releases](https://github.com/mecao
 
 1. **Emitters.** An emitter is a `Transform`. Its +Z axis is the shooting direction (the rest direction when nothing aims it). A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticles` (same index, World simulation space) for the visible shot.
 2. **The rig.** `GunnerRig` owns everything else: aiming, hit tests, the synced hit records and the receiver list. It uses Manual sync, so it cannot share a GameObject with VRC Object Sync (put it on a child). Shooting takes ownership of the rig.
-3. **Single shots.** `Fire()` shoots once from every emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots from one emitter with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at its emitter's `shotSpeeds` value; receivers hear about the hit when it arrives.
-4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started.
-5. **Trigger helpers.** `TriggerDown()` / `TriggerUp()` follow `fireMode`: in Single mode `TriggerDown()` calls `Fire()`; in Stream mode it starts the stream and `TriggerUp()` stops it.
+3. **Single shots.** `Fire()` shoots once from every Single emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots a single shot from one emitter, whatever its fire mode, with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at its emitter's `shotSpeeds` value; receivers hear about the hit when it arrives.
+4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it on the Stream emitters in the aim set. With no Stream emitter in the aim set, `StartStream()` does nothing. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started.
+5. **Trigger helpers.** Each emitter has a fire mode (`fireModes`: Single or Stream). `TriggerDown()` calls `StartStream()` and then `Fire()`. `TriggerUp()` calls `StopStream()`.
 6. **Hit records.** Each hit becomes a record that the rig syncs to everyone. The sync always holds 16 records (`SyncSlots`, a ring); `maxHits` (1-16) only limits how many this device uses, so Android can use fewer and still match PC. Receivers read the current hit from the rig's `hit*` fields: `hitKind` (`KindWorld`, `KindMoving`, `KindPlayer`), `hitIndex` (moving object index or playerId), `hitBone`, `hitPoint`, `hitLocal`, `hitEmitter`, `hitPayload`, `hitStream`, `hitReplay` (restored for a late joiner; skip effects) and `hitResolved`.
 
 ### Receivers
@@ -46,13 +46,13 @@ Derive from `GunnerHitReceiver`, override only what you need, and add the receiv
 
 The rig never reads the payload itself; receivers decide what it means.
 
-Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hits), `ClearHits()` (clear every record), `_SetAimTarget` / `_SetAimAngles` / `ResetAim`, `_SetAimEmitters(mask)`, `BoneFollowOn` / `BoneFollowOff` and `_SetCollision(on)`. To make an emitter follow another Transform, make it a child of that Transform or use a VRC Parent Constraint.
+Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hits), `ClearHits()` (clear every record), `_SetAimTarget` / `ResetAim`, `_SetAimEmitters(mask)`, `BoneFollowOn` / `BoneFollowOff` and `_SetCollision(on)`. To make an emitter follow another Transform, make it a child of that Transform or use a VRC Parent Constraint.
 
 ### Main fields and defaults
 
 | Field | Default | Meaning |
 |---|---|---|
-| `fireMode` | Single | What `TriggerDown` / `TriggerUp` do (Single or Stream). |
+| `fireModes` | empty = Single | Per emitter. Single or Stream: how the emitter shoots on `TriggerDown` and from the hand controller. |
 | `maxHits` | 16 | Hit records this device uses (1-16). |
 | `shotSpeeds` | empty = 25 | Per emitter. Metres per second. |
 | `maxRanges` | empty = 30 | Per emitter. Metres. |
@@ -85,10 +85,11 @@ Emitters with the same lead bone turn that bone together, using the bone fields 
 | `impactParticles` | empty | Per emitter. Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
 | `impactBursts` | empty = 1 | Per emitter. Particles per hit (at least 1). |
 
-- The fire sound source plays where it is (a stream start uses the first emitter with a fire sound source); place it near the emitter. The impact sound source and particles are moved to the hit point; place impact sound sources outside the rig, or moving them would move part of the rig. A source plays one sound at a time; the next sound restarts it. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
+- The fire sound source plays where it is (a stream start uses the first Stream emitter in the aim set with a fire sound source); place it near the emitter. The impact sound source and particles are moved to the hit point; place impact sound sources outside the rig, or moving them would move part of the rig. A source plays one sound at a time; the next sound restarts it. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
 - To shoot two kinds of shots from one place (for example a bullet and a web from the mouth), add two emitters there as two separate Transforms and set each card. Do not register the same Transform as two emitters; they overwrite each other's aim every frame.
-- `Fire()`, `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.
+- `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once, each in its own fire mode. `Fire()` shoots only the Single emitters. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.
+- The hand-held ball aims at the point straight ahead of it, as far as the range (`maxRanges`) of its `emitter`, at least 1 m. With `emitter = -1`, emitter 0's range is used. With an emitter number, only that emitter aims and shoots while the ball is held (`useEmitters` is ignored).
 - Udon cannot add `VRC_SpatialAudioSource` at runtime. Add it to the AudioSources in the editor.
 
 ## Auto aim (`GunnerAutoAim`)
@@ -130,7 +131,7 @@ How it works:
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
 2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
 3. For fire and impact sounds and impact particles, set the AudioSources and impact particles on each emitter's card. For anything else, add your own `GunnerHitReceiver`.
-4. Call `TriggerDown()` / `TriggerUp()` from your own script, or use **Place Hand Controller** for a ready-made hand-held ball.
+4. Call `TriggerDown()` / `TriggerUp()` from your own script.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
 
 A sample prefab (`Prefab/GunnerRig.prefab`, `Prefab/GunnerHandController.prefab`) and scene (`Scene/Gunner.unity`) are included.
@@ -142,7 +143,6 @@ Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 - **Add Gunner Rig**: a new rig (or a child rig on an object with VRC Object Sync), with one emitter and a `GunnerStream`.
 - **Add Emitter**: an emitter with its own particles under the selected object.
 - **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator).
-- **Place Hand Controller**: a hand-held ball with VRC Pickup, VRC Object Sync, `GunnerPickupInput`, `GunnerStickAim`, `GunnerMoveHold` and `GunnerHandController`.
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 
@@ -160,6 +160,10 @@ Both are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnLoad]`
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
+
+## Changes in 0.13.0
+
+Breaking: `fireMode` is replaced by the per-emitter `fireModes`. A rig that had `fireMode` set to Stream must set Stream on each emitter card again (see CHANGELOG.md). `Fire()` and `_FireWith(-1, payload)` no longer shoot from Stream emitters. The hand-held ball now aims where it points; stick aiming, `GunnerStickAim` and `_SetAimAngles` are removed.
 
 ## Changes in 0.12.0
 

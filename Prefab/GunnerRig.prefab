@@ -75,7 +75,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967291
   playerRadius: 0.12
-  fireMode: 0
   streamRate: 12
   streamWidth: 0.08
   streamTaper:

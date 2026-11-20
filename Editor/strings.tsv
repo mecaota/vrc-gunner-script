@@ -5,8 +5,6 @@ gunner.test.missing_en	日本語だけの項目
 gunner.language.auto	エディタに合わせる	Follow the editor
 button.fix	直す	Fix
 button.recheck	再点検	Recheck
-button.place_hand	操作用の球を置く	Place hand controller
-button.place_hand.tip	この rig を手で狙って撃つための球(GunnerHandController)をシーンに作り、rig につなぐ	Creates a hand-held ball (GunnerHandController) that aims and fires this rig, and links it to the rig
 check.all_ok	問題は見つかりませんでした。	No problems found.
 check.l10n.missing	文字列の抜け: {0}	Missing text: {0}
 check.rig.no_emitter	射出口がありません	No emitter
@@ -14,7 +12,7 @@ check.rig.too_many_emitters	射出口が多すぎます(最大 {0})	Too many emi
 check.rig.null_emitter	射出口の欄に空きがあります	An emitter slot is empty
 check.rig.no_particle	射出口 {0} にパーティクルがありません(当たりは記録されます)	Emitter {0} has no particles (hits are still recorded)
 check.rig.trails_off	射出口 {0} のパーティクルにトレイルがなく、連射が線になりません	Emitter {0}: particle trails are off, so the stream will not join into a line
-check.rig.no_stream	連射モードですが GunnerStream がありません	Stream mode, but no GunnerStream
+check.rig.no_stream	撃ち方が連射の射出口がありますが、GunnerStream がありません	An emitter fires in Stream mode, but there is no GunnerStream
 check.rig.hits_zero	記録数が 0 です	Hit records is 0
 check.rig.many_hits	記録数が {0} を超えています({0} 件までしか使われません)	More than {0} hit records (only {0} are used)
 check.rig.object_sync	VRC Object Sync と同じ GameObject には置けません(子へ移してください)	Cannot share a GameObject with VRC Object Sync (move it to a child)
@@ -36,11 +34,10 @@ check.particle.autoplay	パーティクル {0} が自動で再生されます(Pl
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
 check.hand.no_input	GunnerPickupInput が未設定です	No GunnerPickupInput set
 check.hand.input_unwired	入力の Controller がこの球を指していません	The input's Controller is not this ball
-check.hand.no_aim	スティックで狙えません(GunnerStickAim が未設定)	No stick aim (GunnerStickAim not set)
 check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
-check.hand.window_single	「離してから」は単発では効きません	"After release" has no effect on single shots
+check.hand.window_single	この球が使う射出口の中に、撃ち方が「連射」のものがないため、「離してから」は効きません	None of this ball's emitters fires in Stream mode, so "After release" has no effect
 check.hand.mask_hits_ball	弾が球に当たります(射出口のパーティクルの Collides With にレイヤー {0} が入っています)	Shots can hit the ball (layer {0} is in an emitter particle system's Collides With)
-check.hand.all_emitters	連射が全部の射出口({0}個)から出ます(狙う射出口の組が 0)	The stream comes out of all {0} emitters (emitter set is 0)
+check.hand.all_emitters	狙う射出口の組が 0 のため、撃ち方が連射の射出口すべて({0}個)から連射が出ます	The stream comes out of all {0} Stream emitters (emitter set is 0)
 check.input.no_controller	Controller が未設定です	No Controller set
 check.input.no_pickup	同じ GameObject に VRC Pickup がありません	No VRC Pickup on this GameObject
 check.input.pickup_elsewhere	Pickup の欄が別の物を指しています	The Pickup field points elsewhere
@@ -81,9 +78,9 @@ GunnerRig.receivers	受け手	Receivers
 GunnerRig.receivers.tip	着弾を知らせる相手	Notified of every hit
 GunnerRig.stream	連射の部品	Stream component
 GunnerRig.stream.tip	連射に使う GunnerStream。連射の量・見た目・当たり方は射出口のカードで決める	The GunnerStream used for streams. Set the rate, look and hits on each emitter card
-GunnerRig.fireMode	撃ち方	Fire mode
-GunnerRig.fireMode.opt	単発|連射	Single|Stream
-GunnerRig.fireMode.tip	押したときの撃ち方。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	How a press shoots. Single: one shot per press. Stream: keeps shooting while held
+GunnerRig.fireModes	撃ち方	Fire mode
+GunnerRig.fireModes.opt	単発|連射	Single|Stream
+GunnerRig.fireModes.tip	トリガーを押したときの、この射出口の撃ち方。単発: 押すたびに1回撃つ。連射: 押している間、出し続ける	How this emitter shoots when the trigger is pressed. Single: one shot per press. Stream: keeps shooting while held
 GunnerRig.maxHits	記録数	Hit records
 GunnerRig.fireAnimator	撃つ前のアニメ	Pre-fire animator
 GunnerRig.fireAnimator.tip	撃つ前にアニメを流す Animator。空ならすぐ撃つ。入れると、アニメの終わりの合図(_AnimFire)で撃つ。射出口ごとに bool のパラメーター GunnerPre0, GunnerPre1… が必要。rig は Animator と同じ GameObject に置く	Animator played before shooting. Empty: shoot at once. Set: shoot on the animation's end signal (_AnimFire). Each emitter needs a bool parameter GunnerPre0, GunnerPre1… Put the rig on the same GameObject as the Animator
@@ -147,12 +144,10 @@ GunnerHandController.rig	GunnerRig	GunnerRig
 GunnerHandController.rig.tip	この球で撃つ rig	The rig this ball shoots
 GunnerHandController.input	入力	Input
 GunnerHandController.input.tip	同じ球の GunnerPickupInput。持つ手とトリガーを読む	The GunnerPickupInput on this ball. Reads the hand and the trigger
-GunnerHandController.aim	スティックの狙い	Stick aim
-GunnerHandController.aim.tip	任意。空ならスティックで狙わない	Optional. Empty = no stick aim
 GunnerHandController.hold	移動ロック	Move hold
 GunnerHandController.hold.tip	任意。空なら撃つ間も歩ける	Optional. Empty = the player can walk while shooting
 GunnerHandController.emitter	射出口の番号	Emitter index
-GunnerHandController.emitter.tip	単発で使う射出口。-1 ならすべて	Emitter for single shots. -1 = all
+GunnerHandController.emitter.tip	使う射出口。-1 ならすべて。射出口の番号を入れると、持っている間はその射出口だけで狙い、撃つ(使う射出口の組より優先)。撃ち方は射出口ごとの設定に従う	Emitter to use. -1 = all. With a number, only that emitter aims and shoots while held (overrides the emitter set). Each emitter uses its own fire mode
 GunnerHandController.payload	payload	Payload
 GunnerHandController.payload.tip	rig へそのまま渡す整数。意味は受け手が決める	Integer passed to the rig as is; the receivers decide what it means
 GunnerHandController.collideMode	当たるとき	When it hits
@@ -173,22 +168,6 @@ GunnerPickupInput.pickup.tip	空ならこの GameObject の VRC Pickup	Empty = t
 GunnerPickupInput.hand	撃てる手	Shooting hand
 GunnerPickupInput.hand.opt	左手|右手|どちらでも	Left|Right|Either
 GunnerPickupInput.hand.tip	VR だけ。デスクトップは持つだけで撃てる	VR only. On desktop holding is enough
-GunnerPickupInput.desktopStick	デスクトップの狙い	Desktop aim keys
-GunnerPickupInput.desktopStick.opt	WASD|矢印キー	WASD|Arrow keys
-GunnerPickupInput.desktopStick.tip	デスクトップで狙いに使うキー	Keys used to aim on desktop
-GunnerPickupInput.invertVertical	上下を逆にする	Invert vertical
-GunnerPickupInput.invertVertical.tip	スティックの上下の向きを逆にして狙う	Aim with the stick's up and down swapped
-GunnerStickAim.mode	狙い方	Aim mode
-GunnerStickAim.mode.opt	倒した分だけ回る|倒した位置が角度	Rate|Position
-GunnerStickAim.mode.tip	倒した分だけ回る: 倒すと狙いが回り、離すとその向きに残る。倒した位置が角度: 倒した量がそのまま角度になる	Rate: tilting turns the aim, and it stays when released. Position: the tilt is the angle
-GunnerStickAim.turnSpeed	回る速さ	Turn speed
-GunnerStickAim.turnSpeed.tip	いっぱいに倒したときの度毎秒	Degrees per second at full tilt
-GunnerStickAim.range	範囲	Range
-GunnerStickAim.range.tip	左右・上下それぞれの角度(度)	Degrees each way
-GunnerStickAim.deadZone	遊び	Dead zone
-GunnerStickAim.deadZone.tip	スティックの中央付近で無視する傾き(0〜0.95)	Tilt ignored near the stick centre (0-0.95)
-GunnerStickAim.positionEase	追いつく速さ	Ease
-GunnerStickAim.positionEase.tip	位置が角度のとき。0 ですぐ	Position mode. 0 = at once
 GunnerMoveHold.holdWhileActive	撃つ間は動けなくする	Hold still while shooting
 GunnerMoveHold.holdWhileActive.tip	撃つ間、自分をその場に留める(歩く速さは変えない)	Keeps the local player in place while shooting (walk speed is not changed)
 GunnerMoveHold.releaseBlocked	解除を止める	Block release

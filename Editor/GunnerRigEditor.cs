@@ -42,14 +42,6 @@ namespace Mecaota.Gunner.EditorTools
                 else
                     EditorGUILayout.HelpBox(T("GunnerRig.emitters.multi"), MessageType.Info);
                 EditorGUILayout.Space();
-                using (new EditorGUI.DisabledScope(targets.Length != 1))
-                {
-                    if (GUILayout.Button(Label("button.place_hand")))
-                    {
-                        Selection.activeObject = GunnerSetup.PlaceHand(rig).gameObject;
-                        GUIUtility.ExitGUI();
-                    }
-                }
                 bool show = EditorPrefs.GetBool(HandlesPref, true);
                 bool next = EditorGUILayout.Toggle(Label("GunnerRig.showHandles"), show);
                 if (next != show)
@@ -60,7 +52,7 @@ namespace Mecaota.Gunner.EditorTools
             }
 
             if (Foldout("GunnerRig.section.shot"))
-                Fields("fireMode", "stream", "fireAnimator");
+                Fields("stream", "fireAnimator");
 
             if (Foldout("GunnerRig.section.hit", false))
                 Fields("receivers", "movers", "playerRadius", "maxHits");
@@ -144,6 +136,7 @@ namespace Mecaota.Gunner.EditorTools
             EditorGUI.indentLevel++;
 
             Heading("GunnerRig.card.fire");
+            PopupAt("fireModes", i, "GunnerRig.fireModes", GunnerRig.FireSingle);
             ObjectAt("fireSources", i, typeof(AudioSource));
             ObjectAt("fireClips", i, typeof(AudioClip));
             FloatAt("fireMinIntervals", i, "GunnerRig.fireMinIntervals", 0f, float.MaxValue);
@@ -319,7 +312,7 @@ namespace Mecaota.Gunner.EditorTools
         }
 
         /// <summary>emitters と同じ番号の配列。</summary>
-        internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles",
+        internal static readonly string[] PerEmitter = { "shotParticles", "linkBones", "aimMaxAngles", "fireModes",
             "fireSources", "fireClips", "fireMinIntervals", "impactSources", "impactClips", "impactMinIntervals", "impactParticles", "impactBursts",
             "shotSpeeds", "maxRanges", "castRadii", "streamRates", "streamJoins", "streamHitModes", "streamHitIntervals", "streamCollides",
             "boneStrengths", "boneYawMaxes", "bonePitchUpMaxes", "bonePitchDownMaxes", "boneSmooths", "boneMinSpeeds", "boneMaxSpeeds" };

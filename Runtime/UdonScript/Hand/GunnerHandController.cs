@@ -13,10 +13,9 @@ namespace Mecaota.Gunner
 
         public GunnerRig rig;
         public GunnerPickupInput input;
-        public GunnerStickAim aim;                // 任意: 無ければスティックで狙わない
         public GunnerMoveHold hold;               // 任意: 撃っている間もプレイヤーが歩ける
 
-        public int emitter = -1;                  // 単発: -1 = 全部の射出口
+        public int emitter = -1;                  // -1 = 全部の射出口。番号なら持っている間の狙う組をその射出口だけにする(useEmitters より優先)
         public int payload;                       // rig へそのまま渡す。意味は弾が決める
         // AfterRelease: 押している間の連射は何でも素通りし、放すとその粒子が最初に触れたものに1回当たる。
         public int collideMode = CollideAlways;
@@ -24,13 +23,12 @@ namespace Mecaota.Gunner
         public bool followBone;                   // 持っている間は rig のボーンの連動を on にする(終わったら戻す)
         public bool resetAimOnEnd = true;
         // 持っている間に rig へ入れる「狙う射出口の組」(ビット i = 射出口 i。rig._SetAimEmitters)。0 = 触らない(今までどおり)。
-        // 終わったら全部に戻す。狙いの基準(スティックの角度)は今までどおり射出口0の休みの向き。
+        // 終わったら全部に戻す。
         public int useEmitters;
 
         private bool active;
         private bool triggerDown;
         private bool streaming;
-        private bool aimSent;
         private bool boneChanged;
         private bool emittersChanged;
         private bool closePending;
@@ -39,7 +37,7 @@ namespace Mecaota.Gunner
         private void Update()
         {
             _Refresh();
-            if (active) StepAim();
+            if (active) rig._SetAimTarget(input.transform.position + input.transform.forward * Mathf.Max(rig._Range(Mathf.Max(emitter, 0)), 1f));
             if (closePending) StepWindow();
         }
 
@@ -74,11 +72,9 @@ namespace Mecaota.Gunner
             _Refresh();
             if (!active || triggerDown) return;
             triggerDown = true;
-            if (rig.fireMode != GunnerRig.FireStream)
-            {
-                rig._FireWith(emitter, payload);
-                return;
-            }
+            int use = emitter < 0 ? -1 : 1 << emitter;
+            if ((use & ~rig.streamMask) != 0) rig._FireWith(emitter, payload);
+            if ((use & rig.streamMask) == 0) return;
             if (collideMode == CollideAfterRelease)
             {
                 closePending = false;
@@ -116,12 +112,11 @@ namespace Mecaota.Gunner
             if (followBone) rig._TakeOwnership();
             active = true;
             triggerDown = false;
-            aimSent = false;
             if (hold != null) hold._Hold();
-            if (aim != null) aim._Reset();
-            if (useEmitters != 0)
+            int set = emitter >= 0 ? 1 << emitter : useEmitters;
+            if (set != 0)
             {
-                rig._SetAimEmitters(useEmitters);
+                rig._SetAimEmitters(set);
                 emittersChanged = true;
             }
             if (followBone && !rig._IsBoneFollowing())
@@ -169,16 +164,6 @@ namespace Mecaota.Gunner
         }
 
         // ---------------- 毎フレーム ----------------
-
-        private void StepAim()
-        {
-            if (aim == null || input == null) return;
-            input._ReadStick();
-            bool changed = aim._Step(input.stickX, input.stickY, Time.deltaTime);
-            if (!changed && aimSent) return;
-            rig._SetAimAngles(aim.yaw, aim.pitch);
-            aimSent = true;
-        }
 
         private void OpenWindow(bool collide)
         {

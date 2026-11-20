@@ -18,8 +18,7 @@ namespace Mecaota.Gunner
         public const int FireSingle = 0;
         public const int FireStream = 1;
         public const int AimNone = 0;
-        public const int AimTarget = 2;      // 1 は空き番(旧 AimDirection)。同期する値なので番号は詰めない
-        public const int AimAngles = 3;
+        public const int AimTarget = 2;      // 1 と 3 は空き番(旧 AimDirection、AimAngles)。同期する値なので番号は詰めない
         public const int MaxEmitters = 16;
         public const float DefaultAimLimit = 60f;
 
@@ -60,8 +59,7 @@ namespace Mecaota.Gunner
         private const int CastBuffer = 32;
         private const float PreFireTimeout = 3f;    // 撃つ前のアニメの合図(_AnimFire)を待つ秒数。過ぎたら撃たずにやめる
         private const float SendInterval = 0.2f;   // 間引いて送るもの(連射の着弾、狙い)は1秒に5回まで
-        private const float AimSyncAngle = 2f;
-        private const float AimSyncMove = 0.05f;
+        private const float AimSyncTan = 0.0087f; // tan 0.5 度。狙う点が rig からの距離のこの割合を超えて動いたら送る
         private const float BodyRadiusMin = 0.08f;  // メートル。小さいアバターにも当たるように
         private const float BodyRadiusMax = 0.5f;   // メートル。大きいアバターが近くの弾を全部吸い込まないように
         private const float ImpactProbe = 0.3f;     // メートル
@@ -92,7 +90,7 @@ namespace Mecaota.Gunner
         public int maxHits = 16;                  // この端末が使う記録の数(1..SyncSlots)。Android では下げる。同期は16のまま
         // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーには常に当たる(持ち主も)
         public float playerRadius = 0.12f;        // 体の半径。的の目の高さに対する割合
-        public int fireMode = FireSingle;         // TriggerDown / TriggerUp で何をするか
+        public int[] fireModes;                   // 射出口ごとの撃ち方(FireSingle / FireStream)。無い射出口は FireSingle
         // 任意: 射出口ごとの狙える角度(度。休み方向から)。空・短い・0 以下の射出口は DefaultAimLimit。狙い(Wish)が見る。
         public float[] aimMaxAngles;
 
@@ -189,6 +187,7 @@ namespace Mecaota.Gunner
         private bool baselined;
         private int slots;
         private int emitterCount;
+        [System.NonSerialized] public int streamMask;  // 撃ち方が連射の射出口(ビット i = 射出口 i)
         private int preEmitter = -1;    // 持ち主: 撃つ前のアニメの合図を待っている射出口。-1 = 待っていない
         private int prePayload;
         private float preUntil;
@@ -251,9 +250,6 @@ namespace Mecaota.Gunner
         private const int MaxAncestors = 64;
         private float[] followYaw;
         private float[] followPitch;
-        // 連動ごと: 追従の2つの値の表し方。true = 軸と角度(狙える角度が 90 度を超える連動を、角度での狙い以外で狙う時)、
-        // false = 左右・上下(今までの式)。表し方が替わる時は、同じ向きのまま値を移し替える。
-        private bool[] followAxis;
         // 連動ごと: boneMaxSpeeds を使う時の追従の速度(2つの値の1秒あたりの変化)。
         private float[] followVelYaw;
         private float[] followVelPitch;
@@ -308,7 +304,11 @@ namespace Mecaota.Gunner
             joinMs = Networking.GetServerTimeInMilliseconds();
             emitterCount = emitters != null ? Mathf.Min(emitters.Length, MaxEmitters) : 0;
             if (receivers == null) receivers = new GunnerHitReceiver[0];
-            for (int i = 0; i < emitterCount; i++) if (Number(streamCollides, i, 1) != 0) collideMask |= 1 << i;
+            for (int i = 0; i < emitterCount; i++)
+            {
+                if (Number(streamCollides, i, 1) != 0) collideMask |= 1 << i;
+                if (Number(fireModes, i, FireSingle) == FireStream) streamMask |= 1 << i;
+            }
             EnsureSyncArrays();
 
             seenMiss = new int[emitterCount];
@@ -406,7 +406,6 @@ namespace Mecaota.Gunner
             linkHeld = new bool[count];
             followYaw = new float[count];
             followPitch = new float[count];
-            followAxis = new bool[count];
             followVelYaw = new float[count];
             followVelPitch = new float[count];
             turnYaw = new float[count];
@@ -638,7 +637,7 @@ namespace Mecaota.Gunner
 
         // ================= 音 =================
 
-        // 発射音の音源は動かさない。e < 0(連射の開始)は、持ち主の狙う組のうち発射音の音源がある先頭の射出口。
+        // 発射音の音源は動かさない。e < 0(連射の開始)は、持ち主の狙う組の連射の射出口のうち発射音の音源がある先頭の射出口。
         // 組は同期した aimEmitSync で見る(ほかの端末の aimEmitters はその端末自身の組)。
         // 入室時に既に続いていた連射(replay)は今撃たれたのではないので鳴らさない。
         private void PlayFireSound(int e, bool replay)
@@ -649,7 +648,7 @@ namespace Mecaota.Gunner
             {
                 for (int i = 0; i < emitterCount; i++)
                 {
-                    if (!ValidEmitter(i) || !InAim(i, aimEmitSync) || Source(fireSources, i) == null) continue;
+                    if (!ValidEmitter(i) || (StreamSet(aimEmitSync) & (1 << i)) == 0 || Source(fireSources, i) == null) continue;
                     at = i;
                     break;
                 }
@@ -708,19 +707,19 @@ namespace Mecaota.Gunner
 
         // ================= 公開の操作 =================
 
-        /// <summary>単発の一斉射(狙う射出口の組の全部。payload は 0)。</summary>
+        /// <summary>単発の一斉射(狙う射出口の組のうち、撃ち方が単発の射出口。payload は 0)。</summary>
         public void Fire() { _FireWith(-1, 0); }
 
-        // emitter < 0 = 一斉射(狙う射出口の組の全部。既定は全部の射出口)。emitter >= 0 は組の外の射出口でも撃つ
-        // (その射出口は休みの向きで撃つ)。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
+        // emitter < 0 = 一斉射(狙う射出口の組のうち、撃ち方が単発の射出口)。emitter >= 0 は撃ち方や組に関係なく、その射出口で
+        // 単発を撃つ(組の外の射出口は休みの向きで撃つ)。payload はここでは中身を見ない。弾の受け手が記録ごとに書き換えてよい。
         public void _FireWith(int emitter, int payload)
         {
+            Init();
             if (emitter < 0)
             {
-                _FireVolley(payload, -1, null);
+                _FireVolley(payload, ~streamMask, null);
                 return;
             }
-            Init();
             if (!ValidEmitter(emitter)) return;
             if (fireAnimator != null)
             {
@@ -775,11 +774,11 @@ namespace Mecaota.Gunner
         /// <summary>連射を始める(payload は 0)。stream が空なら何もしない。</summary>
         public void StartStream() { _StartStreamWith(0); }
 
-        /// <summary>payload 付きで連射を始める(rig を取る)。もう連射中なら payload と狙いだけを送り直す。</summary>
+        /// <summary>payload 付きで連射を始める(rig を取る)。狙う組に連射の射出口が無ければ何もしない。もう連射中なら payload と狙いだけを送り直す。</summary>
         public void _StartStreamWith(int payload)
         {
             Init();
-            if (stream == null || !TakeOwnership()) return;
+            if (stream == null || StreamSet(aimEmitters) == 0 || !TakeOwnership()) return;
             streamMine = true;
             streamPayload = payload;
             aimSyncMode = (byte)aimMode;
@@ -866,18 +865,15 @@ namespace Mecaota.Gunner
             return TakeOwnership();
         }
 
-        // 単発: 撃つ。連射: 始める。TriggerUp で止まる。
+        /// <summary>連射の射出口は連射を始め(TriggerUp で止まる)、単発の射出口は1回撃つ。</summary>
         public void TriggerDown()
         {
-            if (fireMode == FireStream) StartStream();
-            else Fire();
+            StartStream();
+            Fire();
         }
 
-        /// <summary>連射: 止める。単発: 何もしない。</summary>
-        public void TriggerUp()
-        {
-            if (fireMode == FireStream) StopStream();
-        }
+        /// <summary>この端末が始めた連射を止める。</summary>
+        public void TriggerUp() { StopStream(); }
 
         // 持ち主の端末だけ: 連射の粒子が着弾を記録してよいか。off → on では、粒子の今の位置から数え始める。
         public void _SetCollision(bool on)
@@ -906,14 +902,6 @@ namespace Mecaota.Gunner
             Init();
             aimMode = AimTarget;
             aimVector = worldPoint;
-        }
-
-        // 射出口0の休みの座標系での角度: 左右は右が +、上下は上が +。
-        public void _SetAimAngles(float yaw, float pitch)
-        {
-            Init();
-            aimMode = AimAngles;
-            aimVector = new Vector3(yaw, pitch, 0f);
         }
 
         /// <summary>狙いを外す。射出口は休みの向きに戻る。</summary>
@@ -1655,8 +1643,8 @@ namespace Mecaota.Gunner
             StepLinks(Time.deltaTime, mode, vec, emit);
             ApplyAimAll(mode, vec, emit);
 
-            // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。連射は持ち主の狙う組の射出口だけから出る。
-            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, owner ? aimEmitters : aimEmitSync);
+            // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。連射は持ち主の狙う組の連射の射出口だけから出る。
+            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, StreamSet(owner ? aimEmitters : aimEmitSync));
             if (owner && AimSynced() && AimChanged())
             {
                 aimSyncMode = (byte)aimMode;
@@ -1720,8 +1708,7 @@ namespace Mecaota.Gunner
         {
             if (aimMode != aimSyncMode) return true;
             if (aimMode != AimNone && aimEmitters != aimEmitSync) return true;
-            if (aimMode == AimTarget) return (aimVector - aimSync).sqrMagnitude > AimSyncMove * AimSyncMove;
-            if (aimMode == AimAngles) return (aimVector - aimSync).sqrMagnitude > AimSyncAngle * AimSyncAngle;
+            if (aimMode == AimTarget) return (aimVector - aimSync).sqrMagnitude > AimSyncTan * AimSyncTan * (aimSync - transform.position).sqrMagnitude;
             return false;
         }
 
@@ -1730,14 +1717,8 @@ namespace Mecaota.Gunner
         // (mode, vec) が射出口 i に求める向きを、円錐の中に収めて wish へ。false = 狙いなし。
         private bool Wish(int mode, Vector3 vec, int i)
         {
-            Vector3 w;
-            if (mode == AimTarget) w = vec - emitters[i].position;
-            else if (mode == AimAngles)
-            {
-                if (!ValidEmitter(0)) return false;
-                w = RestWorld(0) * (Quaternion.Euler(-vec.y, vec.x, 0f) * Vector3.forward);
-            }
-            else return false;
+            if (mode != AimTarget) return false;
+            Vector3 w = vec - emitters[i].position;
             if (w.sqrMagnitude < 0.000001f) return false;
             w = w.normalized;
             Vector3 rest = RestWorld(i) * Vector3.forward;
@@ -1809,14 +1790,7 @@ namespace Mecaota.Gunner
                 float ty = 0f;
                 float tp = 0f;
                 bool aimed = on && mode != AimNone && InAim(lead, emit) && ValidEmitter(lead) && Wish(mode, vec, lead);
-                // 角度での狙い(手に持つ球)は円錐が可動域に収まるので、今までの左右・上下のまま(球のボーンの姿勢を変えない)。
-                // 見張り↔球の切り替えの瞬間にボーンが1回動くことは許容(ユーザー決定 11-13)。
-                if (aimed)
-                {
-                    bool useAxis = Wide(lead) && mode != AimAngles;
-                    if (useAxis != followAxis[b]) SwitchFollow(b, useAxis);
-                }
-                bool wide = followAxis[b];
+                bool wide = Wide(lead);
                 if (aimed && wide)
                 {
                     // 狙える角度が 90 度を超える連動: 休みの前から狙いへの最短の回転を「軸と角度」で持つ。
@@ -1837,8 +1811,7 @@ namespace Mecaota.Gunner
                     ty = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
                     tp = Mathf.Atan2(v.y, Mathf.Sqrt(v.x * v.x + v.z * v.z)) * Mathf.Rad2Deg;
                     // 暴れ止め: 真上・真下に近い狙いでは左右の角度が定まらないので、左右の目標は今の値のまま保つ。
-                    // 狙える角度が FlipPitch 以下なら |tp| はそれを超えないので、ここは通らない。この分岐を通るのは、狙える角度が
-                    // 90 度以下の連動と、90 度を超える連動を角度で狙う時(手に持つ球。円錐は可動域に収まる)。
+                    // 狙える角度が FlipPitch 以下なら |tp| はそれを超えないので、ここは通らない。
                     if (tp > FlipPitch || tp < -FlipPitch) ty = followYaw[b];
                 }
                 float dy = ty - followYaw[b];
@@ -1958,7 +1931,7 @@ namespace Mecaota.Gunner
             int b = linkOf[i];
             Quaternion restRot = RestWorld(i);
             Vector3 up = restRot * Vector3.up;
-            if (b >= 0 && linkHeld[b] && followAxis[b])
+            if (b >= 0 && linkHeld[b] && Wide(linkLead[b]))
             {
                 // 軸と角度の連動: 同じ回転を休みの前と上に掛ける(真上を通っても上の軸が回らない。射出口のロールも最小)。
                 int lead = linkLead[b];
@@ -1981,7 +1954,7 @@ namespace Mecaota.Gunner
             }
             if (mode != AimNone && Wish(mode, vec, i))
             {
-                if (Wide(i) && mode != AimAngles)
+                if (Wide(i))
                 {
                     // 狙える角度が 90 度を超える射出口: 休みの前から狙いへの最短の回転で向く(頭越しでロールしない)。
                     Quaternion swing = Quaternion.FromToRotation(restRot * Vector3.forward, wish);
@@ -2007,32 +1980,9 @@ namespace Mecaota.Gunner
             return up;
         }
 
-        // 狙える角度が 90 度を超える射出口か。その射出口(と、それが先頭の連動)は、角度での狙い以外を「軸と角度」で持つ。
+        // 狙える角度が 90 度を超える射出口か。その射出口(と、それを先頭とする連動)は、狙いを「軸と角度」で持つ。
         // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは軸が決まらない)。
         private bool Wide(int i) { return AimLimit(i) > 90f; }
-
-        // 連動 b の追従の値を、向きを変えずに別の表し方へ移し替える(表し方が替わるのは狙いの種類が替わった時だけ)。
-        private void SwitchFollow(int b, bool toAxis)
-        {
-            followVelYaw[b] = 0f;
-            followVelPitch[b] = 0f;
-            float fy = followYaw[b];
-            float fp = followPitch[b];
-            Vector3 v = (followAxis[b] ? AxisTurn(fy, fp) : Quaternion.Euler(-fp, fy, 0f)) * Vector3.forward;
-            followAxis[b] = toAxis;
-            if (toAxis)
-            {
-                float rho = Mathf.Sqrt(v.x * v.x + v.y * v.y);
-                float theta = rho > 0.000001f ? Mathf.Atan2(rho, v.z) * Mathf.Rad2Deg : 0f;
-                followYaw[b] = rho > 0.000001f ? theta * v.x / rho : 0f;
-                followPitch[b] = rho > 0.000001f ? theta * v.y / rho : 0f;
-            }
-            else
-            {
-                followYaw[b] = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
-                followPitch[b] = Mathf.Atan2(v.y, Mathf.Sqrt(v.x * v.x + v.z * v.z)) * Mathf.Rad2Deg;
-            }
-        }
 
         // (左右, 上下) の2つの値(度)を、休みの座標系での軸と角度の回転にする。角度 = 2つの値の長さ、軸 = (−上下, 左右, 0)。
         // 小さい角度では Euler(−上下, 左右, 0) とほぼ同じ向き。
@@ -2052,6 +2002,9 @@ namespace Mecaota.Gunner
 
         // 射出口 i が狙う組に入っているか(0 = 全部)。
         private bool InAim(int i, int mask) { return mask == 0 || (mask & (1 << i)) != 0; }
+
+        // 狙う組(0 = 全部)のうち、撃ち方が連射の射出口。
+        private int StreamSet(int aim) { return (aim == 0 ? -1 : aim) & streamMask; }
 
         private bool BoneOn() { return boneMode == 0 ? boneFollow : boneMode == 2; }
 

@@ -6,14 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Breaking: `GunnerAutoAim.recheckInterval` is removed. The value in it is lost on update.
+Breaking: the value in `GunnerAutoAim.recheckInterval` is lost on update, and nothing replaces it. Only the players' feet are checked now, so make sure each box contains the feet and extends below the floor.
 
-互換性のない変更です。`GunnerAutoAim` の `recheckInterval` を削除しました。この欄の値は、更新すると失われます。
+互換性のない変更です。`GunnerAutoAim` の `recheckInterval` の値は、更新すると失われます。代わりの欄はありません。足元だけを調べるようになったので、箱が足元を含み、底が床より下まであるかを確かめてください。
+
+### Breaking changes / 互換性のない変更
+
+- `GunnerAutoAim.recheckInterval` is removed.
+- `GunnerAutoAim` の `recheckInterval` を削除しました。
 
 ### Changed / 変更
 
-- `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. `recheckInterval` is removed.
-- `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。`recheckInterval` は削除しました。
+- `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. Only the BoxCollider's Center and Size are read, so it can be disabled. Disable it: an enabled BoxCollider that is not a trigger stops players.
+- `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。BoxCollider からは Center と Size だけを読むので、無効にしてかまいません。有効で Is Trigger でない BoxCollider はプレイヤーを止めるので、無効にしてください。
 
 ## [0.15.0] - 2026-11-20
 

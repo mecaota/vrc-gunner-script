@@ -109,7 +109,7 @@ Emitters with the same tip bone turn that bone together, using the bone fields o
 Setup:
 
 1. Make an empty GameObject (for example `SenseZone`, a child of the rig is fine). Do not use the rig's own GameObject.
-2. Add a `BoxCollider` with **Is Trigger** on (so it does not block players) and `GunnerAutoAim`. Set the size with the BoxCollider's Size rather than the Transform scale.
+2. Add a `BoxCollider` and `GunnerAutoAim`. Disable the BoxCollider: a newly added one is enabled and not a trigger, so it stops players like a wall. Only its Center and Size are read, so disabling it is fine.
 3. **Place the box so it contains the players' feet, and extend its bottom below the floor.** Only each player's feet (`GetPosition()`) are checked; a box that floats above the floor, or whose bottom is exactly at floor level, can count a standing player as outside.
 4. Set `rig`. Leave `zone` empty to use the BoxCollider on the same GameObject.
 5. **Use a rig that only `GunnerAutoAim` drives.** If something else (a hand-held controller, another script) takes ownership of the rig, `GunnerAutoAim` on that device starts aiming and shooting automatically.

@@ -1,6 +1,8 @@
 using UnityEditor;
 using UnityEngine;
+using VRC.Dynamics;
 using VRC.SDK3.Components;
+using VRC.SDK3.Dynamics.Constraint.Components;
 
 namespace Mecaota.Gunner.EditorTools
 {
@@ -21,7 +23,7 @@ namespace Mecaota.Gunner.EditorTools
             if (rig == null)
             {
                 rig = AttachRig(go);
-                AddEmitter(rig, rig.transform, rig.transform.position, rig.transform.rotation);
+                AddEmitter(rig, null, rig.transform.position, rig.transform.rotation);
                 // 連射にも備えておく: インスペクタで撃ち方を切り替えるだけで済む。
                 EnsureStream(rig);
             }
@@ -34,8 +36,12 @@ namespace Mecaota.Gunner.EditorTools
             var go = Target(command);
             var rig = RigFor(go);
             if (rig == null) return;
-            var parent = go != null ? go.transform : rig.transform;
-            Selection.activeObject = AddEmitter(rig, parent, parent.position, parent.rotation).gameObject;
+            // rig の下の物(muzzles、Parts など)はボーンにしない。rig の下に置いたモデル(Animator の下)のボーンは除く。
+            var animator = go.GetComponentInParent<Animator>(true);
+            bool rigPart = go.transform.IsChildOf(rig.transform) && (animator == null || !animator.transform.IsChildOf(rig.transform));
+            var bone = go.transform != rig.transform && !rigPart ? go.transform : null;
+            var at = bone != null ? bone : rig.transform;
+            Selection.activeObject = AddEmitter(rig, bone, at.position, at.rotation).gameObject;
         }
 
         [MenuItem(Root + "Add Emitter", true)]
@@ -81,7 +87,15 @@ namespace Mecaota.Gunner.EditorTools
             return go != null ? go : Selection.activeGameObject;
         }
 
-        public static GunnerRig RigFor(GameObject go) => go != null ? go.GetComponentInParent<GunnerRig>(true) : null;
+        /// <summary>go の上の rig。無ければ、go の上の最も近い Animator の下で最初の rig(モデルの中で、ボーンの横に rig を置いた形)。</summary>
+        public static GunnerRig RigFor(GameObject go)
+        {
+            if (go == null) return null;
+            var rig = go.GetComponentInParent<GunnerRig>(true);
+            if (rig != null) return rig;
+            var animator = go.GetComponentInParent<Animator>(true);
+            return animator != null ? animator.GetComponentInChildren<GunnerRig>(true) : null;
+        }
 
         static Animator HumanoidFor(GameObject go)
         {
@@ -115,20 +129,42 @@ namespace Mecaota.Gunner.EditorTools
             return rig;
         }
 
-        /// <summary>parent の下に新しい射出口(+Z = 休み方向)を、GunnerEmitter と専用の弾の粒子と一緒に作り、rig の一覧に足す。</summary>
-        public static GunnerEmitter AddEmitter(GunnerRig rig, Transform parent, Vector3 position, Quaternion rotation, string name = "Emitter")
+        /// <summary>
+        /// rig の muzzles の下に射出口(+Z = 休み方向)を作り、rig の一覧に足す。GunnerEmitter は射出口に、弾の粒子は狙いで回す子 Pivot に付ける。
+        /// bone があれば、射出口に VRC Parent Constraint を付けて、今の姿勢のままそのボーンに付いて行かせる。
+        /// </summary>
+        public static GunnerEmitter AddEmitter(GunnerRig rig, Transform bone, Vector3 position, Quaternion rotation, string name = "Emitter")
         {
-            var go = GunnerEditorUtil.CreateChild(parent, GunnerEditorUtil.UniqueChildName(parent, name));
+            var muzzles = Muzzles(rig);
+            var go = GunnerEditorUtil.CreateChild(muzzles, GunnerEditorUtil.UniqueChildName(muzzles, name));
             go.transform.SetPositionAndRotation(position, rotation);
-            var ps = GunnerEditorUtil.CreateShotParticles(go.transform);
+            var pivot = GunnerEditorUtil.CreateChild(go.transform, "Pivot").transform;
+            var ps = GunnerEditorUtil.CreateShotParticles(pivot);
             var muzzle = GunnerEditorUtil.AddUdon<GunnerEmitter>(go);
             GunnerEditorUtil.Edit(muzzle, so =>
             {
-                so.FindProperty("pivot").objectReferenceValue = go.transform;
+                so.FindProperty("pivot").objectReferenceValue = pivot;
                 so.FindProperty("shotParticle").objectReferenceValue = ps;
             });
+            if (bone != null) Follow(muzzle, bone);
             GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.Append(so.FindProperty("muzzles"), muzzle));
             return muzzle;
+        }
+
+        public static Transform Muzzles(GunnerRig rig)
+        {
+            var t = rig.transform.Find("muzzles");
+            return t != null ? t : GunnerEditorUtil.CreateChild(rig.transform, "muzzles").transform;
+        }
+
+        /// <summary>射出口を bone に付いて行かせる。インスペクターの Activate と同じく、今の姿勢を Offset に取って固定する。</summary>
+        public static VRCParentConstraint Follow(GunnerEmitter muzzle, Transform bone)
+        {
+            var constraint = Undo.AddComponent<VRCParentConstraint>(muzzle.gameObject);
+            constraint.Sources.Add(new VRCConstraintSource(bone, 1f));
+            constraint.ActivateConstraint();
+            EditorUtility.SetDirty(constraint);
+            return constraint;
         }
 
         public static GunnerStream EnsureStream(GunnerRig rig)

@@ -25,7 +25,7 @@ Download `com.mecaota.gunner-x.y.z.zip` from [Releases](https://github.com/mecao
 
 ## How shooting works
 
-1. **Emitters.** Each emitter is a `GunnerEmitter` component that holds its settings. The +Z axis of its `pivot` Transform is the shooting direction (the rest direction when nothing aims it). The order of the rig's `muzzles` list gives the emitter numbers. A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticle` (World simulation space) for the visible shot.
+1. **Emitters.** Each emitter is a `GunnerEmitter` component that holds its settings. The +Z axis of its `pivot` Transform is the shooting direction (the rest direction when nothing aims it). The order of the rig's `muzzles` list gives the emitter numbers. A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticle` (World simulation space) for the visible shot. The editor tools place an emitter at `rig/muzzles/<name>`: the `GunnerEmitter` (and a VRC Parent Constraint when it follows a bone) is on `<name>`, and its child `Pivot` is the `pivot`. Do not use a Transform with a constraint as the `pivot`; the constraint overwrites the aim. While the constraint is locked, you cannot move `<name>` in edit mode; unlock it (or move `Pivot`) to adjust.
 2. **The rig.** `GunnerRig` owns everything else: aiming, hit tests, the synced hit records and the receiver list. It uses Manual sync, so it cannot share a GameObject with VRC Object Sync (put it on a child). Shooting takes ownership of the rig.
 3. **Single shots.** `Fire()` shoots once from every Single emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots a single shot from one emitter, whatever its fire mode, with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at its emitter's `shotSpeed`; receivers hear about the hit when it arrives.
 4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it on the Stream emitters in the aim set. With no Stream emitter in the aim set, `StartStream()` does nothing. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started.
@@ -46,7 +46,7 @@ Derive from `GunnerHitReceiver`, override only what you need, and add the receiv
 
 The rig never reads the payload itself; receivers decide what it means.
 
-Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hits), `ClearHits()` (clear every record), `_SetAimTarget` / `ResetAim`, `_SetAimEmitters(mask)`, `BoneFollowOn` / `BoneFollowOff` and `_SetCollision(on)`. To make an emitter follow another Transform, make it a child of that Transform or use a VRC Parent Constraint.
+Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hits), `ClearHits()` (clear every record), `_SetAimTarget` / `ResetAim`, `_SetAimEmitters(mask)`, `BoneFollowOn` / `BoneFollowOff` and `_SetCollision(on)`.
 
 ### Main fields and defaults
 
@@ -151,8 +151,8 @@ A sample prefab (`Prefab/GunnerRig.prefab`, `Prefab/GunnerHandController.prefab`
 Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 
 - **Add Gunner Rig**: a new rig (or a child rig on an object with VRC Object Sync), with one emitter and a `GunnerStream`.
-- **Add Emitter**: an emitter (a `GunnerEmitter` and its own particles) under the selected object, added to the rig's list.
-- **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator).
+- **Add Emitter**: an emitter at `rig/muzzles/<name>` (a `GunnerEmitter`, a child `Pivot` and its own particles), added to the rig's list. On a bone, it starts at the bone and follows it with a VRC Parent Constraint (offset = the pose when it was made). The bone can be outside the rig, in an armature next to it under the same Animator.
+- **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator). The emitter follows the bone in the same way.
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 

@@ -124,7 +124,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // 追加の連動ボーン。実行時は、赤の骨を無視して残りで鎖を作る。
+        // 追加の連動ボーン。実行時は、赤のボーンを無視して残りで鎖を作る。
         const int LongChain = 6;
 
         static void ExtraBones(GunnerRig rig, List<GunnerCheck> into)
@@ -139,7 +139,7 @@ namespace Mecaota.Gunner.EditorTools
                 var lead = GunnerRigEditor.LeadBone(rig, e);
                 if (lead != null) leads.Add(lead);
             }
-            var chainOf = new Dictionary<Transform, Transform>(); // 追加の骨 → その鎖の先頭の骨
+            var chainOf = new Dictionary<Transform, Transform>(); // 追加のボーン → その鎖の先頭のボーン
             var counts = new Dictionary<Transform, int>();
             bool hasNull = false;
             for (int k = 0; k < bones.Length; k++)
@@ -183,7 +183,7 @@ namespace Mecaota.Gunner.EditorTools
                     () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "linkExtraBones", "linkExtraEmitter"))));
             foreach (var pair in counts)
             {
-                int total = pair.Value + 1; // 先頭の骨を含む
+                int total = pair.Value + 1; // 先頭のボーンを含む
                 if (total > LongChain)
                     into.Add(new GunnerCheck(E.Warning, "check.rig.chain_long", rig, null, pair.Key.name + " (" + total + ")"));
             }
@@ -192,13 +192,9 @@ namespace Mecaota.Gunner.EditorTools
         // 射出口ごとの狙える角度: 射出口より長い配列と、180 度を超える値を黄で知らせる。
         static void AimAngles(GunnerRig rig, List<GunnerCheck> into)
         {
-            // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは回す軸が決まらず、骨が跳ぶ)。
+            // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは回す軸が決まらず、ボーンが跳ぶ)。
             // 180 度を超える値は下の点検が先に知らせるので、ここは 170 度を超え 180 度以下だけ。
             const float LinkMax = 170f;
-            if (rig.aimMaxAngle > LinkMax && rig.aimMaxAngle <= 180f)
-                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_link", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => so.FindProperty("aimMaxAngle").floatValue = LinkMax),
-                    "- (" + rig.aimMaxAngle.ToString("0.#") + ")"));
             var angles = rig.aimMaxAngles;
             if (angles == null || angles.Length == 0) return;
             for (int i = 0; i < angles.Length; i++)

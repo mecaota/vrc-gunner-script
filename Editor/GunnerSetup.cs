@@ -213,7 +213,7 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // ---------------- 体の部位(エディタでの既定値だけ。実行時のコードは骨の名前を使わない) ----------------
+        // ---------------- 体の部位(エディタでの既定値だけ。実行時のコードはボーンの名前を使わない) ----------------
 
         enum BodyPart { RightIndexTip, LeftIndexTip, RightPalm, LeftPalm, Mouth }
 
@@ -249,7 +249,7 @@ namespace Mecaota.Gunner.EditorTools
                     var prox = a.GetBoneTransform(right ? HumanBodyBones.RightIndexProximal : HumanBodyBones.LeftIndexProximal);
                     var mid = a.GetBoneTransform(right ? HumanBodyBones.RightIndexIntermediate : HumanBodyBones.LeftIndexIntermediate);
                     var dist = a.GetBoneTransform(right ? HumanBodyBones.RightIndexDistal : HumanBodyBones.LeftIndexDistal);
-                    // ある骨の組のうち最も深いものまで戻る。先端は最後の関節から1区間先にある。
+                    // あるボーンの組のうち最も深いものまで戻る。先端は最後の関節から1区間先にある。
                     Transform last = dist != null ? dist : mid != null ? mid : prox;
                     Transform before = last == dist ? (mid != null ? mid : prox) : last == mid ? prox : hand;
                     if (last == null || before == null)

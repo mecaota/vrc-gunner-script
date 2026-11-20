@@ -5,7 +5,7 @@ using VRC.Udon.Common;
 
 namespace Mecaota.Gunner
 {
-    // 本体: 設定、同期する着弾の記録、射撃、当たり判定、単発、狙い、骨の連動、毎フレームの順番。
+    // 本体: 設定、同期する着弾の記録、射撃、当たり判定、単発、狙い、ボーンの連動、毎フレームの順番。
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class GunnerRig : UdonSharpBehaviour
     {
@@ -21,6 +21,7 @@ namespace Mecaota.Gunner
         public const int AimTarget = 2;      // 1 は空き番(旧 AimDirection)。同期する値なので番号は詰めない
         public const int AimAngles = 3;
         public const int MaxEmitters = 16;
+        public const float DefaultAimLimit = 60f;
 
         /// <summary>
         /// 同期する記録の輪の長さ。どのビルドでも同じ(PC と Android で合っていないと、輪の読み方が
@@ -80,8 +81,8 @@ namespace Mecaota.Gunner
         public Transform[] emitters;              // +Z = 休み方向
         public ParticleSystem[] shotParticles;    // emitters と同じ番号。World シミュレーション空間
         public Transform[] linkBones;            // 射出口ごとに任意: 狙いで回すもの。空 = rig の中での射出口の親
-        // 任意: 連動に加える追加の骨(先頭の骨の祖先に限る)。linkExtraEmitter の同じ番号が、その骨の加わる射出口。
-        // 鎖 = 追加の骨(上から順)+先頭の骨。狙いの回転を骨の数で等分し、鎖の全部の骨に同じ回転を書く。空 = 今までどおり先頭の骨だけ。
+        // 任意: 連動に加える追加のボーン(先頭のボーンの祖先に限る)。linkExtraEmitter の同じ番号が、そのボーンの加わる射出口。
+        // 鎖 = 追加のボーン(上から順)+先頭のボーン。狙いの回転をボーンの数で等分し、鎖の全部のボーンに同じ回転を書く。空 = 今までどおり先頭のボーンだけ。
         public Transform[] linkExtraBones;
         public int[] linkExtraEmitter;
         public Transform[] movers;                // 動くオブジェクト: これ(または子)への着弾はそれに付いていく
@@ -89,36 +90,31 @@ namespace Mecaota.Gunner
         public GunnerHitReceiver[] receivers;    // 着弾を知らされる全員。実行中は _Register で増える
 
         public int maxHits = 16;                  // この端末が使う記録の数(1..SyncSlots)。Android では下げる。同期は16のまま
-        // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーのレイヤーは hitPlayers で決める
-        public bool hitPlayers = true;
-        // この端末のプレイヤー、つまり当たり判定を走らせる人の体を飛ばす。判定は rig の持ち主で走るので、実際には
-        // 撃つ人が自分の弾に当たることはない(自分の骨に付けた射出口、後ろ向きに撃った弾)。見ている人が持ち主の
-        // 罠も、その人には当たらない。
-        public bool excludeOwner = true;
+        // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーには常に当たる(持ち主も)
         public float playerRadius = 0.12f;        // 体の半径。的の目の高さに対する割合
         public int fireMode = FireSingle;         // TriggerDown / TriggerUp で何をするか
-        public float aimMaxAngle = 60f;           // 休み方向からの角度
-        // 任意: 射出口ごとの狙える角度(度)。空・短い・0 以下の射出口は aimMaxAngle を使う。狙い(Wish)が見る。
+        // 任意: 射出口ごとの狙える角度(度。休み方向から)。空・短い・0 以下の射出口は DefaultAimLimit。狙い(Wish)が見る。
         public float[] aimMaxAngles;
-
-        public bool streamCollide = true;        // 開始時の当たり判定(持ち主の端末だけ。_SetCollision で変わる)
 
         public bool boneFollow;                   // 初期値。BoneFollowOn / Off で変えると同期する
         // 任意: emitters と同じ番号。連動ごとに、その連動の最初の射出口(linkLead)の値だけを使う。無ければ既定値
-        public float[] boneStrengths;             // 狙いのうち骨が受け持つ割合。既定 1
+        public float[] boneStrengths;             // 狙いのうちボーンが受け持つ割合。既定 1
         public float[] boneYawMaxes;              // 既定 30
         public float[] bonePitchUpMaxes;          // 既定 30
         public float[] bonePitchDownMaxes;        // 既定 15
         public float[] boneSmooths;               // 1秒あたり: 残りの角度を詰める割合。既定 10
         public float[] boneMinSpeeds;             // 最低でも1秒あたりこの角度。既定 30
         // 追従の回る速さの上限(度/秒)。既定 0 = 上限なし。0 より大きい時は、速さをこの上限で切り、
-        // 速さの変わり方も BoneRampTime 秒で 0 から上限に届く割合までにする(狙いが急に跳んでも、射出口と骨がなめらかに追う)。
+        // 速さの変わり方も BoneRampTime 秒で 0 から上限に届く割合までにする(狙いが急に跳んでも、射出口とボーンがなめらかに追う)。
         public float[] boneMaxSpeeds;
 
-        // 任意: emitters と同じ番号。音・音量・距離は音源の AudioSource(と VRC_SpatialAudioSource)で決める。
+        // 任意: emitters と同じ番号。音量・距離は音源の AudioSource(と VRC_SpatialAudioSource)で決める。
+        // クリップが空の射出口は、音源に入っているクリップを鳴らす。
         // 同期は持たず、各端末が発射と着弾の知らせ(NotifyFire / NotifyHit)から鳴らす。
         public AudioSource[] fireSources;
         public AudioSource[] impactSources;
+        public AudioClip[] fireClips;
+        public AudioClip[] impactClips;
         public float[] fireMinIntervals;          // 鳴っている音がこの秒数に達するまで、次を鳴らさない。無ければ 0
         public float[] impactMinIntervals;
         public ParticleSystem[] impactParticles;
@@ -131,6 +127,7 @@ namespace Mecaota.Gunner
         public int[] streamJoins;                 // 線の幅は各粒子の Trails > Width over Trail で決める
         public int[] streamHitModes;              // HitOnce: 最初の当たりで、その射出口の飛んでいる粒子とトレイルを消す
         public float[] streamHitIntervals;        // HitKeep: 記録の間隔(秒)
+        public int[] streamCollides;              // 0 = 連射は着弾を記録しない。無ければ 1
         public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。入れたら、全部の射出口に bool GunnerPre0, GunnerPre1, ... が要る
 
         // ---------------- 同期(Manual) ----------------
@@ -224,7 +221,8 @@ namespace Mecaota.Gunner
         private bool streamMine;
         private bool streamWas;
         private bool streamBusy;
-        private bool collideOn;
+        private bool collideOn = true;
+        private int collideMask;
         private bool dirty;             // 持ち主: 記録が変わったがまだ送っていない
         private bool aimPending;        // 持ち主: 狙いが変わったがまだ送っていない
         private float nextSendAt;
@@ -235,21 +233,21 @@ namespace Mecaota.Gunner
         private Quaternion[] restRel;
         private Quaternion[] restLocal; // Init で1回だけ取る。狙った後の姿勢からは取らない
         private int[] linkOf;           // 射出口ごと: 連動の番号。-1 = なし
-        private Transform[] links;      // 連動ごと: 先頭の骨
+        private Transform[] links;      // 連動ごと: 先頭のボーン
         private int[] linkLead;
         private bool[] linkHeld;
-        // 連動ごとの鎖(追加の骨を上から順に、最後が先頭の骨)。chain* は全部の連動の鎖を続けて並べた配列。
+        // 連動ごとの鎖(追加のボーンを上から順に、最後が先頭のボーン)。chain* は全部の連動の鎖を続けて並べた配列。
         private int[] linkChainStart;
         private int[] linkChainCount;
         private Transform[] chainBone;
-        private Quaternion[] chainBase;     // 骨の休みのローカル回転(Animator が書いたら取り直す)
+        private Quaternion[] chainBase;     // ボーンの休みのローカル回転(Animator が書いたら取り直す)
         private Quaternion[] chainWritten;
-        private Quaternion[] chainRel;      // 骨から見た、先頭の射出口の休みの座標系(起動時に1回)。先頭の骨は restRel と同じ
-        // 連動ごとの、鎖のいちばん上の骨から先頭の骨までの道(間の動かない骨も含む)。休みの座標系を作るのに使う。
+        private Quaternion[] chainRel;      // ボーンから見た、先頭の射出口の休みの座標系(起動時に1回)。先頭のボーンは restRel と同じ
+        // 連動ごとの、鎖のいちばん上のボーンから先頭のボーンまでの道(間の動かないボーンも含む)。休みの座標系を作るのに使う。
         private int[] linkPathStart;
         private int[] linkPathCount;
         private Transform[] pathBone;
-        private int[] pathChain;            // chain* の番号。-1 = 鎖に入っていない間の骨
+        private int[] pathChain;            // chain* の番号。-1 = 鎖に入っていない間のボーン
         private const int MaxAncestors = 64;
         private float[] followYaw;
         private float[] followPitch;
@@ -276,7 +274,7 @@ namespace Mecaota.Gunner
 
         private RaycastHit[] castHits = new RaycastHit[CastBuffer];
 
-        // 当たり判定の結果(持ち主)。骨とその中での点は、残す着弾についてだけ求める(FinishCast)。
+        // 当たり判定の結果(持ち主)。ボーンとその中での点は、残す着弾についてだけ求める(FinishCast)。
         private int castKind;
         private int castIndex;
         private Vector3 castPoint;
@@ -310,7 +308,7 @@ namespace Mecaota.Gunner
             joinMs = Networking.GetServerTimeInMilliseconds();
             emitterCount = emitters != null ? Mathf.Min(emitters.Length, MaxEmitters) : 0;
             if (receivers == null) receivers = new GunnerHitReceiver[0];
-            collideOn = streamCollide;
+            for (int i = 0; i < emitterCount; i++) if (Number(streamCollides, i, 1) != 0) collideMask |= 1 << i;
             EnsureSyncArrays();
 
             seenMiss = new int[emitterCount];
@@ -362,7 +360,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // Init で取った休みの姿勢から休みの座標系を作る(呼び出し側が先に連動した骨を放すので、骨も休みにある)。
+        // Init で取った休みの姿勢から休みの座標系を作る(呼び出し側が先に連動したボーンを放すので、ボーンも休みにある)。
         private void InitAimFrames()
         {
             int e = emitterCount;
@@ -389,7 +387,7 @@ namespace Mecaota.Gunner
                     restRel[i] = restLocal[i];
                     continue;
                 }
-                // 連動した骨からの相対。直接の親より上の骨でも動く(間の骨は止まっているとみなす)。
+                // 連動したボーンからの相対。直接の親より上のボーンでも動く(間のボーンは止まっているとみなす)。
                 restRef[i] = bone;
                 restRel[i] = Quaternion.Inverse(bone.rotation) * parentRot * restLocal[i];
                 int at = -1;
@@ -421,8 +419,8 @@ namespace Mecaota.Gunner
             BuildChains(count);
         }
 
-        // 連動ごとの鎖と道を作る。追加の骨は先頭の骨の祖先だけを使い、祖先でない骨・別の連動が使っている骨・
-        // 別の連動の先頭の骨は無視する(点検が赤で知らせる)。追加の骨が無ければ、鎖も道も先頭の骨1本だけ。
+        // 連動ごとの鎖と道を作る。追加のボーンは先頭のボーンの祖先だけを使い、祖先でないボーン・別の連動が使っているボーン・
+        // 別の連動の先頭のボーンは無視する(点検が赤で知らせる)。追加のボーンが無ければ、鎖も道も先頭のボーン1本だけ。
         private void BuildChains(int count)
         {
             int extraCount = linkExtraBones != null ? linkExtraBones.Length : 0;
@@ -437,13 +435,13 @@ namespace Mecaota.Gunner
             for (int b = 0; b < count; b++)
             {
                 claimed[claimedCount] = links[b];
-                claimedBy[claimedCount] = -1; // 先頭の骨はどの鎖の追加にもならない
+                claimedBy[claimedCount] = -1; // 先頭のボーンはどの鎖の追加にもならない
                 claimedCount++;
             }
             Transform[] anc = new Transform[MaxAncestors];
             int chainTotal = 0;
             int pathTotal = 0;
-            // 1回目: 祖先を下からたどり、この連動の追加の骨を取る。いちばん上に取れた骨までが道になる。
+            // 1回目: 祖先を下からたどり、この連動の追加のボーンを取る。いちばん上に取れたボーンまでが道になる。
             for (int b = 0; b < count; b++)
             {
                 int depth = Ancestors(links[b], anc);
@@ -525,7 +523,7 @@ namespace Mecaota.Gunner
             return n;
         }
 
-        // t が、連動 b に属する射出口の追加の骨として指定されているか。
+        // t が、連動 b に属する射出口の追加のボーンとして指定されているか。
         private bool IsExtraOf(Transform t, int b)
         {
             if (linkExtraBones == null || linkExtraEmitter == null) return false;
@@ -547,7 +545,7 @@ namespace Mecaota.Gunner
 
         private void OnDisable()
         {
-            // 戻してくれる PostLateUpdate が無いので、連動した骨はすぐに戻す。
+            // 戻してくれる PostLateUpdate が無いので、連動したボーンはすぐに戻す。
             if (initialized) ReleaseLinks();
             StopSources(fireSources);
             StopSources(impactSources);
@@ -570,7 +568,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // 鎖の全部の骨を休みのローカル回転へ戻す。
+        // 鎖の全部のボーンを休みのローカル回転へ戻す。
         private void RestoreChain(int b)
         {
             int start = linkChainStart[b];
@@ -640,7 +638,8 @@ namespace Mecaota.Gunner
 
         // ================= 音 =================
 
-        // 発射音の音源は動かさない。e < 0(連射の開始)は発射音の音源がある先頭の射出口。
+        // 発射音の音源は動かさない。e < 0(連射の開始)は、持ち主の狙う組のうち発射音の音源がある先頭の射出口。
+        // 組は同期した aimEmitSync で見る(ほかの端末の aimEmitters はその端末自身の組)。
         // 入室時に既に続いていた連射(replay)は今撃たれたのではないので鳴らさない。
         private void PlayFireSound(int e, bool replay)
         {
@@ -650,13 +649,13 @@ namespace Mecaota.Gunner
             {
                 for (int i = 0; i < emitterCount; i++)
                 {
-                    if (!ValidEmitter(i) || Source(fireSources, i) == null) continue;
+                    if (!ValidEmitter(i) || !InAim(i, aimEmitSync) || Source(fireSources, i) == null) continue;
                     at = i;
                     break;
                 }
             }
             if (!ValidEmitter(at)) return;
-            PlaySound(Source(fireSources, at), Value(fireMinIntervals, at, 0f));
+            PlaySound(Source(fireSources, at), Clip(fireClips, at), Value(fireMinIntervals, at, 0f));
         }
 
         private void PlayImpact()
@@ -664,7 +663,7 @@ namespace Mecaota.Gunner
             if (hitReplay || !hitResolved) return;
             EmitImpactParticles();
             AudioSource source = Source(impactSources, hitEmitter);
-            if (PlaySound(source, Value(impactMinIntervals, hitEmitter, 0f))) source.transform.position = hitPoint;
+            if (PlaySound(source, Clip(impactClips, hitEmitter), Value(impactMinIntervals, hitEmitter, 0f))) source.transform.position = hitPoint;
         }
 
         // 着弾の記録には面の向きが無いので、Raycast で取り直す。
@@ -692,10 +691,11 @@ namespace Mecaota.Gunner
         }
 
         // 鳴っている途中でも、最短間隔を過ぎていれば頭から鳴らし直す。PlayOneShot は音ごとに位置を変えられないので使わない。
-        private bool PlaySound(AudioSource source, float minInterval)
+        private bool PlaySound(AudioSource source, AudioClip clip, float minInterval)
         {
             if (source == null || (source.isPlaying && source.time < minInterval)) return false;
             source.Stop();
+            if (clip != null) source.clip = clip;
             source.Play();
             return true;
         }
@@ -782,6 +782,9 @@ namespace Mecaota.Gunner
             if (stream == null || !TakeOwnership()) return;
             streamMine = true;
             streamPayload = payload;
+            aimSyncMode = (byte)aimMode;
+            aimSync = aimVector;
+            aimEmitSync = (ushort)aimEmitters;
             if (!streamOn)
             {
                 streamOn = true;
@@ -789,9 +792,6 @@ namespace Mecaota.Gunner
                 stream._Begin(Time.time);
                 NotifyFire(-1, true, false, streamPayload);
             }
-            aimSyncMode = (byte)aimMode;
-            aimSync = aimVector;
-            aimEmitSync = (ushort)aimEmitters;
             aimPending = false;
             SendNow();
         }
@@ -817,7 +817,7 @@ namespace Mecaota.Gunner
             SendNow();
         }
 
-        // 持ち主: 自分の連射も骨の連動も狙いを受け持たなくなったら、ほかの人の画面の射出口は休みに戻る。
+        // 持ち主: 自分の連射もボーンの連動も狙いを受け持たなくなったら、ほかの人の画面の射出口は休みに戻る。
         private void ClearSyncedAimIfUnused()
         {
             if (AimSynced()) return;
@@ -893,11 +893,11 @@ namespace Mecaota.Gunner
         /// <summary>連射の粒子がまだ射程の中を飛んでいれば true。</summary>
         public bool _IsStreamInFlight() { return initialized && stream != null && stream._InFlight(Time.time); }
 
-        /// <summary>骨の連動が今 on なら true。</summary>
+        /// <summary>ボーンの連動が今 on なら true。</summary>
         public bool _IsBoneFollowing() { return BoneOn(); }
 
         // ---------------- 狙い ----------------
-        // 狙っても rig は取らない。持ち主の狙いは、連射中か骨の連動が on の間は同期する。ほかの人の
+        // 狙っても rig は取らない。持ち主の狙いは、連射中かボーンの連動が on の間は同期する。ほかの人の
         // 狙いは、その人の画面の射出口だけを回す。
 
         /// <summary>ワールドの点を狙う。射出口ごとにその点へ向く。</summary>
@@ -924,7 +924,7 @@ namespace Mecaota.Gunner
         }
 
         // 狙う射出口の組(ビット i = 射出口 i)。-1・0・有効な射出口が1つも入っていない組 = 全部(既定)。
-        // 組の外の射出口は狙いを受けず休みの向きに戻り(連動した骨はなめらかに戻る)、連射と一斉射(_FireWith(-1, …)・
+        // 組の外の射出口は狙いを受けず休みの向きに戻り(連動したボーンはなめらかに戻る)、連射と一斉射(_FireWith(-1, …)・
         // _FireVolley)も組の中の射出口だけから出る。射出口を指定した _FireWith(番号, …) は組の外でも休みの向きで撃つ。
         // 狙いと同じ扱い: rig は取らず、持ち主の組は狙いと一緒に同期する(組が変わったら狙いが変わったものとして送る)。
         // 組は1つの狙いを受ける射出口を決めるだけで、射出口ごとに別の点を狙うことはできない。組を替えた後の待ち
@@ -938,13 +938,13 @@ namespace Mecaota.Gunner
             aimEmitters = m;
         }
 
-        /// <summary>骨の連動を on にする(_SetBoneFollow(true))。</summary>
+        /// <summary>ボーンの連動を on にする(_SetBoneFollow(true))。</summary>
         public void BoneFollowOn() { _SetBoneFollow(true); }
 
-        /// <summary>骨の連動を off にする(_SetBoneFollow(false))。</summary>
+        /// <summary>ボーンの連動を off にする(_SetBoneFollow(false))。</summary>
         public void BoneFollowOff() { _SetBoneFollow(false); }
 
-        /// <summary>骨の連動を切り替える。rig を取り、全員に同期する。</summary>
+        /// <summary>ボーンの連動を切り替える。rig を取り、全員に同期する。</summary>
         public void _SetBoneFollow(bool on)
         {
             Init();
@@ -1091,7 +1091,7 @@ namespace Mecaota.Gunner
             for (int s = 0; s < slots; s++) if (slotSeq[s] != 0 && slotSeq[s] <= hSeq - used) DropSlot(s);
         }
 
-        // 残したプレイヤーへの着弾に、一番近い骨とその骨の座標系での点を付ける(この1つの記録について、今だけ)。
+        // 残したプレイヤーへの着弾に、一番近いボーンとそのボーンの座標系での点を付ける(この1つの記録について、今だけ)。
         private void FinishKept()
         {
             recBone = -1;
@@ -1217,7 +1217,7 @@ namespace Mecaota.Gunner
                 int b = MetaBone(m);
                 if (b >= 0)
                 {
-                    // 骨の姿勢を直接読む: コンストレイントで動く Transform は1フレーム遅れるため。
+                    // ボーンの姿勢を直接読む: コンストレイントで動く Transform は1フレーム遅れるため。
                     HumanBodyBones bone = (HumanBodyBones)b;
                     Vector3 pos = player.GetBonePosition(bone);
                     if (pos != Vector3.zero) { wish = pos + player.GetBoneRotation(bone) * local; return true; }
@@ -1260,7 +1260,7 @@ namespace Mecaota.Gunner
                     reach = castHits[i].distance;
                 }
             }
-            if (hitPlayers && PlayerTouch(origin, dir, reach, radius)) return true;
+            if (PlayerTouch(origin, dir, reach, radius)) return true;
             if (best < 0) return false;
             // コライダーの中から始めた判定は、距離0とゼロの点を返す。
             castPoint = castHits[best].distance > 0f ? castHits[best].point : origin;
@@ -1307,7 +1307,6 @@ namespace Mecaota.Gunner
                 VRCPlayerApi player = players[p];
                 pRadius[p] = -1f;
                 if (!Utilities.IsValid(player)) continue;
-                if (excludeOwner && player.isLocal) continue;
                 if (player.playerId > MaxTargetIndex) continue;
                 float eye = Mathf.Max(player.GetAvatarEyeHeightAsMeters(), 0.2f);
                 Vector3 feet = player.GetPosition();
@@ -1643,7 +1642,7 @@ namespace Mecaota.Gunner
             // 撃つ前のアニメの合図が来ないまま期限が過ぎた、または持ち主でなくなった: 撃たずにやめる。
             if (preEmitter >= 0 && (!owner || now >= preUntil)) ClearPreFire();
 
-            // 1. 骨の連動、狙い: 射出口がこのフレームの姿勢を取る。持ち主の狙いは、ほかの全員には同期したもの。
+            // 1. ボーンの連動、狙い: 射出口がこのフレームの姿勢を取る。持ち主の狙いは、ほかの全員には同期したもの。
             int mode = aimMode;
             Vector3 vec = aimVector;
             int emit = aimEmitters;
@@ -1657,7 +1656,7 @@ namespace Mecaota.Gunner
             ApplyAimAll(mode, vec, emit);
 
             // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。連射は持ち主の狙う組の射出口だけから出る。
-            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn, owner ? aimEmitters : aimEmitSync);
+            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, owner ? aimEmitters : aimEmitSync);
             if (owner && AimSynced() && AimChanged())
             {
                 aimSyncMode = (byte)aimMode;
@@ -1726,7 +1725,7 @@ namespace Mecaota.Gunner
             return false;
         }
 
-        // ================= 狙いと骨の連動 =================
+        // ================= 狙いとボーンの連動 =================
 
         // (mode, vec) が射出口 i に求める向きを、円錐の中に収めて wish へ。false = 狙いなし。
         private bool Wish(int mode, Vector3 vec, int i)
@@ -1743,24 +1742,20 @@ namespace Mecaota.Gunner
             w = w.normalized;
             Vector3 rest = RestWorld(i) * Vector3.forward;
             float limit = AimLimit(i);
-            // 角度での狙い(手に持つ球のスティック)は、射出口ごとの角度が広くても今までの可動域で切る。
-            // スティックは左右・上下を別々に切るので、斜めいっぱいは可動域より広い(60/60 で約75度)。
-            // 射出口ごとの角度は「どの射出口で狙うかを選ぶ・向く」ためのもので、手の操作の範囲は変えない。
-            if (mode == AimAngles && aimMaxAngle < limit) limit = aimMaxAngle;
             if (Vector3.Angle(rest, w) > limit) w = Vector3.RotateTowards(rest, w, limit * Mathf.Deg2Rad, 0f);
             wish = w;
             return true;
         }
 
-        // ワールドでの休みの回転。連動して持っている骨は、狙いで回していない時の姿勢として扱う。
+        // ワールドでの休みの回転。連動して持っているボーンは、狙いで回していない時の姿勢として扱う。
         private Quaternion RestWorld(int i)
         {
             Transform r = restRef[i];
             if (r == null) return restRel[i];
             int b = linkOf[i];
             if (b < 0 || !linkHeld[b]) return r.rotation * restRel[i];
-            // 鎖のいちばん上の骨の親から、道の骨のローカル回転を順に掛ける(鎖の骨は休みの値、間の骨は今の値)。
-            // 鎖の骨を曲げると先頭の骨の親も回るので、親の今の回転は使わない。骨が1本なら今までと同じ式になる。
+            // 鎖のいちばん上のボーンの親から、道のボーンのローカル回転を順に掛ける(鎖のボーンは休みの値、間のボーンは今の値)。
+            // 鎖のボーンを曲げると先頭のボーンの親も回るので、親の今の回転は使わない。ボーンが1本なら今までと同じ式になる。
             int start = linkPathStart[b];
             int end = start + linkPathCount[b];
             Transform topBone = pathBone[start];
@@ -1776,8 +1771,8 @@ namespace Mecaota.Gunner
             return rot * restRel[i];
         }
 
-        // 全員。追従の角度は狙いへ少しずつ寄り、骨はそのうち上限付きの割合を受け持つ。入力は狙いと
-        // 休みの座標系だけ(回した骨は使わない)なので、ずれがたまらない。
+        // 全員。追従の角度は狙いへ少しずつ寄り、ボーンはそのうち上限付きの割合を受け持つ。入力は狙いと
+        // 休みの座標系だけ(回したボーンは使わない)なので、ずれがたまらない。
         // emit: 狙う射出口の組。先頭の射出口が組の外の連動は狙わず、休みへなめらかに戻る。
         private void StepLinks(float dt, int mode, Vector3 vec, int emit)
         {
@@ -1802,7 +1797,7 @@ namespace Mecaota.Gunner
                 }
                 else
                 {
-                    // Animator が書いた骨は、それを新しい基準にする(骨ごと)。
+                    // Animator が書いたボーンは、それを新しい基準にする(ボーンごと)。
                     for (int j = cs; j < ce; j++)
                     {
                         Transform cb = chainBone[j];
@@ -1814,8 +1809,8 @@ namespace Mecaota.Gunner
                 float ty = 0f;
                 float tp = 0f;
                 bool aimed = on && mode != AimNone && InAim(lead, emit) && ValidEmitter(lead) && Wish(mode, vec, lead);
-                // 角度での狙い(手に持つ球)は円錐が可動域に収まるので、今までの左右・上下のまま(球の骨の姿勢を変えない)。
-                // 見張り↔球の切り替えの瞬間に骨が1回動くことは許容(ユーザー決定 11-13)。
+                // 角度での狙い(手に持つ球)は円錐が可動域に収まるので、今までの左右・上下のまま(球のボーンの姿勢を変えない)。
+                // 見張り↔球の切り替えの瞬間にボーンが1回動くことは許容(ユーザー決定 11-13)。
                 if (aimed)
                 {
                     bool useAxis = Wide(lead) && mode != AimAngles;
@@ -1880,7 +1875,7 @@ namespace Mecaota.Gunner
                 // 狙える角度が 90 度を超える連動は、2つの値を軸と角度の回転にする(上限は今までどおり左右・上下とみなして切る)。
                 Quaternion q = wide ? AxisTurn(turnYaw[b], turnPitch[b]) : Quaternion.Euler(-turnPitch[b], turnYaw[b], 0f);
                 if (cn > 1) q = Quaternion.Slerp(Quaternion.identity, q, 1f / cn);
-                // 回転を先頭の射出口の休みの座標系で表し、各骨のローカル空間へ移す。どの骨も同じ軸・同じ角度で曲がる。
+                // 回転を先頭の射出口の休みの座標系で表し、各ボーンのローカル空間へ移す。どのボーンも同じ軸・同じ角度で曲がる。
                 for (int j = cs; j < ce; j++)
                 {
                     Transform cb = chainBone[j];
@@ -1894,7 +1889,7 @@ namespace Mecaota.Gunner
 
         // boneMaxSpeeds を使う追従: 目標へ向かう速度を、速さの上限と加速の上限の中で寄せる。止まれる速さ(残りの角度から)を
         // 超えないので、目標が止まればほとんど行き過ぎずに追いつく(急に止めないので、わずかに行き過ぎて戻ることはある)。目標が急に跳んでも(相手が瞬間的に動いた、届いた位置が飛んだ)、
-        // 射出口と骨は上限の速さでなめらかに回る。
+        // 射出口とボーンは上限の速さでなめらかに回る。
         private void StepFollowLimited(int b, float ty, float tp, float dy, float dp, float left, float dt)
         {
             // 処理落ちの長いフレームでも速度が大きく変わらないよう、計算に使う時間を上限で切る。
@@ -1931,7 +1926,7 @@ namespace Mecaota.Gunner
             float ry = ty - followYaw[b];
             float rp = tp - followPitch[b];
             // 目標を越えた(残りの向きが動く前と逆になった)か、目標のすぐ近くで速さも1フレームで止められるほど小さい時は、
-            // 目標にちょうど合わせて止める(休みへ戻る時は値がちょうど 0 になり、骨を放せる)。
+            // 目標にちょうど合わせて止める(休みへ戻る時は値がちょうど 0 になり、ボーンを放せる)。
             bool passed = ry * dy + rp * dp <= 0f;
             float vy = followVelYaw[b];
             float vp = followVelPitch[b];
@@ -1945,7 +1940,7 @@ namespace Mecaota.Gunner
             }
         }
 
-        // emit: 狙う射出口の組。組の外の射出口は狙いなしとして扱う(連動した骨が戻る間は骨に従う)。
+        // emit: 狙う射出口の組。組の外の射出口は狙いなしとして扱う(連動したボーンが戻る間はボーンに従う)。
         private void ApplyAimAll(int mode, Vector3 vec, int emit)
         {
             if (mode == AimNone && !aimedOnce) return;
@@ -1954,7 +1949,7 @@ namespace Mecaota.Gunner
             aimedOnce = any;
         }
 
-        // 連動した射出口は寄せた角度に従う(弾は骨と一緒に出て、骨より先に行かない)。ほかはすぐに向く。
+        // 連動した射出口は寄せた角度に従う(弾はボーンと一緒に出て、ボーンより先に行かない)。ほかはすぐに向く。
         // true = 射出口が休みから回されている。
         private bool AimEmitter(int i, int mode, Vector3 vec)
         {
@@ -1979,7 +1974,7 @@ namespace Mecaota.Gunner
                 Quaternion turn = Quaternion.Euler(-fp, followYaw[b], 0f);
                 Quaternion leadRest = RestWorld(lead);
                 Vector3 dir = leadRest * (turn * Vector3.forward);
-                // 暴れ止め: 上下が FlipPitch を超える時は、上の軸を骨の角度から作る(上の軸と向きが平行になって回らないように)。
+                // 暴れ止め: 上下が FlipPitch を超える時は、上の軸をボーンの角度から作る(上の軸と向きが平行になって回らないように)。
                 if (fp > FlipPitch || fp < -FlipPitch) up = leadRest * (turn * Vector3.up);
                 m.rotation = Quaternion.LookRotation(dir, up);
                 return true;
@@ -2048,11 +2043,11 @@ namespace Mecaota.Gunner
             return Quaternion.AngleAxis(angle, new Vector3(-pitch / angle, yaw / angle, 0f));
         }
 
-        // 射出口 i の狙える角度: aimMaxAngles に 0 より大きい値があればそれ、無ければ aimMaxAngle。
+        // 射出口 i の狙える角度: aimMaxAngles に 0 より大きい値があればそれ、無ければ DefaultAimLimit。
         private float AimLimit(int i)
         {
             if (aimMaxAngles != null && i < aimMaxAngles.Length && aimMaxAngles[i] > 0f) return aimMaxAngles[i];
-            return aimMaxAngle;
+            return DefaultAimLimit;
         }
 
         // 射出口 i が狙う組に入っているか(0 = 全部)。
@@ -2068,11 +2063,13 @@ namespace Mecaota.Gunner
 
         private AudioSource Source(AudioSource[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : null; }
 
+        private AudioClip Clip(AudioClip[] a, int e) { return a != null && e >= 0 && e < a.Length ? a[e] : null; }
+
         private float Value(float[] a, int e, float empty) { return a != null && e >= 0 && e < a.Length ? a[e] : empty; }
 
         private int Number(int[] a, int e, int empty) { return a != null && e >= 0 && e < a.Length ? a[e] : empty; }
 
-        // パーティクルを入れていない射出口は弾が見えないので、物には当てない(人に当たるかは hitPlayers に従う)。
+        // パーティクルを入れていない射出口は弾が見えないので、物には当てない(人には当たる)。
         private int HitMask(int e)
         {
             ParticleSystem ps = Particles(shotParticles, e);

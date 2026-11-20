@@ -160,8 +160,8 @@ namespace Mecaota.Gunner.Tests.Models
                     $"{(frontNearer ? "前" : "後ろ")}の射出口、休みから {edgeAngle:F1} 度、相手との差 {toTarget:F1} 度");
             }
 
-            // 8. 骨を動かすモデルでの反復計算: 見張りが「今の射出口の位置から相手の胸への向き」を 0.2 秒ごとに見て、
-            //    0.5 秒たち 8 度以上変わった時だけ書き直す(見張りの今の書き方のまま)。後ろは骨3本の鎖、前は頭の骨1本
+            // 8. ボーンを動かすモデルでの反復計算: 見張りが「今の射出口の位置から相手の胸への向き」を 0.2 秒ごとに見て、
+            //    0.5 秒たち 8 度以上変わった時だけ書き直す(見張りの今の書き方のまま)。後ろはボーン3本の鎖、前は頭のボーン1本
             //    (なめらかさ 12、最低 20 度/秒)、射出口ごとの角度 120。胸には ±5 mm の揺れ、休みの座標系には毎フレーム
             //    ±0.3 度の揺れ(Animator の書き換え)を足す。射出口の向きそのもの(世界方向)を 0.1 秒ごとに記録し、
             //    最後の 1.5 秒の幅(終わりの向きからの最大の角度)と、最初の寄り(2 秒まで)の後の最大の速さを見る。
@@ -228,7 +228,7 @@ namespace Mecaota.Gunner.Tests.Models
             return Quaternion.CreateFromAxisAngle(new Vector3(-pitch / angle, yaw / angle, 0f), angle * Deg);
         }
 
-        // 骨で動く射出口のモデル。返り値 = 最後の 1.5 秒の射出口の向き(世界方向)の幅。
+        // ボーンで動く射出口のモデル。返り値 = 最後の 1.5 秒の射出口の向き(世界方向)の幅。
         static float Simulate(bool front, Vector3 chestBase, bool axis, Vector3 headPos, Vector3 buttUp, out float maxSpeed, out float lastAngle)
         {
             Vector3 f = front ? FrontRest : BackRest;
@@ -237,7 +237,7 @@ namespace Mecaota.Gunner.Tests.Models
             Vector3 emRest = front ? FrontPos : BackPos;
             Vector3 ToRest(Vector3 w) => new Vector3(Vector3.Dot(w, r), Vector3.Dot(w, u), Vector3.Dot(w, f));
             Vector3 ToWorld(Vector3 l) => r * l.X + u * l.Y + f * l.Z;
-            // 後ろは骨3本の鎖(1本 0.15 m と仮定、1本あたり左右 30・上 25・下 12、鎖全体で 90・75・36)。前は頭の骨1本。
+            // 後ろはボーン3本の鎖(1本 0.15 m と仮定、1本あたり左右 30・上 25・下 12、鎖全体で 90・75・36)。前は頭のボーン1本。
             int n = front ? 1 : 3;
             const float seg = 0.15f;
             Vector3 pivot = front ? headPos : emRest - f * (seg * 3f);
@@ -262,7 +262,7 @@ namespace Mecaota.Gunner.Tests.Models
                 if (n == 1) emPos = pivot + ToWorld(Vector3.Transform(offset, turn));
                 else
                 {
-                    // 鎖: 全体の回転を n 等分し、k 本目の骨の先は q^k で曲がる
+                    // 鎖: 全体の回転を n 等分し、k 本目のボーンの先は q^k で曲がる
                     Quaternion q = Quaternion.Slerp(Quaternion.Identity, turn, 1f / n);
                     Quaternion acc = Quaternion.Identity; Vector3 local = Vector3.Zero;
                     for (int k = 0; k < n; k++) { acc = acc * q; local += Vector3.Transform(Vector3.UnitZ, acc) * seg; }

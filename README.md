@@ -7,7 +7,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 - Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.11.0). APIs will change.
+Status: early (0.12.0). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 
@@ -57,22 +57,19 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 | `shotSpeeds` | empty = 25 | Per emitter. Metres per second. |
 | `maxRanges` | empty = 30 | Per emitter. Metres. |
 | `castRadii` | empty = 0.05 | Per emitter. Hit test thickness (metres). |
-| `hitPlayers` | on | Whether shots hit players. |
-| `excludeOwner` | on | The player on this device is never hit. |
 | `playerRadius` | 0.12 | Body radius as a share of the player's eye height. |
-| `aimMaxAngle` | 60 | Aim limit in degrees from the rest direction. |
-| `aimMaxAngles` | empty | Per-emitter aim limit (0 or empty = `aimMaxAngle`). |
+| `aimMaxAngles` | empty = 60 | Per emitter. Aim limit in degrees from the rest direction (0 = 60). |
 | `streamRates` | empty = 12 | Per emitter. Particles per second. |
 | `streamJoins` | empty = Joined line | Per emitter. Particles, or particles joined into a line by their trails. |
 | `streamHitModes` | empty = Stop at first hit | Per emitter. Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
 | `streamHitIntervals` | empty = 0.25 | Per emitter. Keep hitting: seconds between records. |
-| `streamCollide` | on | Initial stream collision state. |
-| `boneFollow` | off | Turn linked bones with the aim. |
+| `streamCollides` | empty = On | Per emitter. Whether the stream records hits. `_SetCollision(false)` switches it off for all emitters at runtime. |
+| `boneFollow` | off | Initial state: whether linked bones turn with the aim at start. Switch at runtime with `BoneFollowOn` / `BoneFollowOff`. |
 | `boneStrengths` | empty = 1 | Per emitter. Share of the aim the bones take (0-1). |
 | `boneYawMaxes` / `bonePitchUpMaxes` / `bonePitchDownMaxes` | empty = 30 / 30 / 15 | Per emitter. Per-bone limits in degrees. |
 | `boneSmooths` / `boneMinSpeeds` / `boneMaxSpeeds` | empty = 10 / 30 / 0 | Per emitter. Follow speed. `boneMaxSpeeds` 0 = no limit. |
 
-Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there (`hitPlayers` decides). An emitter without a particle system hits no layers (it can still hit players). `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. `streamCollides` is also read once when the rig starts; to switch stream collision at runtime, use `_SetCollision(on)`. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
 
 Emitters with the same lead bone turn that bone together, using the bone fields of the lowest-numbered one; the other cards do not show them. When that card changes (it is removed, or its lead bone is changed), the new lowest-numbered card's values are used.
 
@@ -82,7 +79,8 @@ Emitters with the same lead bone turn that bone together, using the bone fields 
 
 | Field | Default | Meaning |
 |---|---|---|
-| `fireSources` / `impactSources` | empty | Per emitter. The AudioSource to play. Set the clip, volume, pitch and range on it. Empty = silent. |
+| `fireSources` / `impactSources` | empty | Per emitter. The AudioSource to play. Set the volume, pitch and range on it. Empty = silent. |
+| `fireClips` / `impactClips` | empty | Per emitter. The clip put on the source before it plays. Empty = the clip already on the source (with a source shared by several emitters, the clip put on it last). |
 | `fireMinIntervals` / `impactMinIntervals` | empty = 0 | Per emitter. While the sound is playing, the next one is skipped until its playback position (the AudioSource's `time`) reaches this many seconds; once it ends, the next one plays. 0 = restart it every time. For example, 0.08 for impacts keeps a stream from sounding too busy. |
 | `impactParticles` | empty | Per emitter. Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
 | `impactBursts` | empty = 1 | Per emitter. Particles per hit (at least 1). |
@@ -124,7 +122,7 @@ How it works:
 - Teleporting, respawning, joining and sitting in a station can skip the enter and exit events. Every `recheckInterval` seconds each device fixes its list from positions: a listed player whose feet are more than 0.75 m outside the box is removed, and a player whose feet are inside the box is added. The margin is only for removing, because the trigger counts a player as inside as soon as the body capsule touches the box.
 - Respawn: `OnPlayerRespawn` only reaches the player who respawned, and that device removes the player at once. On the other devices (including the rig's owner) the player is removed by `OnPlayerTriggerExit` if it arrives; if it does not, the recheck removes them within `recheckInterval`, and only when the respawn point is more than 0.75 m outside the box. With `recheckInterval` 0, other devices do not remove them in that case.
 - A seated player whose feet are inside the box is added back by the recheck and can be targeted.
-- With the rig's `excludeOwner` on, the rig's owner is never hit, so `GunnerAutoAim` does not choose the owner (the local player on the owner's device) as a target. Turn `excludeOwner` off if the owner should be targeted and hit too.
+- The rig's owner (the local player on the owner's device) can be chosen as a target and hit too.
 - The aim is synced only while the rig syncs it (bone follow on with linked bones, or a stream started on this device). With bone follow off, other devices see the emitters stay at rest; the shots still fly to the recorded points.
 
 ## Quick start
@@ -162,6 +160,10 @@ Both are in `Mecaota.Gunner.EditorTools`. Call them from an `[InitializeOnLoad]`
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md) for every version.
+
+## Changes in 0.12.0
+
+Breaking: `hitPlayers`, `excludeOwner`, `aimMaxAngle` and `streamCollide` are removed. Shots always hit players, including the rig's owner. Set the aim limit and stream collision per emitter on its card (see CHANGELOG.md). Each card also takes a fire clip and an impact clip.
 
 ## Changes in 0.11.0
 

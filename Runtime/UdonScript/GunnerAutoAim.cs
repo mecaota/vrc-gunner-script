@@ -16,7 +16,7 @@ namespace Mecaota.Gunner
         public float interval = 0.2f;             // 探して向ける間隔(秒)
         public float fireInterval = 3f;           // 撃つ間隔(秒)
         public float aimHeight = 0.7f;            // 狙う高さ(相手の目の高さに対する割合)
-        public GameObject[] emitterSwitches = new GameObject[0];      // 射出口ごとの印。無効な印の射出口は使わない。空の所は使う
+        public GameObject[] emitterSwitches = new GameObject[0]; // 射出口ごとの印。無効な印の射出口は使わない。空の所は使う
         public int[] firePayloads;                // 射出口ごとに撃つ時に渡す整数。空・短い所は 0
 
         private VRCPlayerApi[] players = new VRCPlayerApi[16];
@@ -129,7 +129,7 @@ namespace Mecaota.Gunner
             float best = float.MaxValue;
             for (int i = 0; i < count; i++)
             {
-                if (list[i] == null || (i < emitterSwitches.Length && emitterSwitches[i] != null && !emitterSwitches[i].activeSelf)) continue;
+                if (list[i] == null || (i < emitterSwitches.Length && emitterSwitches[i] != null && !emitterSwitches[i].activeInHierarchy)) continue;
                 float d = (list[i].position - point).sqrMagnitude;
                 if (d >= best) continue;
                 best = d;

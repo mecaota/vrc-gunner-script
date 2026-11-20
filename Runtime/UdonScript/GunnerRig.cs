@@ -117,7 +117,6 @@ namespace Mecaota.Gunner
         private float[] maxRanges;
         private float[] castRadii;
         private float[] streamRates;
-        private int[] streamJoins;
         private int[] streamHitModes;
         private float[] streamHitIntervals;
         private int[] streamCollides;
@@ -213,7 +212,6 @@ namespace Mecaota.Gunner
         private float[] aimHoldYaw;     // 射出口ごと: 暴れ止めで保つ左右の角度(狙える角度が FlipPitch を超える射出口だけ使う)
         private bool streamMine;
         private bool streamWas;
-        private bool streamBusy;
         private bool collideOn = true;
         private int collideMask;
         private bool dirty;             // 持ち主: 記録が変わったがまだ送っていない
@@ -363,7 +361,6 @@ namespace Mecaota.Gunner
             maxRanges = new float[n];
             castRadii = new float[n];
             streamRates = new float[n];
-            streamJoins = new int[n];
             streamHitModes = new int[n];
             streamHitIntervals = new float[n];
             streamCollides = new int[n];
@@ -396,7 +393,6 @@ namespace Mecaota.Gunner
                 maxRanges[i] = m.maxRange;
                 castRadii[i] = m.castRadius;
                 streamRates[i] = m.streamRate;
-                streamJoins[i] = m.streamJoin;
                 streamHitModes[i] = m.streamHitMode;
                 streamHitIntervals[i] = m.streamHitInterval;
                 streamCollides[i] = m.streamCollide;
@@ -1674,12 +1670,6 @@ namespace Mecaota.Gunner
 
         // ================= 毎フレーム =================
 
-        private void Update()
-        {
-            // このフレームの粒子のシミュレーションの前: 止まった時は、つないだトレイルを先に伸ばさないと点が失われる。
-            if (streamBusy && stream != null) stream._PreSimulate(Time.time, Time.deltaTime);
-        }
-
         public override void PostLateUpdate()
         {
             if (!initialized) return;
@@ -1702,7 +1692,7 @@ namespace Mecaota.Gunner
             ApplyAimAll(mode, vec, emit);
 
             // 2. 連射、次に間引いた送信(連射の記録と狙いで共有する)。連射は持ち主の狙う組の連射の射出口だけから出る。
-            if (stream != null) streamBusy = stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, StreamSet(owner ? aimEmitters : aimEmitSync));
+            if (stream != null) stream._StepMasked(now, streamOn, owner, owner && collideOn ? collideMask : 0, StreamSet(owner ? aimEmitters : aimEmitSync));
             if (owner && AimSynced() && AimChanged())
             {
                 aimSyncMode = (byte)aimMode;
@@ -2093,8 +2083,6 @@ namespace Mecaota.Gunner
         public float _Range(int e) { return Value(maxRanges, e, 30f); }
 
         public float _StreamRate(int e) { return Value(streamRates, e, 12f); }
-
-        public int _StreamJoin(int e) { return Number(streamJoins, e, GunnerStream.JoinLine); }
 
         public int _StreamHitMode(int e) { return Number(streamHitModes, e, GunnerStream.HitOnce); }
 

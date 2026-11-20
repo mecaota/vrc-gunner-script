@@ -4,6 +4,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [Unreleased]
+
+Breaking: `GunnerEmitter.streamJoin` is removed. Whether the stream is joined into a line is now the particle system's **Trails > Mode**.
+
+互換性のない変更です。`GunnerEmitter.streamJoin` を削除しました。連射を線につなぐかどうかは、パーティクルの **Trails > Mode** で決まります。
+
+### Breaking changes / 互換性のない変更
+
+- `GunnerEmitter.streamJoin` is removed. For a joined stream, turn on Trails on the emitter's particle system and set **Mode** to Ribbon. With Trails off, or Mode left at Particles, the stream is not joined. A stream that used Joined line (the old `streamJoin` default) with Trails Mode at Particles (the default) is now unjoined; to join it, set Trails Mode to Ribbon.
+- `GunnerEmitter.streamJoin` を削除しました。つなぐ連射にするには、射出口のパーティクルの Trails を ON にして **Mode** を Ribbon にします。Trails が OFF か、Mode が Particles のままなら、つながない連射です。「線につなぐ」(旧 `streamJoin` の既定)で Trails の Mode が Particles(既定値)のままの連射は、すべてつながない連射になります。つなぐには Trails の Mode を Ribbon にしてください。
+- `GunnerStream.span` is removed.
+- `GunnerStream.span` を削除しました。
+- Removed: `GunnerStream.JoinParticles`, `GunnerStream.JoinLine`, `GunnerRig._StreamJoin` and `GunnerStream._PreSimulate`. `_StepMasked` now returns void.
+- 削除: `GunnerStream.JoinParticles`、`GunnerStream.JoinLine`、`GunnerRig._StreamJoin`、`GunnerStream._PreSimulate`。`_StepMasked` の戻り値は void になりました。
+
+### Changed / 変更
+
+- Width over Trail applies to the whole line. A stream started again soon after it stopped joins the previous line.
+- Width over Trail は線全体に掛かります。止めてすぐ撃ち直すと、前の線とつながります。
+
 ## [0.15.0] - 2026-11-20
 
 Breaking: the rig's per-emitter arrays are replaced by one `GunnerEmitter` component per emitter. Values in the old arrays are lost on update.

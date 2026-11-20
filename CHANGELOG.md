@@ -4,6 +4,47 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [Unreleased]
+
+Breaking: each emitter's settings move from the rig's per-emitter arrays to a new component, `GunnerEmitter`. The values in the old arrays are lost on update.
+
+互換性のない変更です。射出口ごとの設定を、rig の射出口ごとの配列から、新しい部品 `GunnerEmitter` へ移しました。古い配列の値は、更新すると失われます。
+
+### Breaking changes / 互換性のない変更
+
+- `GunnerRig` no longer has `emitters`, `shotParticles`, `linkBones`, `linkExtraBones`, `linkExtraEmitter`, `fireModes`, `aimMaxAngles` or the other per-emitter arrays (bone, sound, impact, shot and stream). Each emitter is a `GunnerEmitter` with the same fields in the singular (`pivot` takes the place of the emitter Transform). The rig lists them in `muzzles`, and the order gives the emitter numbers.
+- `GunnerRig` から、`emitters`、`shotParticles`、`linkBones`、`linkExtraBones`、`linkExtraEmitter`、`fireModes`、`aimMaxAngles` と、そのほかの射出口ごとの配列(ボーン、音、着弾、弾、連射)を削除しました。射出口は1つずつ `GunnerEmitter` になり、欄の名前は単数形になりました(射出口の Transform は `pivot` に入れます)。rig の `muzzles` に射出口を並べ、その順が射出口の番号になります。
+- Linked bones are one list per emitter, `GunnerEmitter.linkBones`, from root to tip; the last one is the tip. The emitter's parent is no longer used as the tip when the list is empty, and the emitter no longer has to be under the tip bone. To keep a link that used the emitter's parent, put that bone in `linkBones` (**+ Add parent bone** does this when the list is empty).
+- 連動ボーンは、射出口ごとに1つの一覧 `GunnerEmitter.linkBones`(根元 → 先端)にまとめました。最後のボーンが先端です。一覧が空のときに射出口の親を先端として使うことはなくなり、射出口が先端のボーンの下にある必要もなくなりました。射出口の親で連動していた場合は、そのボーンを `linkBones` に入れてください(一覧が空のとき、「+ 親のボーンを足す」で入ります)。
+- `GunnerSetup.AddEmitter` returns the new `GunnerEmitter`.
+- `GunnerSetup.AddEmitter` は、作った `GunnerEmitter` を返します。
+
+### Added / 追加
+
+- The `GunnerEmitter` inspector and its Scene view handles. The rig's inspector lists the emitters; **+ Add emitter** makes the emitter with its `GunnerEmitter` and particles, and **Remove** only takes it off the list (the GameObject stays).
+- `GunnerEmitter` のインスペクターと、シーンビューのハンドルを足しました。rig のインスペクターには射出口の一覧を出します。「+ 射出口を足す」は `GunnerEmitter` とパーティクルを付けた射出口を作り、「外す」は一覧から外すだけで、GameObject は消しません。
+- Checks: no `pivot`, and a `GunnerEmitter` that is in no rig's list (Fix adds it to the rig above it).
+- 点検を2つ足しました: `pivot` が空のとき、`GunnerEmitter` がどの rig の一覧にも入っていないとき(「直す」で、親の rig の一覧に足します)。
+- In Play mode in the editor, a change on a `GunnerEmitter` takes effect at once (the rig copies the values again with `_LoadMuzzles`). `pivot`, `shotParticle`, the fire mode, `streamCollide`, `linkBones` and the values the stream reads still apply from the next Play.
+- エディターの Play 中に `GunnerEmitter` の値を変えると、すぐに効きます(rig が `_LoadMuzzles` で値を写し直します)。`pivot`、`shotParticle`、撃ち方、`streamCollide`、`linkBones`、連射が読む値は、次に Play したときから効きます。
+
+### Removed / 削除
+
+- The checks for per-emitter arrays longer than the emitter list and for extra bones that point at a missing emitter.
+- 射出口より長い配列の点検と、無い射出口を指す追加のボーンの点検を削除しました。
+
+### Migration / 入れ直しの手順
+
+1. Before updating, note each emitter's values on its card in the rig's inspector, including the linked bones.
+2. After updating, add a `GunnerEmitter` to each emitter GameObject, set `pivot` to that Transform, and enter the values again. List the linked bones from root to tip, ending with the old tip bone (if the tip was empty and the emitter's parent was inside the rig, end with that parent). Do this only if the emitter was a descendant of that tip bone; otherwise it was not linked, so leave `linkBones` empty.
+3. Add the `GunnerEmitter`s to the rig's `muzzles` in the old order, so the emitter numbers stay the same.
+4. Open **Tools > Gunner > Check Window** and fix what it lists.
+
+1. 更新の前に、rig のインスペクターで、射出口ごとのカードの値(連動ボーンを含む)を控えます。
+2. 更新した後、射出口の GameObject それぞれに `GunnerEmitter` を付け、`pivot` にその Transform を入れて、控えた値を入れ直します。連動ボーンは根元から先端の順に並べ、一覧の最後には更新前の先端のボーンを入れます(先端の欄が空で、射出口の親が rig の中にあった場合は、その親を最後に入れます)。ただし、入れるのは射出口がその先端のボーンの子孫だった場合だけです。子孫でなかった射出口は連動していなかったので、`linkBones` は空のままにします。
+3. rig の `muzzles` に、前と同じ順で `GunnerEmitter` を入れます(射出口の番号を変えないため)。
+4. **Tools > Gunner > Check Window** を開き、出た項目を直します。
+
 ## [0.14.0] - 2026-11-20
 
 Breaking: `GunnerAutoAim.switchWait` is removed. The value in it is lost on update.

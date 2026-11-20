@@ -76,13 +76,7 @@ namespace Mecaota.Gunner
 
         // ---------------- セットアップ(エディタが書く) ----------------
 
-        public Transform[] emitters;              // +Z = 休み方向
-        public ParticleSystem[] shotParticles;    // emitters と同じ番号。World シミュレーション空間
-        public Transform[] linkBones;            // 射出口ごとに任意: 狙いで回すもの。空 = rig の中での射出口の親
-        // 任意: 連動に加える追加のボーン(先頭のボーンの祖先に限る)。linkExtraEmitter の同じ番号が、そのボーンの加わる射出口。
-        // 鎖 = 追加のボーン(上から順)+先頭のボーン。狙いの回転をボーンの数で等分し、鎖の全部のボーンに同じ回転を書く。空 = 今までどおり先頭のボーンだけ。
-        public Transform[] linkExtraBones;
-        public int[] linkExtraEmitter;
+        public GunnerEmitter[] muzzles;           // 並びが射出口の番号(同期する記録と GunnerPre<番号> が使う)
         public Transform[] movers;                // 動くオブジェクト: これ(または子)への着弾はそれに付いていく
         public GunnerStream stream;               // 任意: 連射
         public GunnerHitReceiver[] receivers;    // 着弾を知らされる全員。実行中は _Register で増える
@@ -90,43 +84,43 @@ namespace Mecaota.Gunner
         public int maxHits = 16;                  // この端末が使う記録の数(1..SyncSlots)。Android では下げる。同期は16のまま
         // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーには常に当たる(持ち主も)
         public float playerRadius = 0.12f;        // 体の半径。的の目の高さに対する割合
-        public int[] fireModes;                   // 射出口ごとの撃ち方(FireSingle / FireStream)。無い射出口は FireSingle
-        // 任意: 射出口ごとの狙える角度(度。休み方向から)。空・短い・0 以下の射出口は DefaultAimLimit。狙い(Wish)が見る。
-        public float[] aimMaxAngles;
-
         public bool boneFollow;                   // 初期値。BoneFollowOn / Off で変えると同期する
-        // 任意: emitters と同じ番号。連動ごとに、その連動の最初の射出口(linkLead)の値だけを使う。無ければ既定値
-        public float[] boneStrengths;             // 狙いのうちボーンが受け持つ割合。既定 1
-        public float[] boneYawMaxes;              // 既定 30
-        public float[] bonePitchUpMaxes;          // 既定 30
-        public float[] bonePitchDownMaxes;        // 既定 15
-        public float[] boneSmooths;               // 1秒あたり: 残りの角度を詰める割合。既定 10
-        public float[] boneMinSpeeds;             // 最低でも1秒あたりこの角度。既定 30
-        // 追従の回る速さの上限(度/秒)。既定 0 = 上限なし。0 より大きい時は、速さをこの上限で切り、
-        // 速さの変わり方も BoneRampTime 秒で 0 から上限に届く割合までにする(狙いが急に跳んでも、射出口とボーンがなめらかに追う)。
-        public float[] boneMaxSpeeds;
-
-        // 任意: emitters と同じ番号。音量・距離は音源の AudioSource(と VRC_SpatialAudioSource)で決める。
-        // クリップが空の射出口は、音源に入っているクリップを鳴らす。
-        // 同期は持たず、各端末が発射と着弾の知らせ(NotifyFire / NotifyHit)から鳴らす。
-        public AudioSource[] fireSources;
-        public AudioSource[] impactSources;
-        public AudioClip[] fireClips;
-        public AudioClip[] impactClips;
-        public float[] fireMinIntervals;          // 鳴っている音がこの秒数に達するまで、次を鳴らさない。無ければ 0
-        public float[] impactMinIntervals;
-        public ParticleSystem[] impactParticles;
-        public int[] impactBursts;
-        // 任意: emitters と同じ番号。無い射出口の値は _Speed などの既定値
-        public float[] shotSpeeds;
-        public float[] maxRanges;
-        public float[] castRadii;
-        public float[] streamRates;               // 1秒あたりの粒子数
-        public int[] streamJoins;                 // 線の幅は各粒子の Trails > Width over Trail で決める
-        public int[] streamHitModes;              // HitOnce: 最初の当たりで、その射出口の飛んでいる粒子とトレイルを消す
-        public float[] streamHitIntervals;        // HitKeep: 記録の間隔(秒)
-        public int[] streamCollides;              // 0 = 連射は着弾を記録しない。無ければ 1
         public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。入れたら、全部の射出口に bool GunnerPre0, GunnerPre1, ... が要る
+
+        // ---------------- 射出口ごとの値(_LoadMuzzles が muzzles から写す) ----------------
+
+        // 毎フレーム読む値を、ほかの Behaviour の欄の読み出しにしないため、配列に写して使う。
+        [System.NonSerialized] public Transform[] emitters;         // GunnerStream・GunnerAutoAim も読む
+        [System.NonSerialized] public ParticleSystem[] shotParticles;
+        private Transform[][] linkBones;
+        private int[] fireModes;
+        private float[] aimMaxAngles;
+        // 連動ごとに、その連動の最初の射出口(linkLead)の値だけを使う。
+        private float[] boneStrengths;
+        private float[] boneYawMaxes;
+        private float[] bonePitchUpMaxes;
+        private float[] bonePitchDownMaxes;
+        private float[] boneSmooths;
+        private float[] boneMinSpeeds;
+        // 0 より大きい時は、速さをこの上限で切り、速さの変わり方も BoneRampTime 秒で 0 から上限に届く割合までにする。
+        private float[] boneMaxSpeeds;
+        // 同期は持たず、各端末が発射と着弾の知らせ(NotifyFire / NotifyHit)から鳴らす。
+        private AudioSource[] fireSources;
+        private AudioSource[] impactSources;
+        private AudioClip[] fireClips;
+        private AudioClip[] impactClips;
+        private float[] fireMinIntervals;
+        private float[] impactMinIntervals;
+        private ParticleSystem[] impactParticles;
+        private int[] impactBursts;
+        private float[] shotSpeeds;
+        private float[] maxRanges;
+        private float[] castRadii;
+        private float[] streamRates;
+        private int[] streamJoins;
+        private int[] streamHitModes;
+        private float[] streamHitIntervals;
+        private int[] streamCollides;
 
         // ---------------- 同期(Manual) ----------------
 
@@ -302,7 +296,8 @@ namespace Mecaota.Gunner
             slots = SyncSlots;
             used = Mathf.Clamp(maxHits, 1, SyncSlots);
             joinMs = Networking.GetServerTimeInMilliseconds();
-            emitterCount = emitters != null ? Mathf.Min(emitters.Length, MaxEmitters) : 0;
+            emitterCount = muzzles != null ? Mathf.Min(muzzles.Length, MaxEmitters) : 0;
+            _LoadMuzzles();
             if (receivers == null) receivers = new GunnerHitReceiver[0];
             for (int i = 0; i < emitterCount; i++)
             {
@@ -340,6 +335,74 @@ namespace Mecaota.Gunner
             if (stream != null) stream._Init(this);
         }
 
+        /// <summary>muzzles の値を射出口ごとの配列へ写す。エディタは Play 中の変更を効かせるために呼ぶ(射出口の数、撃ち方、連動、連射が読む値は起動時のまま)。</summary>
+        public void _LoadMuzzles()
+        {
+            int n = emitterCount;
+            emitters = new Transform[n];
+            shotParticles = new ParticleSystem[n];
+            linkBones = new Transform[n][];
+            fireModes = new int[n];
+            aimMaxAngles = new float[n];
+            boneStrengths = new float[n];
+            boneYawMaxes = new float[n];
+            bonePitchUpMaxes = new float[n];
+            bonePitchDownMaxes = new float[n];
+            boneSmooths = new float[n];
+            boneMinSpeeds = new float[n];
+            boneMaxSpeeds = new float[n];
+            fireSources = new AudioSource[n];
+            impactSources = new AudioSource[n];
+            fireClips = new AudioClip[n];
+            impactClips = new AudioClip[n];
+            fireMinIntervals = new float[n];
+            impactMinIntervals = new float[n];
+            impactParticles = new ParticleSystem[n];
+            impactBursts = new int[n];
+            shotSpeeds = new float[n];
+            maxRanges = new float[n];
+            castRadii = new float[n];
+            streamRates = new float[n];
+            streamJoins = new int[n];
+            streamHitModes = new int[n];
+            streamHitIntervals = new float[n];
+            streamCollides = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                GunnerEmitter m = muzzles[i];
+                linkBones[i] = new Transform[0];
+                if (m == null) continue;
+                emitters[i] = m.pivot;
+                shotParticles[i] = m.shotParticle;
+                if (m.linkBones != null) linkBones[i] = m.linkBones;
+                fireModes[i] = m.fireMode;
+                aimMaxAngles[i] = m.aimMaxAngle;
+                boneStrengths[i] = m.boneStrength;
+                boneYawMaxes[i] = m.boneYawMax;
+                bonePitchUpMaxes[i] = m.bonePitchUpMax;
+                bonePitchDownMaxes[i] = m.bonePitchDownMax;
+                boneSmooths[i] = m.boneSmooth;
+                boneMinSpeeds[i] = m.boneMinSpeed;
+                boneMaxSpeeds[i] = m.boneMaxSpeed;
+                fireSources[i] = m.fireSource;
+                impactSources[i] = m.impactSource;
+                fireClips[i] = m.fireClip;
+                impactClips[i] = m.impactClip;
+                fireMinIntervals[i] = m.fireMinInterval;
+                impactMinIntervals[i] = m.impactMinInterval;
+                impactParticles[i] = m.impactParticle;
+                impactBursts[i] = m.impactBurst;
+                shotSpeeds[i] = m.shotSpeed;
+                maxRanges[i] = m.maxRange;
+                castRadii[i] = m.castRadius;
+                streamRates[i] = m.streamRate;
+                streamJoins[i] = m.streamJoin;
+                streamHitModes[i] = m.streamHitMode;
+                streamHitIntervals[i] = m.streamHitInterval;
+                streamCollides[i] = m.streamCollide;
+            }
+        }
+
         // 受け取った配列は、大きさが合っていれば残す。Init より前に届いた状態を消さないため。
         private void EnsureSyncArrays()
         {
@@ -370,26 +433,23 @@ namespace Mecaota.Gunner
             Transform[] found = new Transform[e];
             int[] lead = new int[e];
             int count = 0;
-            Transform self = transform;
             for (int i = 0; i < e; i++)
             {
                 linkOf[i] = -1;
                 restRel[i] = Quaternion.identity;
                 Transform m = emitters[i];
                 if (m == null) continue;
-                Transform parent = m.parent;
-                Quaternion parentRot = parent != null ? parent.rotation : Quaternion.identity;
-                Transform bone = linkBones != null && i < linkBones.Length ? linkBones[i] : null;
-                if (bone == null && parent != null && parent != self && parent.IsChildOf(self)) bone = parent;
-                if (bone == null || !m.IsChildOf(bone))
+                Transform[] list = linkBones[i];
+                Transform bone = list.Length > 0 ? list[list.Length - 1] : null;
+                if (bone == null)
                 {
-                    restRef[i] = parent;
+                    restRef[i] = m.parent;
                     restRel[i] = restLocal[i];
                     continue;
                 }
-                // 連動したボーンからの相対。直接の親より上のボーンでも動く(間のボーンは止まっているとみなす)。
+                // 先端のボーンからの相対(起動時の姿勢)。射出口がボーンの子孫でなくても使える。
                 restRef[i] = bone;
-                restRel[i] = Quaternion.Inverse(bone.rotation) * parentRot * restLocal[i];
+                restRel[i] = Quaternion.Inverse(bone.rotation) * m.rotation;
                 int at = -1;
                 for (int b = 0; b < count; b++) if (found[b] == bone) { at = b; break; }
                 if (at < 0)
@@ -422,7 +482,8 @@ namespace Mecaota.Gunner
         // 別の連動の先頭のボーンは無視する(点検が赤で知らせる)。追加のボーンが無ければ、鎖も道も先頭のボーン1本だけ。
         private void BuildChains(int count)
         {
-            int extraCount = linkExtraBones != null ? linkExtraBones.Length : 0;
+            int extraCount = 0;
+            for (int e = 0; e < emitterCount; e++) extraCount += linkBones[e].Length;
             linkChainStart = new int[count];
             linkChainCount = new int[count];
             linkPathStart = new int[count];
@@ -473,8 +534,7 @@ namespace Mecaota.Gunner
             {
                 Ancestors(links[b], anc);
                 int lead = linkLead[b];
-                Transform em = emitters[lead];
-                Quaternion restFrame = (em.parent != null ? em.parent.rotation : Quaternion.identity) * restLocal[lead];
+                Quaternion restFrame = emitters[lead].rotation;
                 linkChainStart[b] = ci;
                 linkPathStart[b] = pi;
                 for (int a = top[b]; a >= 0; a--)
@@ -522,16 +582,14 @@ namespace Mecaota.Gunner
             return n;
         }
 
-        // t が、連動 b に属する射出口の追加のボーンとして指定されているか。
+        // t が、連動 b に属する射出口の、先端より上のボーンとして指定されているか。
         private bool IsExtraOf(Transform t, int b)
         {
-            if (linkExtraBones == null || linkExtraEmitter == null) return false;
-            int n = Mathf.Min(linkExtraBones.Length, linkExtraEmitter.Length);
-            for (int k = 0; k < n; k++)
+            for (int e = 0; e < emitterCount; e++)
             {
-                if (linkExtraBones[k] != t) continue;
-                int e = linkExtraEmitter[k];
-                if (e >= 0 && e < emitterCount && linkOf[e] == b) return true;
+                if (linkOf[e] != b) continue;
+                Transform[] list = linkBones[e];
+                for (int k = 0; k < list.Length - 1; k++) if (list[k] == t) return true;
             }
             return false;
         }

@@ -25,11 +25,11 @@ Download `com.mecaota.gunner-x.y.z.zip` from [Releases](https://github.com/mecao
 
 ## How shooting works
 
-1. **Emitters.** An emitter is a `Transform`. Its +Z axis is the shooting direction (the rest direction when nothing aims it). A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticles` (same index, World simulation space) for the visible shot.
+1. **Emitters.** Each emitter is a `GunnerEmitter` component that holds its settings. The +Z axis of its `pivot` Transform is the shooting direction (the rest direction when nothing aims it). The order of the rig's `muzzles` list gives the emitter numbers. A rig has up to 16 emitters (`GunnerRig.MaxEmitters`). Each emitter can have its own `ParticleSystem` in `shotParticle` (World simulation space) for the visible shot.
 2. **The rig.** `GunnerRig` owns everything else: aiming, hit tests, the synced hit records and the receiver list. It uses Manual sync, so it cannot share a GameObject with VRC Object Sync (put it on a child). Shooting takes ownership of the rig.
-3. **Single shots.** `Fire()` shoots once from every Single emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots a single shot from one emitter, whatever its fire mode, with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at its emitter's `shotSpeeds` value; receivers hear about the hit when it arrives.
+3. **Single shots.** `Fire()` shoots once from every Single emitter in the aim set (all by default). `_FireWith(emitter, payload)` shoots a single shot from one emitter, whatever its fire mode, with an integer payload, and `_FireVolley(payload, mask, offsets)` picks the emitters with a bit mask and adds per-emitter angle offsets. A shot that hits travels at its emitter's `shotSpeed`; receivers hear about the hit when it arrives.
 4. **Streams.** A stream keeps emitting particles while it runs. `StartStream()` / `StopStream()` (or `_StartStreamWith(payload)`) start and stop it on the Stream emitters in the aim set. With no Stream emitter in the aim set, `StartStream()` does nothing. The rig needs a `GunnerStream` in its `stream` field. `StopStream()` only stops a stream this device started.
-5. **Trigger helpers.** Each emitter has a fire mode (`fireModes`: Single or Stream). `TriggerDown()` calls `StartStream()` and then `Fire()`. `TriggerUp()` calls `StopStream()`.
+5. **Trigger helpers.** Each emitter has a fire mode (`fireMode`: Single or Stream). `TriggerDown()` calls `StartStream()` and then `Fire()`. `TriggerUp()` calls `StopStream()`.
 6. **Hit records.** Each hit becomes a record that the rig syncs to everyone. The sync always holds 16 records (`SyncSlots`, a ring); `maxHits` (1-16) only limits how many this device uses, so Android can use fewer and still match PC. Receivers read the current hit from the rig's `hit*` fields: `hitKind` (`KindWorld`, `KindMoving`, `KindPlayer`), `hitIndex` (moving object index or playerId), `hitBone`, `hitPoint`, `hitLocal`, `hitEmitter`, `hitPayload`, `hitStream`, `hitReplay` (restored for a late joiner; skip effects) and `hitResolved`.
 
 ### Receivers
@@ -50,46 +50,56 @@ Other useful calls: `StopFire()` (retire shots still in flight, keep arrived hit
 
 ### Main fields and defaults
 
+On the rig:
+
 | Field | Default | Meaning |
 |---|---|---|
-| `fireModes` | empty = Single | Per emitter. Single or Stream: how the emitter shoots on `TriggerDown` and from the hand controller. |
+| `muzzles` | empty | The `GunnerEmitter`s. The order gives the emitter numbers (`GunnerPre<n>`, `useEmitters`, `emitterMask`). |
 | `maxHits` | 16 | Hit records this device uses (1-16). |
-| `shotSpeeds` | empty = 25 | Per emitter. Metres per second. |
-| `maxRanges` | empty = 30 | Per emitter. Metres. |
-| `castRadii` | empty = 0.05 | Per emitter. Hit test thickness (metres). |
 | `playerRadius` | 0.12 | Body radius as a share of the player's eye height. |
-| `aimMaxAngles` | empty = 60 | Per emitter. Aim limit in degrees from the rest direction (0 = 60). |
-| `streamRates` | empty = 12 | Per emitter. Particles per second. |
-| `streamJoins` | empty = Joined line | Per emitter. Particles, or particles joined into a line by their trails. |
-| `streamHitModes` | empty = Stop at first hit | Per emitter. Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
-| `streamHitIntervals` | empty = 0.25 | Per emitter. Keep hitting: seconds between records. |
-| `streamCollides` | empty = On | Per emitter. Whether the stream records hits. `_SetCollision(false)` switches it off for all emitters at runtime. |
 | `boneFollow` | off | Initial state: whether linked bones turn with the aim at start. Switch at runtime with `BoneFollowOn` / `BoneFollowOff`. |
-| `boneStrengths` | empty = 1 | Per emitter. Share of the aim the bones take (0-1). |
-| `boneYawMaxes` / `bonePitchUpMaxes` / `bonePitchDownMaxes` | empty = 30 / 30 / 15 | Per emitter. Per-bone limits in degrees. |
-| `boneSmooths` / `boneMinSpeeds` / `boneMaxSpeeds` | empty = 10 / 30 / 0 | Per emitter. Follow speed. `boneMaxSpeeds` 0 = no limit. |
 
-Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). `shotSpeeds`, `maxRanges`, `streamRates`, `streamJoins`, `streamHitModes` and `streamHitIntervals` are read by the stream once when the rig starts; changing them at runtime does not change the stream. `streamCollides` is also read once when the rig starts; to switch stream collision at runtime, use `_SetCollision(on)`. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+On each `GunnerEmitter`:
 
-Emitters with the same lead bone turn that bone together, using the bone fields of the lowest-numbered one; the other cards do not show them. When that card changes (it is removed, or its lead bone is changed), the new lowest-numbered card's values are used.
+| Field | Default | Meaning |
+|---|---|---|
+| `pivot` | empty | The Transform the aim turns and shots leave from. |
+| `fireMode` | Single | Single or Stream: how the emitter shoots on `TriggerDown` and from the hand controller. |
+| `shotSpeed` | 25 | Metres per second. |
+| `maxRange` | 30 | Metres. |
+| `castRadius` | 0.05 | Hit test thickness (metres). |
+| `aimMaxAngle` | 0 | Aim limit in degrees from the rest direction (0 = 60). |
+| `streamRate` | 12 | Particles per second. |
+| `streamJoin` | Joined line | Particles, or particles joined into a line by their trails. |
+| `streamHitMode` | Stop at first hit | Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
+| `streamHitInterval` | 0.25 | Keep hitting: seconds between records. |
+| `streamCollide` | On | Whether the stream records hits. `_SetCollision(false)` switches it off for all emitters at runtime. |
+| `linkBones` | empty | Bones the aim turns, root to tip. The last one is the tip; the others must be its ancestors. Empty = no link. |
+| `boneStrength` | 1 | Share of the aim the bones take (0-1). |
+| `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
+| `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
+
+Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). The rig copies the emitters' values when it starts. In Play mode in the editor, a change on a `GunnerEmitter` is copied again, except `pivot`, `shotParticle`, the fire mode, `streamCollide`, `linkBones` and the values the stream reads (`shotSpeed`, `maxRange`, `streamRate`, `streamJoin`, `streamHitMode`, `streamHitInterval`), which are read once when the rig starts; to switch stream collision at runtime, use `_SetCollision(on)`. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+
+Emitters with the same tip bone turn that bone together, using the bone fields of the lowest-numbered one; the others do not show them. When that emitter changes (it is removed from the list, or its tip bone is changed), the new lowest-numbered emitter's values are used.
 
 ### Built-in sounds and impact particles
 
-`GunnerRig` can play a fire sound and an impact sound, and burst particles at the hit point, by itself. All of them are set per emitter on each emitter's card. Every device plays them from the fire and hit events; nothing extra is synced.
+`GunnerRig` can play a fire sound and an impact sound, and burst particles at the hit point, by itself. All of them are set on each `GunnerEmitter`. Every device plays them from the fire and hit events; nothing extra is synced.
 
 | Field | Default | Meaning |
 |---|---|---|
-| `fireSources` / `impactSources` | empty | Per emitter. The AudioSource to play. Set the volume, pitch and range on it. Empty = silent. |
-| `fireClips` / `impactClips` | empty | Per emitter. The clip put on the source before it plays. Empty = the clip already on the source (with a source shared by several emitters, the clip put on it last). |
-| `fireMinIntervals` / `impactMinIntervals` | empty = 0 | Per emitter. While the sound is playing, the next one is skipped until its playback position (the AudioSource's `time`) reaches this many seconds; once it ends, the next one plays. 0 = restart it every time. For example, 0.08 for impacts keeps a stream from sounding too busy. |
-| `impactParticles` | empty | Per emitter. Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
-| `impactBursts` | empty = 1 | Per emitter. Particles per hit (at least 1). |
+| `fireSource` / `impactSource` | empty | The AudioSource to play. Set the volume, pitch and range on it. Empty = silent. |
+| `fireClip` / `impactClip` | empty | The clip put on the source before it plays. Empty = the clip already on the source (with a source shared by several emitters, the clip put on it last). |
+| `fireMinInterval` / `impactMinInterval` | 0 | While the sound is playing, the next one is skipped until its playback position (the AudioSource's `time`) reaches this many seconds; once it ends, the next one plays. 0 = restart it every time. For example, 0.08 for impacts keeps a stream from sounding too busy. |
+| `impactParticle` | empty | Particles burst at the hit point (World simulation space, +Z = splash direction). Empty = none. |
+| `impactBurst` | 1 | Particles per hit (at least 1). |
 
 - The fire sound source plays where it is (a stream start uses the first Stream emitter in the aim set with a fire sound source); place it near the emitter. The impact sound source and particles are moved to the hit point; place impact sound sources outside the rig, or moving them would move part of the rig. A source plays one sound at a time; the next sound restarts it. Records restored for a late joiner (`fireReplay`, `hitReplay`) and hits whose target is gone (`!hitResolved`) stay silent and show no particles.
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
-- To shoot two kinds of shots from one place (for example a bullet and a web from the mouth), add two emitters there as two separate Transforms and set each card. Do not register the same Transform as two emitters; they overwrite each other's aim every frame.
+- To shoot two kinds of shots from one place (for example a bullet and a web from the mouth), add two `GunnerEmitter`s there with separate `pivot` Transforms. Do not use the same Transform as the pivot of two emitters; they overwrite each other's aim every frame.
 - `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once, each in its own fire mode. `Fire()` shoots only the Single emitters. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.
-- The hand-held ball aims at the point straight ahead of it, as far as the range (`maxRanges`) of its `emitter`, at least 1 m. With `emitter = -1`, emitter 0's range is used. With an emitter number, only that emitter aims and shoots while the ball is held (`useEmitters` is ignored).
+- The hand-held ball aims at the point straight ahead of it, as far as the range (`maxRange`) of its `emitter`, at least 1 m. With `emitter = -1`, emitter 0's range is used. With an emitter number, only that emitter aims and shoots while the ball is held (`useEmitters` is ignored).
 - Udon cannot add `VRC_SpatialAudioSource` at runtime. Add it to the AudioSources in the editor.
 
 ## Auto aim (`GunnerAutoAim`)
@@ -130,7 +140,7 @@ How it works:
 
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
 2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
-3. For fire and impact sounds and impact particles, set the AudioSources and impact particles on each emitter's card. For anything else, add your own `GunnerHitReceiver`.
+3. For fire and impact sounds and impact particles, set the AudioSources and impact particles on each `GunnerEmitter`. For anything else, add your own `GunnerHitReceiver`.
 4. Call `TriggerDown()` / `TriggerUp()` from your own script.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
 
@@ -141,7 +151,7 @@ A sample prefab (`Prefab/GunnerRig.prefab`, `Prefab/GunnerHandController.prefab`
 Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 
 - **Add Gunner Rig**: a new rig (or a child rig on an object with VRC Object Sync), with one emitter and a `GunnerStream`.
-- **Add Emitter**: an emitter with its own particles under the selected object.
+- **Add Emitter**: an emitter (a `GunnerEmitter` and its own particles) under the selected object, added to the rig's list.
 - **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator).
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.

@@ -36,7 +36,6 @@ check.particle.autoplay	パーティクル {0} が自動で再生されます(Pl
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
 check.hand.no_input	GunnerPickupInput が未設定です	No GunnerPickupInput set
 check.hand.input_unwired	入力の Controller がこの球を指していません	The input's Controller is not this ball
-check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
 check.hand.window_single	この球が使う射出口の中に、撃ち方が「連射」のものがないため、「離してから」は効きません	None of this ball's emitters fires in Stream mode, so "After release" has no effect
 check.hand.mask_hits_ball	弾が球に当たります(射出口のパーティクルの Collides With にレイヤー {0} が入っています)	Shots can hit the ball (layer {0} is in an emitter particle system's Collides With)
 check.hand.all_emitters	狙う射出口の組が 0 のため、撃ち方が連射の射出口すべて({0}個)から連射が出ます	The stream comes out of all {0} Stream emitters (emitter set is 0)

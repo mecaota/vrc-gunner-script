@@ -4,6 +4,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.15.1] - 2026-11-20
+
+### Fixed / 修正
+
+- Check Window no longer warns "The player can walk while shooting" when `GunnerMoveHold` is not set. Walking while shooting is the normal case, and `GunnerMoveHold` stays optional.
+- `GunnerMoveHold` が未設定でも、Check Window は「撃つ間も歩けます」と警告しません。撃ちながら歩けるのが普通の使い方で、`GunnerMoveHold` は任意の部品のままです。
+
 ## [0.15.0] - 2026-11-20
 
 Breaking: the rig's per-emitter arrays are replaced by one `GunnerEmitter` component per emitter. Values in the old arrays are lost on update.

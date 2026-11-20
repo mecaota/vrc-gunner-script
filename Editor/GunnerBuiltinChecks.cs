@@ -261,12 +261,6 @@ namespace Mecaota.Gunner.EditorTools
             else if (hand.input.controller != hand)
                 into.Add(new GunnerCheck(E.Error, "check.hand.input_unwired", hand,
                     () => GunnerEditorUtil.Edit(hand.input, so => so.FindProperty("controller").objectReferenceValue = hand)));
-            if (hand.hold == null)
-                into.Add(new GunnerCheck(E.Warning, "check.hand.no_hold", hand, () =>
-                {
-                    var hold = GunnerEditorUtil.GetOrAddUdon<GunnerMoveHold>(hand.gameObject);
-                    GunnerEditorUtil.Edit(hand, so => so.FindProperty("hold").objectReferenceValue = hold);
-                }));
 
             var rig = hand.rig;
             if (rig != null)

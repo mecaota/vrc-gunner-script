@@ -1,7 +1,6 @@
 using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Components;
-using VRC.SDKBase;
 
 namespace Mecaota.Gunner.EditorTools
 {
@@ -72,17 +71,6 @@ namespace Mecaota.Gunner.EditorTools
         [MenuItem(Root + "Add Emitter At Body Part/Left Palm", true)]
         [MenuItem(Root + "Add Emitter At Body Part/Mouth", true)]
         static bool CanAddAtBodyPart() => HumanoidFor(Selection.activeGameObject) != null;
-
-        [MenuItem(Root + "Place Hand Controller", false, Priority + 20)]
-        static void MenuPlaceHand(MenuCommand command)
-        {
-            var rig = RigFor(Target(command));
-            if (rig == null) return;
-            Selection.activeObject = PlaceHand(rig).gameObject;
-        }
-
-        [MenuItem(Root + "Place Hand Controller", true)]
-        static bool CanPlaceHand() => RigFor(Selection.activeGameObject) != null;
 
         [MenuItem("Tools/Gunner/Check Window", false, 0)]
         static void MenuCheckWindow() => GunnerCheckWindow.Open();
@@ -158,46 +146,6 @@ namespace Mecaota.Gunner.EditorTools
         {
             var t = rig.transform.Find("Parts");
             return t != null ? t : GunnerEditorUtil.CreateChild(rig.transform, "Parts").transform;
-        }
-
-        /// <summary>手に持つ玉: VRC Pickup(AutoHold。デスクトップのトリガーが届くように)付きの小さな球と、4つの部品。</summary>
-        public static GunnerHandController PlaceHand(GunnerRig rig)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Undo.RegisterCreatedObjectUndo(go, "Gunner: hand");
-            go.name = "GunnerHandController";
-            go.layer = PickupLayer;
-            go.transform.localScale = Vector3.one * 0.1f;
-            go.transform.position = rig.transform.position + rig.transform.forward * 0.5f + Vector3.up * 1f;
-
-            var body = Undo.AddComponent<Rigidbody>(go);
-            body.isKinematic = true;
-            body.useGravity = false;
-            var pickup = Undo.AddComponent<VRCPickup>(go);
-            pickup.AutoHold = VRC_Pickup.AutoHoldMode.Yes;
-            Undo.AddComponent<VRCObjectSync>(go);
-
-            var input = GunnerEditorUtil.AddUdon<GunnerPickupInput>(go);
-            var aim = GunnerEditorUtil.AddUdon<GunnerStickAim>(go);
-            var hold = GunnerEditorUtil.AddUdon<GunnerMoveHold>(go);
-            var hand = GunnerEditorUtil.AddUdon<GunnerHandController>(go);
-            GunnerEditorUtil.CommitProxy(aim);
-            GunnerEditorUtil.CommitProxy(hold);
-            GunnerEditorUtil.Edit(input, so =>
-            {
-                so.FindProperty("controller").objectReferenceValue = hand;
-                so.FindProperty("pickup").objectReferenceValue = pickup;
-            });
-            GunnerEditorUtil.Edit(hand, so =>
-            {
-                so.FindProperty("rig").objectReferenceValue = rig;
-                so.FindProperty("input").objectReferenceValue = input;
-                so.FindProperty("aim").objectReferenceValue = aim;
-                so.FindProperty("hold").objectReferenceValue = hold;
-            });
-            // 玉は撃つ人のすぐそばに持たれる: 弾が玉で止まってはいけない。
-            ExcludeLayer(rig, PickupLayer);
-            return hand;
         }
 
         /// <summary>全部の射出口のパーティクルの Collision > Collides With から layer を外す。</summary>

@@ -5,8 +5,6 @@ gunner.test.missing_en	日本語だけの項目
 gunner.language.auto	エディタに合わせる	Follow the editor
 button.fix	直す	Fix
 button.recheck	再点検	Recheck
-button.place_hand	操作用の球を置く	Place hand controller
-button.place_hand.tip	この rig を手で狙って撃つための球(GunnerHandController)をシーンに作り、rig につなぐ	Creates a hand-held ball (GunnerHandController) that aims and fires this rig, and links it to the rig
 check.all_ok	問題は見つかりませんでした。	No problems found.
 check.l10n.missing	文字列の抜け: {0}	Missing text: {0}
 check.rig.no_emitter	射出口がありません	No emitter

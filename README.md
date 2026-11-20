@@ -130,7 +130,7 @@ How it works:
 1. Right-click in the Hierarchy and choose **GameObject > Gunner > Add Gunner Rig**. This creates a rig with one emitter, its particles and a `GunnerStream`.
 2. Select the emitter and turn it so +Z points where you want to shoot. Use **Add Emitter** or **Add Emitter At Body Part** for more.
 3. For fire and impact sounds and impact particles, set the AudioSources and impact particles on each emitter's card. For anything else, add your own `GunnerHitReceiver`.
-4. Call `TriggerDown()` / `TriggerUp()` from your own script, or use **Place Hand Controller** for a ready-made hand-held ball.
+4. Call `TriggerDown()` / `TriggerUp()` from your own script.
 5. Open **Tools > Gunner > Check Window** and fix anything it lists.
 
 A sample prefab (`Prefab/GunnerRig.prefab`, `Prefab/GunnerHandController.prefab`) and scene (`Scene/Gunner.unity`) are included.
@@ -142,7 +142,6 @@ Menus (Hierarchy right-click, under `GameObject/Gunner/`):
 - **Add Gunner Rig**: a new rig (or a child rig on an object with VRC Object Sync), with one emitter and a `GunnerStream`.
 - **Add Emitter**: an emitter with its own particles under the selected object.
 - **Add Emitter At Body Part**: right or left index fingertip, both fingertips, right or left palm, or mouth (needs a humanoid Animator).
-- **Place Hand Controller**: a hand-held ball with VRC Pickup, VRC Object Sync, `GunnerPickupInput`, `GunnerStickAim`, `GunnerMoveHold` and `GunnerHandController`.
 
 **Tools > Gunner > Check Window** lists problems in every UdonSharp component of the open scenes. Click a row to select the object; **Fix** repairs what it can. The same checks also show in each inspector.
 

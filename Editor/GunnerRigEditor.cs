@@ -42,14 +42,6 @@ namespace Mecaota.Gunner.EditorTools
                 else
                     EditorGUILayout.HelpBox(T("GunnerRig.emitters.multi"), MessageType.Info);
                 EditorGUILayout.Space();
-                using (new EditorGUI.DisabledScope(targets.Length != 1))
-                {
-                    if (GUILayout.Button(Label("button.place_hand")))
-                    {
-                        Selection.activeObject = GunnerSetup.PlaceHand(rig).gameObject;
-                        GUIUtility.ExitGUI();
-                    }
-                }
                 bool show = EditorPrefs.GetBool(HandlesPref, true);
                 bool next = EditorGUILayout.Toggle(Label("GunnerRig.showHandles"), show);
                 if (next != show)

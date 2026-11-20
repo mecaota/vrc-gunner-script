@@ -4,6 +4,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [0.14.0] - 2026-11-20
+
+Breaking: `GunnerAutoAim.switchWait` is removed. The value in it is lost on update.
+
+互換性のない変更です。`GunnerAutoAim` の `switchWait` を削除しました。この欄の値は、更新すると失われます。
+
+### Breaking changes / 互換性のない変更
+
+- `switchWait` is removed. `GunnerAutoAim` now aims only just before it shoots, so it no longer holds an emitter between shots.
+- `switchWait` を削除しました。`GunnerAutoAim` は撃つ直前にだけ狙うようになり、撃つ合間に射出口を保つことがなくなりました。
+
+### Added / 追加
+
+- `GunnerAutoAim.emitterMask`: the emitters it may aim with (bit i = emitter i, -1 = all). With no emitter in the set, it does not shoot.
+- `GunnerAutoAim.emitterMask`: 狙わせる射出口の組です(ビット i = 射出口 i、-1 = 全部)。組に入る射出口がなければ撃ちません。
+
+### Changed / 変更
+
+- `GunnerAutoAim` aims only when it is time to shoot (every `fireInterval`), then shoots. Between shots the emitters return to rest. The aim is kept while the pre-fire animation plays.
+- `GunnerAutoAim` は、撃つ間隔(`fireInterval`)が来た時にだけ狙って撃ちます。撃つ合間は、射出口が休みの向きへ戻ります。撃つ前アニメの間は、狙いを保ちます。
+
 ## [0.13.0] - 2026-11-20
 
 Breaking: `GunnerRig.fireMode` is replaced by the per-emitter `fireModes`. The value in `fireMode` is lost on update.

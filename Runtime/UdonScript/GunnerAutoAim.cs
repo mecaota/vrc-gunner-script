@@ -24,7 +24,7 @@ namespace Mecaota.Gunner
         public float interval = 0.2f;             // 探して向ける間隔(秒)
         public float fireInterval = 3f;           // 撃つ間隔(秒)
         public float aimHeight = 0.7f;            // 狙う高さ(相手の目の高さに対する割合)
-        public float switchWait = 0.5f;           // 射出口を替えてから、次に替えてよくなるまでの秒数
+        public int emitterMask = -1;              // 狙わせる射出口の組(ビット i = 射出口 i。-1 = 全部)
         public int[] firePayloads;                // 射出口ごとに撃つ時に渡す整数。空・短い所は 0
         public float recheckInterval = 1f;        // 一覧を位置から直す間隔(秒)。0 以下 = 直さない(持ち主になった時の1回だけ)
 
@@ -37,9 +37,7 @@ namespace Mecaota.Gunner
         private float nextTickAt;
         private float nextRecheckAt;
         private bool wasOwner;
-        private bool aiming;            // 持ち主: この端末が rig の狙いを書いた(一覧が空になった時に1回戻す)
-        private int current = -1;       // 持ち主: 今使っている射出口
-        private float switchedAt = -1000f;
+        private bool aiming;            // 持ち主: この端末が rig の狙いを書いた(撃つ合間に1回戻す)
         private float lastFireAt = -1000f;
 
         private void Start()
@@ -59,7 +57,6 @@ namespace Mecaota.Gunner
             // 端末内の狙いを戻すだけ(rig は取らず、同期もしない)。持ち主なら、戻した狙いは rig が次の送信で伝える。
             if (aiming && rig != null) StopAim();
             aiming = false;
-            current = -1;
             // 有効に戻った時に「持ち主になった瞬間」として検算し直す(recheckInterval が 0 以下でも取りこぼさない)。
             wasOwner = false;
         }
@@ -76,9 +73,8 @@ namespace Mecaota.Gunner
             if (owner && !wasOwner)
             {
                 Recheck();
-                // 前の持ち主の狙いが残っていることがあるので、一覧が空なら1回戻す。
+                // 前の持ち主の狙いが残っていることがあるので、交代の直後に1回戻す。
                 aiming = true;
-                current = -1;
                 // 交代の直後は撃たず、fireInterval を待つ(前の持ち主の直前の1発と続けて撃たないように)。
                 lastFireAt = now;
             }
@@ -95,7 +91,6 @@ namespace Mecaota.Gunner
                 if (aiming) StopAim();
                 wasOwner = false;
                 aiming = false;
-                current = -1;
                 return;
             }
             wasOwner = true;
@@ -201,49 +196,45 @@ namespace Mecaota.Gunner
 
         private void Step(float now)
         {
-            // 撃つ前のアニメを待っている間は、射出口を替えず、撃たない。
+            // 撃つ前のアニメを待っている間は、狙いを保つ。
             if (rig._IsPreFiring()) return;
-            // 1. 一覧の中で、範囲の中心に一番近い人。
-            Vector3 center = ZoneCenter();
-            VRCPlayerApi target = null;
-            float best = float.MaxValue;
-            for (int i = 0; i < listedCount; i++)
+            // 撃つ間隔が来た時だけ、狙って撃つ。それ以外は休みの向きへ戻す。
+            int e = -1;
+            Vector3 point = Vector3.zero;
+            if (now - lastFireAt >= fireInterval)
             {
-                VRCPlayerApi p = VRCPlayerApi.GetPlayerById(listed[i]);
-                if (!Utilities.IsValid(p)) continue;
-                float d = (p.GetPosition() - center).sqrMagnitude;
-                if (d >= best) continue;
-                best = d;
-                target = p;
+                // 1. 一覧の中で、範囲の中心に一番近い人。
+                Vector3 center = ZoneCenter();
+                VRCPlayerApi target = null;
+                float best = float.MaxValue;
+                for (int i = 0; i < listedCount; i++)
+                {
+                    VRCPlayerApi p = VRCPlayerApi.GetPlayerById(listed[i]);
+                    if (!Utilities.IsValid(p)) continue;
+                    float d = (p.GetPosition() - center).sqrMagnitude;
+                    if (d >= best) continue;
+                    best = d;
+                    target = p;
+                }
+                // 2. 狙う点から一番近い射出口(emitterMask の組の中)。壁と射程は見ない。
+                if (target != null)
+                {
+                    float eye = Mathf.Max(target.GetAvatarEyeHeightAsMeters(), MinEyeHeight);
+                    point = target.GetPosition() + Vector3.up * (eye * aimHeight);
+                    e = NearestEmitter(point);
+                }
             }
-            if (target == null)
+            if (e < 0)
             {
                 if (aiming) StopAim();
                 aiming = false;
-                current = -1;
                 return;
             }
 
-            // 2. 狙う点から一番近い射出口。壁と射程は見ない。替えてから switchWait 秒は替えない。
-            float eye = Mathf.Max(target.GetAvatarEyeHeightAsMeters(), MinEyeHeight);
-            Vector3 point = target.GetPosition() + Vector3.up * (eye * aimHeight);
-            int e = NearestEmitter(point);
-            if (e < 0) return;
-            if (e != current)
-            {
-                if (current >= 0 && ValidEmitter(current) && now - switchedAt < switchWait) e = current;
-                else
-                {
-                    current = e;
-                    switchedAt = now;
-                }
-            }
-
-            // 3. その射出口だけを狙う組に入れ、狙う点へ向け、間隔が空いていれば1発撃つ(この順で呼ぶ)。
+            // 3. その射出口だけを狙う組に入れ、狙う点へ向けて撃つ(この順で呼ぶ)。
             rig._SetAimEmitters(1 << e);
             rig._SetAimTarget(point);
             aiming = true;
-            if (now - lastFireAt < fireInterval) return;
             lastFireAt = now;
             rig._FireWith(e, firePayloads != null && e < firePayloads.Length ? firePayloads[e] : 0);
         }
@@ -257,19 +248,13 @@ namespace Mecaota.Gunner
             float best = float.MaxValue;
             for (int i = 0; i < count; i++)
             {
-                if (list[i] == null) continue;
+                if (list[i] == null || (emitterMask & (1 << i)) == 0) continue;
                 float d = (list[i].position - point).sqrMagnitude;
                 if (d >= best) continue;
                 best = d;
                 pick = i;
             }
             return pick;
-        }
-
-        private bool ValidEmitter(int e)
-        {
-            Transform[] list = rig.emitters;
-            return list != null && e >= 0 && e < list.Length && e < rig._EmitterCount() && list[e] != null;
         }
 
         // 狙いを外して休みの向きへ戻す。

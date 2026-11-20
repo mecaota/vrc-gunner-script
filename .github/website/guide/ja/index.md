@@ -1,4 +1,4 @@
-# Gunner 0.15.0 セットアップ手順書
+# Gunner 0.16.0 以上 セットアップ手順書
 
 この手順書では、銃のモデルを手に持てるようにして、弾を撃てるようにします。そのあと、弾の見た目や種類を変えます。
 
@@ -13,8 +13,8 @@
 ### 必要な物
 
 - Unity 6(6000.0)
-- VRChat Worlds SDK 3.10.0 以降
-- Gunner 0.15.0(VCC で入れます)
+- VRChat Worlds SDK 3.10.0 以上
+- Gunner 0.16.0 以上(VCC で入れます)
 - 銃のモデル(この手順書では、用意した銃のモデルを使います。自分のモデルでもかまいません)
 
 Gunner は、VRChat のワールド向けのギミックです。アバターでは使えません。
@@ -195,10 +195,23 @@ GunnerPickupInput の「Pickup」と、GunnerHandController の「移動ロッ�
 | 欄 | 意味 | 初期値 |
 |---|---|---|
 | 連射の量(個/秒)(Stream rate (/s)) | 1 秒に出す量 | 12 |
-| 連射の見た目(Stream look) | 弾のつなぎ方 | 線につなぐ |
 | 連射の当たり方(Stream hits) | 当たったあとの動き | 1回で止める |
 | 当たりの間隔(秒)(Hit interval (s)) | 当たりを数える間隔(秒) | 0.25 |
 | 連射の当たり判定(Stream collision) | 当たりを記録するか | 記録する |
+
+連射の弾を 1 本の線につなげるかどうかは、GunnerEmitter ではなく、その射出口の `Shot` の Particle System で決めます。
+
+1. 撃ち方を変えた射出口の下の `Pivot/Shot` を選ぶ(射出口が `Emitter_1` なら `Emitter_1/Pivot/Shot`)。
+2. 「トレイル(Trails)」にチェックを入れて、「モード(Mode)」を「リボン(Ribbon)」にする。
+3. 「レンダラー(Renderer)」の「レンダーモード(Render Mode)」を「なし(None)」にする。粒は見えなくなり、線だけが残ります。
+
+「トレイル」にチェックが入っていないか、「モード」が「パーティクル(Particles)」のままだと、線にならず、粒が流れます。
+
+射出口どうしで Shot の Particle System を共有しないでください。共有すると、線が射出口をまたいでつながります。
+
+![Emitter_1 の Shot の「トレイル」と「レンダラー」。「モード」が「リボン」、「レンダーモード」が「なし」](../img/ja/ch8-02-inspector-shot2-ribbon.png)
+
+![連射中のシーンビュー。銃口の先に、白い線が 1 本つながって伸びている](../img/ch7-04-scene-shot2-stream.png)
 
 発射の欄は、単発と連射で共通です。
 
@@ -213,8 +226,6 @@ GunnerPickupInput の「Pickup」と、GunnerHandController の「移動ロッ�
 ![GunnerEmitter の「発射」の欄。弾の速さ 25、射程 30、弾の半径 0.05](../img/ja/ch8-01b-inspector-emitter1-fire.png)
 
 ![GunnerEmitter の「連射」の欄。すべて初期値](../img/ja/ch8-01c-inspector-emitter1-stream.png)
-
-![連射中のシーンビュー。白い弾が線につながって流れている](../img/ch7-04-scene-shot2-stream.png)
 
 ## 9. 弾の種類を増やす
 

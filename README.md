@@ -7,7 +7,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Receivers derive from `GunnerHitReceiver` and override only what they need
 - Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
 
-Status: early (0.15.0). APIs will change.
+Status: early (0.15.1). APIs will change.
 
 Requires Unity 2022.3 and VRChat Worlds SDK 3.10.0 or later. UdonSharp is included in the SDK.
 

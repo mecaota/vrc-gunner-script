@@ -62,6 +62,7 @@ namespace Mecaota.Gunner.EditorTools
 
             Receivers(rig, into);
             SharedBones(rig, into);
+            PreFireParams(rig, muzzles, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -88,6 +89,20 @@ namespace Mecaota.Gunner.EditorTools
                 var receiver = r;
                 into.Add(new GunnerCheck(E.Warning, "check.rig.receiver_unlisted", r, () => AddReceiver(rig, receiver), r.name));
             }
+        }
+
+        // パラメーターが無いと撃つ前のアニメが流れず、合図を待ったまま撃てない。
+        static void PreFireParams(GunnerRig rig, GunnerEmitter[] muzzles, List<GunnerCheck> into)
+        {
+            var controller = GunnerAnimatorSync.ControllerOf(rig);
+            if (controller == null) return;
+            var names = new HashSet<string>(controller.parameters.Select(p => p.name));
+            for (int i = 0; i < muzzles.Length; i++)
+                if (muzzles[i] != null && muzzles[i].preFireClip != null && !names.Contains(GunnerAnimatorSync.ParamPrefix + i))
+                {
+                    into.Add(new GunnerCheck(E.Warning, "check.rig.animator_unsynced", rig, () => GunnerAnimatorSync.Sync(rig)));
+                    return;
+                }
         }
 
         const int LongChain = 6;
@@ -174,6 +189,10 @@ namespace Mecaota.Gunner.EditorTools
             else if (angle > LinkMax)
                 into.Add(new GunnerCheck(E.Warning, "check.rig.angle_link", m,
                     () => GunnerEditorUtil.Edit(m, so => so.FindProperty("aimMaxAngle").floatValue = LinkMax), angle.ToString("0.#")));
+
+            var clip = m.preFireClip;
+            if (clip != null && !AnimationUtility.GetAnimationEvents(clip).Any(e => e.functionName == "SendCustomEvent" && e.stringParameter == nameof(GunnerRig._AnimFire)))
+                into.Add(new GunnerCheck(E.Warning, "check.emitter.no_anim_fire", m, null, clip.name));
 
             LinkBones(m, into);
             Constraint(m, into);

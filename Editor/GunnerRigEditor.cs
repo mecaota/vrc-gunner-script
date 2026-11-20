@@ -45,7 +45,11 @@ namespace Mecaota.Gunner.EditorTools
             }
 
             if (Foldout("GunnerRig.section.shot"))
+            {
                 Fields("stream", "fireAnimator");
+                if (GUILayout.Button(T("GunnerRig.syncAnimator")))
+                    foreach (GunnerRig r in targets) GunnerAnimatorSync.Sync(r);
+            }
 
             if (Foldout("GunnerRig.section.hit", false))
                 Fields("receivers", "movers", "playerRadius", "maxHits");

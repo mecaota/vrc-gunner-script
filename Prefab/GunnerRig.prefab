@@ -9955,7 +9955,6 @@ MonoBehaviour:
   impactParticle: {fileID: 5364667933971096382}
   impactBurst: 30
   streamRate: 12
-  streamJoin: 1
   streamHitMode: 0
   streamHitInterval: 0.25
   streamCollide: 1

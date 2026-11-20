@@ -59,7 +59,7 @@ namespace Mecaota.Gunner
         private const int CastBuffer = 32;
         private const float PreFireTimeout = 3f;    // 撃つ前のアニメの合図(_AnimFire)を待つ秒数。過ぎたら撃たずにやめる
         private const float SendInterval = 0.2f;   // 間引いて送るもの(連射の着弾、狙い)は1秒に5回まで
-        private const float AimSyncMove = 0.05f;
+        private const float AimSyncTan = 0.0087f; // tan 0.5 度。狙う点が rig からの距離のこの割合を超えて動いたら送る
         private const float BodyRadiusMin = 0.08f;  // メートル。小さいアバターにも当たるように
         private const float BodyRadiusMax = 0.5f;   // メートル。大きいアバターが近くの弾を全部吸い込まないように
         private const float ImpactProbe = 0.3f;     // メートル
@@ -250,9 +250,6 @@ namespace Mecaota.Gunner
         private const int MaxAncestors = 64;
         private float[] followYaw;
         private float[] followPitch;
-        // 連動ごと: 追従の2つの値の表し方。true = 軸と角度(狙える角度が 90 度を超える連動)、
-        // false = 左右・上下(今までの式)。表し方が替わる時は、同じ向きのまま値を移し替える。
-        private bool[] followAxis;
         // 連動ごと: boneMaxSpeeds を使う時の追従の速度(2つの値の1秒あたりの変化)。
         private float[] followVelYaw;
         private float[] followVelPitch;
@@ -409,7 +406,6 @@ namespace Mecaota.Gunner
             linkHeld = new bool[count];
             followYaw = new float[count];
             followPitch = new float[count];
-            followAxis = new bool[count];
             followVelYaw = new float[count];
             followVelPitch = new float[count];
             turnYaw = new float[count];
@@ -1712,7 +1708,7 @@ namespace Mecaota.Gunner
         {
             if (aimMode != aimSyncMode) return true;
             if (aimMode != AimNone && aimEmitters != aimEmitSync) return true;
-            if (aimMode == AimTarget) return (aimVector - aimSync).sqrMagnitude > AimSyncMove * AimSyncMove;
+            if (aimMode == AimTarget) return (aimVector - aimSync).sqrMagnitude > AimSyncTan * AimSyncTan * (aimSync - transform.position).sqrMagnitude;
             return false;
         }
 
@@ -1794,8 +1790,7 @@ namespace Mecaota.Gunner
                 float ty = 0f;
                 float tp = 0f;
                 bool aimed = on && mode != AimNone && InAim(lead, emit) && ValidEmitter(lead) && Wish(mode, vec, lead);
-                if (aimed && Wide(lead) != followAxis[b]) SwitchFollow(b, Wide(lead));
-                bool wide = followAxis[b];
+                bool wide = Wide(lead);
                 if (aimed && wide)
                 {
                     // 狙える角度が 90 度を超える連動: 休みの前から狙いへの最短の回転を「軸と角度」で持つ。
@@ -1936,7 +1931,7 @@ namespace Mecaota.Gunner
             int b = linkOf[i];
             Quaternion restRot = RestWorld(i);
             Vector3 up = restRot * Vector3.up;
-            if (b >= 0 && linkHeld[b] && followAxis[b])
+            if (b >= 0 && linkHeld[b] && Wide(linkLead[b]))
             {
                 // 軸と角度の連動: 同じ回転を休みの前と上に掛ける(真上を通っても上の軸が回らない。射出口のロールも最小)。
                 int lead = linkLead[b];
@@ -1988,29 +1983,6 @@ namespace Mecaota.Gunner
         // 狙える角度が 90 度を超える射出口か。その射出口(と、それを先頭とする連動)は、狙いを「軸と角度」で持つ。
         // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは軸が決まらない)。
         private bool Wide(int i) { return AimLimit(i) > 90f; }
-
-        // 連動 b の追従の値を、向きを変えずに別の表し方へ移し替える(表し方が替わるのは狙いの種類が替わった時だけ)。
-        private void SwitchFollow(int b, bool toAxis)
-        {
-            followVelYaw[b] = 0f;
-            followVelPitch[b] = 0f;
-            float fy = followYaw[b];
-            float fp = followPitch[b];
-            Vector3 v = (followAxis[b] ? AxisTurn(fy, fp) : Quaternion.Euler(-fp, fy, 0f)) * Vector3.forward;
-            followAxis[b] = toAxis;
-            if (toAxis)
-            {
-                float rho = Mathf.Sqrt(v.x * v.x + v.y * v.y);
-                float theta = rho > 0.000001f ? Mathf.Atan2(rho, v.z) * Mathf.Rad2Deg : 0f;
-                followYaw[b] = rho > 0.000001f ? theta * v.x / rho : 0f;
-                followPitch[b] = rho > 0.000001f ? theta * v.y / rho : 0f;
-            }
-            else
-            {
-                followYaw[b] = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
-                followPitch[b] = Mathf.Atan2(v.y, Mathf.Sqrt(v.x * v.x + v.z * v.z)) * Mathf.Rad2Deg;
-            }
-        }
 
         // (左右, 上下) の2つの値(度)を、休みの座標系での軸と角度の回転にする。角度 = 2つの値の長さ、軸 = (−上下, 左右, 0)。
         // 小さい角度では Euler(−上下, 左右, 0) とほぼ同じ向き。

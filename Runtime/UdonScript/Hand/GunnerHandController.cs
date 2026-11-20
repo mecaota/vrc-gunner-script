@@ -15,7 +15,7 @@ namespace Mecaota.Gunner
         public GunnerPickupInput input;
         public GunnerMoveHold hold;               // 任意: 撃っている間もプレイヤーが歩ける
 
-        public int emitter = -1;                  // -1 = 全部の射出口。それぞれ射出口の撃ち方で撃つ
+        public int emitter = -1;                  // -1 = 全部の射出口。番号なら持っている間の狙う組をその射出口だけにする(useEmitters より優先)
         public int payload;                       // rig へそのまま渡す。意味は弾が決める
         // AfterRelease: 押している間の連射は何でも素通りし、放すとその粒子が最初に触れたものに1回当たる。
         public int collideMode = CollideAlways;
@@ -37,7 +37,7 @@ namespace Mecaota.Gunner
         private void Update()
         {
             _Refresh();
-            if (active) rig._SetAimTarget(input.transform.position + input.transform.forward * rig._Range(Mathf.Max(emitter, 0)));
+            if (active) rig._SetAimTarget(input.transform.position + input.transform.forward * Mathf.Max(rig._Range(Mathf.Max(emitter, 0)), 1f));
             if (closePending) StepWindow();
         }
 
@@ -113,9 +113,10 @@ namespace Mecaota.Gunner
             active = true;
             triggerDown = false;
             if (hold != null) hold._Hold();
-            if (useEmitters != 0)
+            int set = emitter >= 0 ? 1 << emitter : useEmitters;
+            if (set != 0)
             {
-                rig._SetAimEmitters(useEmitters);
+                rig._SetAimEmitters(set);
                 emittersChanged = true;
             }
             if (followBone && !rig._IsBoneFollowing())

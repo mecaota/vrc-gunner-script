@@ -35,7 +35,7 @@ check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
 check.hand.no_input	GunnerPickupInput が未設定です	No GunnerPickupInput set
 check.hand.input_unwired	入力の Controller がこの球を指していません	The input's Controller is not this ball
 check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
-check.hand.window_single	撃ち方が連射の射出口がないため、「離してから」は効きません	No emitter fires in Stream mode, so "After release" has no effect
+check.hand.window_single	この球が使う射出口の中に、撃ち方が「連射」のものがないため、「離してから」は効きません	None of this ball's emitters fires in Stream mode, so "After release" has no effect
 check.hand.mask_hits_ball	弾が球に当たります(射出口のパーティクルの Collides With にレイヤー {0} が入っています)	Shots can hit the ball (layer {0} is in an emitter particle system's Collides With)
 check.hand.all_emitters	狙う射出口の組が 0 のため、撃ち方が連射の射出口すべて({0}個)から連射が出ます	The stream comes out of all {0} Stream emitters (emitter set is 0)
 check.input.no_controller	Controller が未設定です	No Controller set
@@ -147,7 +147,7 @@ GunnerHandController.input.tip	同じ球の GunnerPickupInput。持つ手とト�
 GunnerHandController.hold	移動ロック	Move hold
 GunnerHandController.hold.tip	任意。空なら撃つ間も歩ける	Optional. Empty = the player can walk while shooting
 GunnerHandController.emitter	射出口の番号	Emitter index
-GunnerHandController.emitter.tip	使う射出口。-1 ならすべて。射出口ごとの撃ち方で撃つ	Emitter to use. -1 = all. Each emitter uses its own fire mode
+GunnerHandController.emitter.tip	使う射出口。-1 ならすべて。射出口の番号を入れると、持っている間はその射出口だけで狙い、撃つ(使う射出口の組より優先)。撃ち方は射出口ごとの設定に従う	Emitter to use. -1 = all. With a number, only that emitter aims and shoots while held (overrides the emitter set). Each emitter uses its own fire mode
 GunnerHandController.payload	payload	Payload
 GunnerHandController.payload.tip	rig へそのまま渡す整数。意味は受け手が決める	Integer passed to the rig as is; the receivers decide what it means
 GunnerHandController.collideMode	当たるとき	When it hits

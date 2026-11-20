@@ -89,7 +89,7 @@ Emitters with the same lead bone turn that bone together, using the bone fields 
 - There is no repeated fire sound during a stream; only the stream start plays the fire sound.
 - To shoot two kinds of shots from one place (for example a bullet and a web from the mouth), add two emitters there as two separate Transforms and set each card. Do not register the same Transform as two emitters; they overwrite each other's aim every frame.
 - `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once, each in its own fire mode. `Fire()` shoots only the Single emitters. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.
-- The hand-held ball aims at the point straight ahead of it, as far as the range (`maxRanges`) of its `emitter`. With `emitter = -1`, emitter 0's range is used.
+- The hand-held ball aims at the point straight ahead of it, as far as the range (`maxRanges`) of its `emitter`, at least 1 m. With `emitter = -1`, emitter 0's range is used. With an emitter number, only that emitter aims and shoots while the ball is held (`useEmitters` is ignored).
 - Udon cannot add `VRC_SpatialAudioSource` at runtime. Add it to the AudioSources in the editor.
 
 ## Auto aim (`GunnerAutoAim`)

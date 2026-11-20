@@ -21,6 +21,7 @@ namespace Mecaota.Gunner.EditorTools
             switch (c)
             {
                 case GunnerRig rig: Rig(rig, into); break;
+                case GunnerEmitter muzzle: Emitter(muzzle, into); break;
                 case GunnerHandController hand: Hand(hand, into); break;
                 case GunnerPickupInput input: PickupInput(input, into); break;
                 case GunnerStream stream: Stream(stream, into); break;
@@ -31,53 +32,18 @@ namespace Mecaota.Gunner.EditorTools
 
         static void Rig(GunnerRig rig, List<GunnerCheck> into)
         {
-            var emitters = rig.emitters ?? new Transform[0];
-            if (emitters.Length == 0)
+            var muzzles = rig.muzzles ?? new GunnerEmitter[0];
+            if (muzzles.Length == 0)
                 into.Add(new GunnerCheck(E.Error, "check.rig.no_emitter", rig,
                     () => GunnerSetup.AddEmitter(rig, rig.transform, rig.transform.position, rig.transform.rotation)));
-            if (emitters.Length > GunnerRig.MaxEmitters)
+            if (muzzles.Length > GunnerRig.MaxEmitters)
                 into.Add(new GunnerCheck(E.Error, "check.rig.too_many_emitters", rig, null, GunnerRig.MaxEmitters.ToString()));
-
-            bool nullEmitter = false;
-            for (int i = 0; i < emitters.Length; i++) if (emitters[i] == null) nullEmitter = true;
-            if (nullEmitter)
+            if (muzzles.Contains(null))
                 into.Add(new GunnerCheck(E.Error, "check.rig.null_emitter", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "emitters", GunnerRigEditor.PerEmitter))));
-
-            var particles = rig.shotParticles ?? new ParticleSystem[0];
-            for (int i = 0; i < emitters.Length && i < GunnerRig.MaxEmitters; i++)
-            {
-                var em = emitters[i];
-                if (em == null) continue;
-                var ps = i < particles.Length ? particles[i] : null;
-                string label = i + " (" + em.name + ")";
-                if (ps == null)
-                {
-                    int index = i;
-                    into.Add(new GunnerCheck(E.Warning, "check.rig.no_particle", em, () =>
-                    {
-                        var created = GunnerEditorUtil.CreateShotParticles(em);
-                        GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.SetAt(so.FindProperty("shotParticles"), index, created));
-                    }, label));
-                    continue;
-                }
-                var main = ps.main;
-                if (main.simulationSpace != ParticleSystemSimulationSpace.World)
-                    into.Add(new GunnerCheck(E.Error, "check.particle.not_world", ps, () => GunnerEditorUtil.MakeWorldSpace(ps), label));
-                if (main.playOnAwake || main.loop)
-                    into.Add(new GunnerCheck(E.Warning, "check.particle.autoplay", ps, () => GunnerEditorUtil.StopAutoPlay(ps), label));
-                int join = rig.streamJoins != null && i < rig.streamJoins.Length ? rig.streamJoins[i] : GunnerStream.JoinLine;
-                if (IsStream(rig, i) && join == GunnerStream.JoinLine && !ps.trails.enabled)
-                    into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), label));
-            }
-
-            // 同じパーティクルを複数の射出口で使うことがあるので、1つにつき1回だけ出す。
-            foreach (var impact in (rig.impactParticles ?? new ParticleSystem[0]).Distinct())
-                if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
-                    into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
+                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "muzzles"))));
 
             // 着弾音の音源は当たった点へ動かすので、rig の下にあると鳴っている間に rig と一緒に動き、rig や射出口に付けるとそれごと動かしてしまう。
-            foreach (var source in (rig.impactSources ?? new AudioSource[0]).Distinct())
+            foreach (var source in muzzles.Where(m => m != null).Select(m => m.impactSource).Distinct())
                 if (source != null && source.transform.IsChildOf(rig.transform))
                     into.Add(new GunnerCheck(E.Warning, "check.rig.impact_in_rig", source, null, source.name));
 
@@ -94,8 +60,7 @@ namespace Mecaota.Gunner.EditorTools
                 into.Add(new GunnerCheck(E.Error, "check.rig.object_sync", rig));
 
             Receivers(rig, into);
-            ExtraBones(rig, into);
-            AimAngles(rig, into);
+            SharedBones(rig, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -124,120 +89,123 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // 追加の連動ボーン。実行時は、赤のボーンを無視して残りで鎖を作る。
         const int LongChain = 6;
 
-        static void ExtraBones(GunnerRig rig, List<GunnerCheck> into)
+        // 鎖は同じ先端のボーンを持つ射出口で共有する。別の鎖にも入っているボーンは、回転が二重に書かれる。
+        static void SharedBones(GunnerRig rig, List<GunnerCheck> into)
         {
-            var bones = rig.linkExtraBones;
-            if (bones == null || bones.Length == 0) return;
-            var owners = rig.linkExtraEmitter ?? new int[0];
-            int emitterCount = rig.emitters != null ? rig.emitters.Length : 0;
-            var leads = new HashSet<Transform>();
-            for (int e = 0; e < emitterCount; e++)
-            {
-                var lead = GunnerRigEditor.LeadBone(rig, e);
-                if (lead != null) leads.Add(lead);
-            }
-            var chainOf = new Dictionary<Transform, Transform>(); // 追加のボーン → その鎖の先頭のボーン
+            var muzzles = (rig.muzzles ?? new GunnerEmitter[0]).Where(m => GunnerEmitterEditor.Tip(m) != null).ToList();
+            var tips = new HashSet<Transform>(muzzles.Select(GunnerEmitterEditor.Tip));
+            var chainOf = new Dictionary<Transform, Transform>(); // 先端より上のボーン → その鎖の先端のボーン
             var counts = new Dictionary<Transform, int>();
-            bool hasNull = false;
-            for (int k = 0; k < bones.Length; k++)
+            foreach (var m in muzzles)
             {
-                var bone = bones[k];
-                if (bone == null)
+                var tip = GunnerEmitterEditor.Tip(m);
+                for (int k = 0; k < m.linkBones.Length - 1; k++)
                 {
-                    hasNull = true;
-                    continue;
+                    var bone = m.linkBones[k];
+                    if (bone == null || bone == tip || !tip.IsChildOf(bone)) continue;
+                    if (tips.Contains(bone) || (chainOf.TryGetValue(bone, out var other) && other != tip))
+                    {
+                        into.Add(new GunnerCheck(E.Error, "check.rig.extra_shared", m, null, m.name + ": " + bone.name));
+                        continue;
+                    }
+                    if (chainOf.ContainsKey(bone)) continue;
+                    chainOf[bone] = tip;
+                    counts[tip] = (counts.TryGetValue(tip, out int c) ? c : 0) + 1;
                 }
-                int index = k;
-                System.Action remove = () => GunnerEditorUtil.Edit(rig, so => GunnerRigEditor.RemoveExtraAt(so, index));
-                string label = k + " (" + bone.name + ")";
-                int emitter = k < owners.Length ? owners[k] : -1;
-                var lead = GunnerRigEditor.LeadBone(rig, emitter);
-                if (lead == null)
-                {
-                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_no_link", rig, remove, label));
-                    continue;
-                }
-                if (bone == lead || !lead.IsChildOf(bone))
-                {
-                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_not_ancestor", rig, remove, label));
-                    continue;
-                }
-                if (leads.Contains(bone))
-                {
-                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_shared", rig, remove, label));
-                    continue;
-                }
-                if (chainOf.TryGetValue(bone, out var other))
-                {
-                    into.Add(new GunnerCheck(E.Error, other == lead ? "check.rig.extra_duplicate" : "check.rig.extra_shared", rig, remove, label));
-                    continue;
-                }
-                chainOf[bone] = lead;
-                counts[lead] = (counts.TryGetValue(lead, out int c) ? c : 0) + 1;
             }
-            if (hasNull)
-                into.Add(new GunnerCheck(E.Warning, "check.rig.extra_null", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.RemoveNulls(so, "linkExtraBones", "linkExtraEmitter"))));
             foreach (var pair in counts)
             {
-                int total = pair.Value + 1; // 先頭のボーンを含む
+                int total = pair.Value + 1; // 先端のボーンを含む
                 if (total > LongChain)
                     into.Add(new GunnerCheck(E.Warning, "check.rig.chain_long", rig, null, pair.Key.name + " (" + total + ")"));
             }
         }
 
-        // 射出口ごとの狙える角度: 射出口より長い配列と、180 度を超える値を黄で知らせる。
-        static void AimAngles(GunnerRig rig, List<GunnerCheck> into)
+        // ---------------- 射出口 ----------------
+
+        static void Emitter(GunnerEmitter m, List<GunnerCheck> into)
         {
-            // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは回す軸が決まらず、ボーンが跳ぶ)。
-            // 180 度を超える値は下の点検が先に知らせるので、ここは 170 度を超え 180 度以下だけ。
-            const float LinkMax = 170f;
-            var angles = rig.aimMaxAngles;
-            if (angles == null || angles.Length == 0) return;
-            for (int i = 0; i < angles.Length; i++)
+            if (GunnerEmitterEditor.RigOf(m, out _) == null)
             {
-                if (angles[i] <= LinkMax || angles[i] > 180f) continue;
-                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_link", rig, () => GunnerEditorUtil.Edit(rig, so =>
-                {
-                    var arr = so.FindProperty("aimMaxAngles");
-                    for (int k = 0; k < arr.arraySize; k++)
-                    {
-                        var el = arr.GetArrayElementAtIndex(k);
-                        if (el.floatValue > LinkMax && el.floatValue <= 180f) el.floatValue = LinkMax;
-                    }
-                }), i + " (" + angles[i].ToString("0.#") + ")"));
-                break;
+                var parent = GunnerSetup.RigFor(m.gameObject);
+                System.Action fix = null;
+                if (parent != null) fix = () => GunnerEditorUtil.Edit(parent, so => GunnerEditorUtil.Append(so.FindProperty("muzzles"), m));
+                into.Add(new GunnerCheck(E.Warning, "check.emitter.unlisted", m, fix));
             }
-            int count = rig.emitters != null ? rig.emitters.Length : 0;
-            if (angles.Length > count)
-                into.Add(new GunnerCheck(E.Warning, "check.rig.angles_long", rig,
-                    () => GunnerEditorUtil.Edit(rig, so => so.FindProperty("aimMaxAngles").arraySize = count),
-                    angles.Length + " > " + count));
-            for (int i = 0; i < angles.Length; i++)
+            if (m.pivot == null)
+                into.Add(new GunnerCheck(E.Error, "check.emitter.no_pivot", m,
+                    () => GunnerEditorUtil.Edit(m, so => so.FindProperty("pivot").objectReferenceValue = m.transform)));
+
+            var ps = m.shotParticle;
+            if (ps == null)
             {
-                if (angles[i] <= 180f) continue;
-                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_over", rig, () => GunnerEditorUtil.Edit(rig, so =>
+                Transform at = m.pivot != null ? m.pivot : m.transform;
+                into.Add(new GunnerCheck(E.Warning, "check.rig.no_particle", m, () =>
                 {
-                    var arr = so.FindProperty("aimMaxAngles");
-                    for (int k = 0; k < arr.arraySize; k++)
-                    {
-                        var el = arr.GetArrayElementAtIndex(k);
-                        if (el.floatValue > 180f) el.floatValue = 180f;
-                    }
-                }), i + " (" + angles[i].ToString("0.#") + ")"));
-                break;
+                    var created = GunnerEditorUtil.CreateShotParticles(at);
+                    GunnerEditorUtil.Edit(m, so => so.FindProperty("shotParticle").objectReferenceValue = created);
+                }, m.name));
+            }
+            else
+            {
+                var main = ps.main;
+                if (main.simulationSpace != ParticleSystemSimulationSpace.World)
+                    into.Add(new GunnerCheck(E.Error, "check.particle.not_world", ps, () => GunnerEditorUtil.MakeWorldSpace(ps), ps.name));
+                if (main.playOnAwake || main.loop)
+                    into.Add(new GunnerCheck(E.Warning, "check.particle.autoplay", ps, () => GunnerEditorUtil.StopAutoPlay(ps), ps.name));
+                if (m.fireMode == GunnerRig.FireStream && m.streamJoin == GunnerStream.JoinLine && !ps.trails.enabled)
+                    into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), m.name));
+            }
+
+            var impact = m.impactParticle;
+            if (impact != null && impact.main.simulationSpace != ParticleSystemSimulationSpace.World)
+                into.Add(new GunnerCheck(E.Error, "check.particle.not_world", impact, () => GunnerEditorUtil.MakeWorldSpace(impact), impact.name));
+
+            // 連動する射出口の狙える角度は、およそ 170 度まで(180 度の真後ろでは回す軸が決まらず、ボーンが跳ぶ)。
+            const float LinkMax = 170f;
+            float angle = m.aimMaxAngle;
+            if (angle > 180f)
+                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_over", m,
+                    () => GunnerEditorUtil.Edit(m, so => so.FindProperty("aimMaxAngle").floatValue = 180f), angle.ToString("0.#")));
+            else if (angle > LinkMax)
+                into.Add(new GunnerCheck(E.Warning, "check.rig.angle_link", m,
+                    () => GunnerEditorUtil.Edit(m, so => so.FindProperty("aimMaxAngle").floatValue = LinkMax), angle.ToString("0.#")));
+
+            LinkBones(m, into);
+        }
+
+        // 実行時は、赤のボーンを無視して残りで鎖を作る。
+        static void LinkBones(GunnerEmitter m, List<GunnerCheck> into)
+        {
+            var bones = m.linkBones ?? new Transform[0];
+            if (bones.Contains(null))
+                into.Add(new GunnerCheck(E.Warning, "check.rig.extra_null", m,
+                    () => GunnerEditorUtil.Edit(m, so => GunnerEditorUtil.RemoveNulls(so, "linkBones"))));
+            var tip = GunnerEmitterEditor.Tip(m);
+            if (tip == null) return;
+            var seen = new HashSet<Transform>();
+            for (int k = 0; k < bones.Length - 1; k++)
+            {
+                var bone = bones[k];
+                if (bone == null) continue;
+                int index = k;
+                System.Action remove = () => GunnerEditorUtil.Edit(m, so => GunnerEditorUtil.RemoveAt(so.FindProperty("linkBones"), index));
+                string label = k + " (" + bone.name + ")";
+                if (!seen.Add(bone) || bone == tip)
+                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_duplicate", m, remove, label));
+                else if (!tip.IsChildOf(bone))
+                    into.Add(new GunnerCheck(E.Error, "check.rig.extra_not_ancestor", m, remove, label));
             }
         }
 
-        static bool IsStream(GunnerRig rig, int i) => rig.fireModes != null && i < rig.fireModes.Length && rig.fireModes[i] == GunnerRig.FireStream;
+        static bool IsStream(GunnerRig rig, int i) => rig.muzzles != null && i < rig.muzzles.Length && rig.muzzles[i] != null && rig.muzzles[i].fireMode == GunnerRig.FireStream;
 
         // mask: 数える射出口の組(0 = 全部)。
         static int StreamCount(GunnerRig rig, int mask)
         {
-            int count = rig.emitters != null ? Mathf.Min(rig.emitters.Length, GunnerRig.MaxEmitters) : 0;
+            int count = rig.muzzles != null ? Mathf.Min(rig.muzzles.Length, GunnerRig.MaxEmitters) : 0;
             int n = 0;
             for (int i = 0; i < count; i++) if (IsStream(rig, i) && (mask == 0 || (mask & (1 << i)) != 0)) n++;
             return n;

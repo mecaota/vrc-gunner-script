@@ -143,22 +143,11 @@ namespace Mecaota.Gunner.EditorTools
 
         // ---------------- シリアライズされた配列 ----------------
 
-        public static void SetLength(SerializedProperty array, int length)
-        {
-            if (array.arraySize < length) array.arraySize = length;
-        }
-
         public static void Append(SerializedProperty array, Object value)
         {
             int i = array.arraySize;
             array.arraySize = i + 1;
             array.GetArrayElementAtIndex(i).objectReferenceValue = value;
-        }
-
-        public static void SetAt(SerializedProperty array, int index, Object value)
-        {
-            SetLength(array, index + 1);
-            array.GetArrayElementAtIndex(index).objectReferenceValue = value;
         }
 
         public static bool Contains(SerializedProperty array, Object value)
@@ -168,20 +157,11 @@ namespace Mecaota.Gunner.EditorTools
             return false;
         }
 
-        /// <summary>null の要素を除く。並行配列(同じ番号が同じ意味の配列)からも同じ番号を除く。</summary>
-        public static void RemoveNulls(SerializedObject so, string array, params string[] parallel)
+        public static void RemoveNulls(SerializedObject so, string array)
         {
             var main = so.FindProperty(array);
             for (int i = main.arraySize - 1; i >= 0; i--)
-            {
-                if (main.GetArrayElementAtIndex(i).objectReferenceValue != null) continue;
-                RemoveAt(main, i);
-                foreach (var name in parallel)
-                {
-                    var p = so.FindProperty(name);
-                    if (p != null && p.isArray && i < p.arraySize) RemoveAt(p, i);
-                }
-            }
+                if (main.GetArrayElementAtIndex(i).objectReferenceValue == null) RemoveAt(main, i);
         }
 
         internal static void RemoveAt(SerializedProperty array, int index)
@@ -207,7 +187,7 @@ namespace Mecaota.Gunner.EditorTools
             main.loop = false;
             main.duration = 0.1f;
             main.startLifetime = 1f;      // 寿命は rig が1発ごとに距離から決める
-            main.startSpeed = 25f;        // 速さは rig が shotSpeeds から決める
+            main.startSpeed = 25f;        // 速さは rig が shotSpeed から決める
             main.startSize = 0.1f;
             main.gravityModifier = 0f;
             main.maxParticles = 64;
@@ -295,6 +275,6 @@ namespace Mecaota.Gunner.EditorTools
 
         /// <summary>どれかの射出口の弾が layer に当たるか(パーティクルの Collision > Collides With)。</summary>
         public static bool HitsLayer(GunnerRig rig, int layer) =>
-            (rig.shotParticles ?? new ParticleSystem[0]).Any(ps => ps != null && (ps.collision.collidesWith.value & (1 << layer)) != 0);
+            (rig.muzzles ?? new GunnerEmitter[0]).Any(m => m != null && m.shotParticle != null && (m.shotParticle.collision.collidesWith.value & (1 << layer)) != 0);
     }
 }

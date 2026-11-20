@@ -115,20 +115,20 @@ namespace Mecaota.Gunner.EditorTools
             return rig;
         }
 
-        /// <summary>parent の下に新しい射出口(+Z = 休み方向)を、専用の弾の粒子と一緒に作り、rig に追加する。</summary>
-        public static Transform AddEmitter(GunnerRig rig, Transform parent, Vector3 position, Quaternion rotation, string name = "Emitter")
+        /// <summary>parent の下に新しい射出口(+Z = 休み方向)を、GunnerEmitter と専用の弾の粒子と一緒に作り、rig の一覧に足す。</summary>
+        public static GunnerEmitter AddEmitter(GunnerRig rig, Transform parent, Vector3 position, Quaternion rotation, string name = "Emitter")
         {
             var go = GunnerEditorUtil.CreateChild(parent, GunnerEditorUtil.UniqueChildName(parent, name));
             go.transform.SetPositionAndRotation(position, rotation);
             var ps = GunnerEditorUtil.CreateShotParticles(go.transform);
-            GunnerEditorUtil.Edit(rig, so =>
+            var muzzle = GunnerEditorUtil.AddUdon<GunnerEmitter>(go);
+            GunnerEditorUtil.Edit(muzzle, so =>
             {
-                var emitters = so.FindProperty("emitters");
-                int index = emitters.arraySize;
-                GunnerEditorUtil.Append(emitters, go.transform);
-                GunnerEditorUtil.SetAt(so.FindProperty("shotParticles"), index, ps);
+                so.FindProperty("pivot").objectReferenceValue = go.transform;
+                so.FindProperty("shotParticle").objectReferenceValue = ps;
             });
-            return go.transform;
+            GunnerEditorUtil.Edit(rig, so => GunnerEditorUtil.Append(so.FindProperty("muzzles"), muzzle));
+            return muzzle;
         }
 
         public static GunnerStream EnsureStream(GunnerRig rig)
@@ -151,8 +151,9 @@ namespace Mecaota.Gunner.EditorTools
         /// <summary>全部の射出口のパーティクルの Collision > Collides With から layer を外す。</summary>
         public static void ExcludeLayer(GunnerRig rig, int layer)
         {
-            foreach (var ps in rig.shotParticles ?? new ParticleSystem[0])
+            foreach (var muzzle in rig.muzzles ?? new GunnerEmitter[0])
             {
+                var ps = muzzle != null ? muzzle.shotParticle : null;
                 if (ps == null) continue;
                 Undo.RecordObject(ps, "Gunner: hit layers");
                 var collision = ps.collision;

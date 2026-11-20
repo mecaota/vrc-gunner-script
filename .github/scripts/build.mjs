@@ -15,13 +15,14 @@
 //   2. package.json をリポジトリの根から読む(リポジトリの根 = パッケージの根)
 //   3. API の User-Agent を gunner-site-build にした
 //   4. 根の package.json の name が PACKAGE_NAME と違うときは、その package.json を使わない
+//   5. .github/website/guide/<言語>/index.md を、同じ場所の index.html にする(手順書)
 
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync } from 'fflate';
-import { marked } from 'marked';
+import { Marked, marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -61,6 +62,7 @@ async function main() {
   cpSync(websiteDir, siteDir, { recursive: true });
   writeFileSync(path.join(siteDir, 'index.json'), `${JSON.stringify(listing, null, 2)}\n`);
   writeFileSync(path.join(siteDir, 'index.html'), renderIndexHtml(primary));
+  renderGuides();
 
   for (const manifest of manifests) {
     console.log(`  ${manifest.name}@${manifest.version}  ${manifest.url}`);
@@ -234,6 +236,39 @@ function renderIndexHtml(primary) {
     }
     return escapeHtml(values[key]);
   });
+}
+
+// .github/website/guide/<言語>/index.md を、同じ場所の index.html にする(画像は guide/img/ をそのまま公開)
+function renderGuides() {
+  const guideDir = path.join(websiteDir, 'guide');
+  if (!existsSync(guideDir)) {
+    return;
+  }
+  const guideMarked = new Marked(gfmHeadingId(), { gfm: true });
+  for (const lang of readdirSync(guideDir).filter((name) => existsSync(path.join(guideDir, name, 'index.md')))) {
+    const markdown = stripBom(readFileSync(path.join(guideDir, lang, 'index.md'), 'utf8'));
+    const title = /^#\s+(.+)$/m.exec(markdown)?.[1] ?? 'Guide';
+    const html = `<!DOCTYPE html>
+<html lang="${escapeHtml(lang)}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="icon" href="../../favicon.ico">
+</head>
+<body>
+  <main class="container">
+    <article class="markdown-body">
+${guideMarked.parse(markdown)}
+    </article>
+  </main>
+</body>
+</html>
+`;
+    writeFileSync(path.join(siteDir, 'guide', lang, 'index.html'), html);
+    console.log(`Wrote guide/${lang}/index.html`);
+  }
 }
 
 function renderReadme() {

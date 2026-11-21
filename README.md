@@ -5,7 +5,7 @@ A generic projectile shooting library for VRChat worlds (UdonSharp).
 - Emitters, aiming, single shots and streams
 - Synced hit records (world, moving objects, players) delivered to hit receivers
 - Receivers derive from `GunnerHitReceiver` and override only what they need
-- Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players inside a trigger box
+- Built-in fire and impact sounds and impact particles on the rig, and `GunnerAutoAim` to aim at and shoot players whose feet are inside a box
 
 Status: early (0.15.0). APIs will change.
 
@@ -103,16 +103,15 @@ Emitters with the same tip bone turn that bone together, using the bone fields o
 
 ## Auto aim (`GunnerAutoAim`)
 
-`GunnerAutoAim` makes a rig aim at and shoot players inside a box.
+`GunnerAutoAim` makes a rig aim at and shoot players whose feet are inside a box.
 
 Setup:
 
 1. Make an empty GameObject (for example `SenseZone`, a child of the rig is fine). Do not use the rig's own GameObject.
-2. Add a `BoxCollider` with **Is Trigger** on, and `GunnerAutoAim` on the **same GameObject** (the trigger events only reach scripts on the collider's GameObject). Use a layer that collides with Player and PlayerLocal (Default does). Set the size with the BoxCollider's Size rather than the Transform scale.
-3. **Place the box so it contains the players' feet, and extend its bottom below the floor.** The position recheck uses each player's feet (`GetPosition()`); a box that floats above the floor, or whose bottom is exactly at floor level, can count a standing player as outside.
+2. Add a `BoxCollider` and `GunnerAutoAim`. Disable the BoxCollider: a newly added one is enabled and not a trigger, so it stops players like a wall. Only its Center and Size are read, so disabling it is fine.
+3. **Place the box so it contains the players' feet, and extend its bottom below the floor.** Only each player's feet (`GetPosition()`) are checked; a box that floats above the floor, or whose bottom is exactly at floor level, can count a standing player as outside.
 4. Set `rig`. Leave `zone` empty to use the BoxCollider on the same GameObject.
-5. If the zone moves with an animated object, add a kinematic Rigidbody to it.
-6. **Use a rig that only `GunnerAutoAim` drives.** If something else (a hand-held controller, another script) takes ownership of the rig, `GunnerAutoAim` on that device starts aiming and shooting automatically.
+5. **Use a rig that only `GunnerAutoAim` drives.** If something else (a hand-held controller, another script) takes ownership of the rig, `GunnerAutoAim` on that device starts aiming and shooting automatically.
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -122,16 +121,12 @@ Setup:
 | `fireInterval` | 3 | Seconds between shots. It starts aiming one or two ticks (`interval` each) before a shot is due. |
 | `aimHeight` | 0.7 | Aim height as a share of the target's eye height. |
 | `emitterMask` | -1 | Emitters it may aim with (bit i = emitter i, -1 = all; emitters a and c of a, b, c = 5). With none in the set, it does not shoot. |
-| `recheckInterval` | 1 | Seconds between position rechecks of the list. 0 = no periodic recheck. |
 
 How it works:
 
-- Every device keeps the list of players in the zone: `OnPlayerTriggerEnter` adds, `OnPlayerTriggerExit` and `OnPlayerLeft` remove.
-- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). From one or two ticks before a shot is due, it picks the listed player nearest to the zone centre, then the emitter in `emitterMask` nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)` and `_SetAimTarget(point)`, then, once `fireInterval` has passed, `_FireWith(emitter, firePayloads[emitter])`. At any other time, and with nobody listed, it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest. While the pre-fire animation plays, it keeps the aim.
-- When this device becomes the rig's owner, it rechecks the list once, waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
-- Teleporting, respawning, joining and sitting in a station can skip the enter and exit events. Every `recheckInterval` seconds each device fixes its list from positions: a listed player whose feet are more than 0.75 m outside the box is removed, and a player whose feet are inside the box is added. The margin is only for removing, because the trigger counts a player as inside as soon as the body capsule touches the box.
-- Respawn: `OnPlayerRespawn` only reaches the player who respawned, and that device removes the player at once. On the other devices (including the rig's owner) the player is removed by `OnPlayerTriggerExit` if it arrives; if it does not, the recheck removes them within `recheckInterval`, and only when the respawn point is more than 0.75 m outside the box. With `recheckInterval` 0, other devices do not remove them in that case.
-- A seated player whose feet are inside the box is added back by the recheck and can be targeted.
+- Only the rig's owner aims and shoots (`_FireWith` takes ownership of the rig, so letting every device shoot would make them fight over it). From one or two ticks before a shot is due, it picks, among all players whose feet are inside the box, the one nearest to the zone centre, then the emitter in `emitterMask` nearest to that player's aim point (walls and range are not checked), and calls `_SetAimEmitters(1 << emitter)` and `_SetAimTarget(point)`, then, once `fireInterval` has passed, `_FireWith(emitter, firePayloads[emitter])`. At any other time, and with nobody inside, it calls `ResetAim()` and `_SetAimEmitters(-1)` once, so the emitters return to rest. While the pre-fire animation plays, it keeps the aim.
+- When this device becomes the rig's owner, it waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
+- Teleported, respawned and seated players count by where their feet are now.
 - The rig's owner (the local player on the owner's device) can be chosen as a target and hit too.
 - The aim is synced only while the rig syncs it (bone follow on with linked bones, or a stream started on this device). With bone follow off, other devices see the emitters stay at rest; the shots still fly to the recorded points.
 
@@ -211,7 +206,7 @@ Removals and clean-up (see CHANGELOG.md for the full list). `GunnerSounds` is re
 
 ## Changes in 0.6.0
 
-- `GunnerAutoAim`: aim at and shoot players inside a trigger box (see "Auto aim").
+- `GunnerAutoAim`: aim at and shoot players whose feet are inside a box (see "Auto aim").
 - Built-in fire and impact sounds on `GunnerRig` (see "Built-in sounds and impact particles"). Empty clips = silent, the same as before. `GunnerSounds` is unchanged; clips on both play twice.
 
 ## Changes in 0.5.0

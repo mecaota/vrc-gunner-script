@@ -6,12 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+Breaking: the value in `GunnerAutoAim.recheckInterval` is lost on update, and nothing replaces it. Only the players' feet are checked now, so make sure each box contains the feet and extends below the floor.
+
+互換性のない変更です。`GunnerAutoAim` の `recheckInterval` の値は、更新すると失われます。代わりの欄はありません。足元だけを調べるようになったので、箱が足元を含み、底が床より下まであるかを確かめてください。
+
 Breaking: a stream set to Joined line (the old `streamJoin` default) is no longer joined after the update if **Trails > Mode** is set to Particles, the default. To join it, set **Trails > Mode** to Ribbon.
 
 互換性のない変更です。「線につなぐ」(旧 `streamJoin` の既定)だった連射は、**Trails > Mode** が既定の Particles のままだと、更新後はつながらなくなります。つなぐには **Trails > Mode** を Ribbon にしてください。
 
 ### Breaking changes / 互換性のない変更
 
+- `GunnerAutoAim.recheckInterval` is removed.
+- `GunnerAutoAim` の `recheckInterval` を削除しました。
 - `GunnerEmitter.streamJoin` is removed. The stream is joined only when the emitter's particle system has Trails on and **Mode** set to Ribbon.
 - `GunnerEmitter.streamJoin` を削除しました。連射がつながるのは、射出口のパーティクルの Trails が ON で **Mode** が Ribbon のときだけです。
 - `GunnerStream.span` is removed.
@@ -23,6 +29,8 @@ Breaking: a stream set to Joined line (the old `streamJoin` default) is no longe
 
 - Width over Trail applies to the whole line. A stream started again soon after it stopped joins the previous line.
 - Width over Trail は線全体に掛かります。止めてすぐ撃ち直すと、前の線とつながります。
+- `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. Only the BoxCollider's Center and Size are read, so it can be disabled. Disable it: an enabled BoxCollider that is not a trigger stops players.
+- `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。BoxCollider からは Center と Size だけを読むので、無効にしてかまいません。有効で Is Trigger でない BoxCollider はプレイヤーを止めるので、無効にしてください。
 
 ### Fixed / 修正
 

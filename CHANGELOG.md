@@ -13,8 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added / 追加
 
-- `GunnerEmitter.preFireClip` / `postFireClip`, and **Sync Animator** on the rig's inspector. It rebuilds the layers named `Gunner_*` and the parameters `GunnerPre*` in the `fireAnimator`'s Animator Controller from these clips (one layer per pre-fire clip). Each layer gets an Avatar Mask of the objects its clips animate, stored inside the controller. Other layers and parameters are left alone, and keep their order. One Undo reverts a press.
-- `GunnerEmitter.preFireClip` / `postFireClip` と、rig のインスペクターの「Animator にそろえる」。`fireAnimator` の Animator Controller に、これらのクリップから `Gunner_*` のレイヤーと `GunnerPre*` のパラメーターを作り直します(撃つ前のクリップ1つにつきレイヤー1枚)。各レイヤーには、クリップが動かす物だけの Avatar Mask を付け、Controller の中に保存します。ほかのレイヤーとパラメーターには触らず、順番も変えません。1回の Undo で押す前に戻ります。
+- `GunnerEmitter.preFireClip` / `postFireClip`, and **Sync Animator** on the rig's inspector. It rebuilds the layers named `Gunner_*` and the parameters `GunnerPre*` in the `fireAnimator`'s Animator Controller from these clips (one layer per pre-fire clip). Each layer gets an Avatar Mask of the objects its clips animate, stored inside the controller. Other layers and parameters are left alone. The `Gunner_` layers go back where the first one was, so keep them together to keep their place among your layers. One Undo reverts a press for one rig.
+- `GunnerEmitter.preFireClip` / `postFireClip` と、rig のインスペクターの「Animator にそろえる」。`fireAnimator` の Animator Controller に、これらのクリップから `Gunner_*` のレイヤーと `GunnerPre*` のパラメーターを作り直します(撃つ前のクリップ1つにつきレイヤー1枚)。各レイヤーには、クリップが動かす物だけの Avatar Mask を付け、Controller の中に保存します。ほかのレイヤーとパラメーターには触りません。`Gunner_` のレイヤーは、最初の1枚があった所にまとめて戻るので、一続きに置いておけば、ほかのレイヤーとの上下は変わりません。1回の Undo で、rig 1つぶん押す前に戻ります。
 - Checks: the Animator does not match the emitters' clips (press Sync Animator again), and a pre-fire clip without the `_AnimFire` event.
 - 点検: Animator が射出口のクリップと合っていないとき(押し直しが要る)、撃つ前のクリップに `_AnimFire` の Event が無いとき。
 

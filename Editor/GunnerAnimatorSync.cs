@@ -42,9 +42,9 @@ namespace Mecaota.Gunner.EditorTools
             {
                 if (!layers[i].name.StartsWith(LayerPrefix)) continue;
                 var mask = layers[i].avatarMask;
+                controller.RemoveLayer(i);
                 if (mask != null && AssetDatabase.GetAssetPath(mask) == AssetDatabase.GetAssetPath(controller))
                     Undo.DestroyObjectImmediate(mask);
-                controller.RemoveLayer(i);
             }
             foreach (var p in controller.parameters)
                 if (p.name.StartsWith(ParamPrefix)) controller.RemoveParameter(p);
@@ -99,11 +99,12 @@ namespace Mecaota.Gunner.EditorTools
             foreach (int i in emitters) release.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamPrefix + i);
         }
 
+        // パスが0件のマスクは何も絞らないので、カーブの無いクリップには、無いパスを1つ入れて何も通さないようにする。
         static AvatarMask MaskOf(string name, params AnimationClip[] clips)
         {
             var paths = clips.Where(c => c != null)
                 .SelectMany(c => AnimationUtility.GetCurveBindings(c).Concat(AnimationUtility.GetObjectReferenceCurveBindings(c)))
-                .Select(b => b.path).Distinct().ToArray();
+                .Select(b => b.path).Distinct().DefaultIfEmpty(LayerPrefix + "none").ToArray();
             var mask = new AvatarMask { name = name, hideFlags = HideFlags.HideInHierarchy, transformCount = paths.Length };
             for (int i = 0; i < paths.Length; i++)
             {

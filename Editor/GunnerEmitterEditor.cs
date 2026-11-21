@@ -40,7 +40,7 @@ namespace Mecaota.Gunner.EditorTools
             Fields("impactSource", "impactClip", "impactMinInterval", "impactParticle", "impactBurst");
 
             Heading("GunnerEmitter.card.stream");
-            Fields("streamRate", "streamJoin", "streamHitMode", "streamHitInterval", "streamCollide");
+            Fields("streamRate", "streamHitMode", "streamHitInterval", "streamCollide");
 
             Heading("GunnerEmitter.card.aim");
             Field("aimMaxAngle");

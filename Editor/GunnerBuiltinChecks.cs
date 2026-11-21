@@ -183,8 +183,6 @@ namespace Mecaota.Gunner.EditorTools
                     into.Add(new GunnerCheck(E.Error, "check.particle.not_world", ps, () => GunnerEditorUtil.MakeWorldSpace(ps), ps.name));
                 if (main.playOnAwake || main.loop)
                     into.Add(new GunnerCheck(E.Warning, "check.particle.autoplay", ps, () => GunnerEditorUtil.StopAutoPlay(ps), ps.name));
-                if (m.fireMode == GunnerRig.FireStream && m.streamJoin == GunnerStream.JoinLine && !ps.trails.enabled)
-                    into.Add(new GunnerCheck(E.Warning, "check.rig.trails_off", ps, () => GunnerEditorUtil.EnableTrails(ps), m.name));
             }
 
             var impact = m.impactParticle;
@@ -291,12 +289,6 @@ namespace Mecaota.Gunner.EditorTools
             else if (hand.input.controller != hand)
                 into.Add(new GunnerCheck(E.Error, "check.hand.input_unwired", hand,
                     () => GunnerEditorUtil.Edit(hand.input, so => so.FindProperty("controller").objectReferenceValue = hand)));
-            if (hand.hold == null)
-                into.Add(new GunnerCheck(E.Warning, "check.hand.no_hold", hand, () =>
-                {
-                    var hold = GunnerEditorUtil.GetOrAddUdon<GunnerMoveHold>(hand.gameObject);
-                    GunnerEditorUtil.Edit(hand, so => so.FindProperty("hold").objectReferenceValue = hold);
-                }));
 
             var rig = hand.rig;
             if (rig != null)

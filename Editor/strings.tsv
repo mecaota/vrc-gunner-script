@@ -11,7 +11,6 @@ check.rig.no_emitter	射出口がありません	No emitter
 check.rig.too_many_emitters	射出口が多すぎます(最大 {0})	Too many emitters (max {0})
 check.rig.null_emitter	射出口の欄に空きがあります	An emitter slot is empty
 check.rig.no_particle	射出口 {0} にパーティクルがありません(当たりは記録されます)	Emitter {0} has no particles (hits are still recorded)
-check.rig.trails_off	射出口 {0} のパーティクルにトレイルがなく、連射が線になりません	Emitter {0}: particle trails are off, so the stream will not join into a line
 check.rig.no_stream	撃ち方が連射の射出口がありますが、GunnerStream がありません	An emitter fires in Stream mode, but there is no GunnerStream
 check.rig.hits_zero	記録数が 0 です	Hit records is 0
 check.rig.many_hits	記録数が {0} を超えています({0} 件までしか使われません)	More than {0} hit records (only {0} are used)
@@ -36,7 +35,6 @@ check.particle.autoplay	パーティクル {0} が自動で再生されます(Pl
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
 check.hand.no_input	GunnerPickupInput が未設定です	No GunnerPickupInput set
 check.hand.input_unwired	入力の Controller がこの球を指していません	The input's Controller is not this ball
-check.hand.no_hold	撃つ間も歩けます(GunnerMoveHold が未設定)	The player can walk while shooting (GunnerMoveHold not set)
 check.hand.window_single	この球が使う射出口の中に、撃ち方が「連射」のものがないため、「離してから」は効きません	None of this ball's emitters fires in Stream mode, so "After release" has no effect
 check.hand.mask_hits_ball	弾が球に当たります(射出口のパーティクルの Collides With にレイヤー {0} が入っています)	Shots can hit the ball (layer {0} is in an emitter particle system's Collides With)
 check.hand.all_emitters	狙う射出口の組が 0 のため、撃ち方が連射の射出口すべて({0}個)から連射が出ます	The stream comes out of all {0} Stream emitters (emitter set is 0)
@@ -99,9 +97,6 @@ GunnerEmitter.aimMaxAngle	可動域(度、0 = 60)	Aim limit (°, 0 = 60)
 GunnerEmitter.aimMaxAngle.tip	この射出口が狙える角度の上限(度)。撃つ向きの初期値から測る。0 なら 60 度	Aim limit for this emitter (degrees), measured from the rest direction. 0 = 60 degrees
 GunnerEmitter.streamRate	連射の量(個/秒)	Stream rate (/s)
 GunnerEmitter.streamRate.tip	1秒あたりのパーティクルの数	Particles per second
-GunnerEmitter.streamJoin	連射の見た目	Stream look
-GunnerEmitter.streamJoin.opt	パーティクルのまま|線につなぐ	Particles|Joined line
-GunnerEmitter.streamJoin.tip	パーティクルのまま: パーティクルだけを出す。線につなぐ: パーティクルのトレイルをつないで1本の線に見せる(トレイルが必要)	Particles: particles only. Joined line: particle trails are joined into one line (needs trails)
 GunnerEmitter.streamHitMode	連射の当たり方	Stream hits
 GunnerEmitter.streamHitMode.opt	1回で止める|当たり続ける	Stop at first hit|Keep hitting
 GunnerEmitter.streamHitMode.tip	1回で止める: 射出口ごとに、最初の当たりだけを記録する。当たり続ける: 「当たりの間隔」ごとに記録する	Stop at first hit: each emitter records only its first hit. Keep hitting: records once per Hit interval

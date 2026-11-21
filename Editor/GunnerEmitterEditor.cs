@@ -34,7 +34,7 @@ namespace Mecaota.Gunner.EditorTools
             Field("fireMode");
 
             Heading("GunnerEmitter.card.fire");
-            Fields("fireSource", "fireClip", "fireMinInterval", "shotSpeed", "maxRange", "castRadius");
+            Fields("fireSource", "fireClip", "fireMinInterval", "shotSpeed", "maxRange", "castRadius", "preFireClip", "postFireClip");
 
             Heading("GunnerEmitter.card.impact");
             Fields("impactSource", "impactClip", "impactMinInterval", "impactParticle", "impactBurst");

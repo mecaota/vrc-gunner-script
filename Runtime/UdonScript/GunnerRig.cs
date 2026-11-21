@@ -85,7 +85,7 @@ namespace Mecaota.Gunner
         // 当たるレイヤーは射出口のパーティクルの Collision > Collides With(Collision を切っていても読む)。プレイヤーには常に当たる(持ち主も)
         public float playerRadius = 0.12f;        // 体の半径。的の目の高さに対する割合
         public bool boneFollow;                   // 初期値。BoneFollowOn / Off で変えると同期する
-        public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。入れたら、全部の射出口に bool GunnerPre0, GunnerPre1, ... が要る
+        public Animator fireAnimator;             // 任意: 撃つ前のアニメ。空 = すぐ撃つ。中身はエディターの「Animator にそろえる」で作る
 
         // ---------------- 射出口ごとの値(_LoadMuzzles が muzzles から写す) ----------------
 
@@ -775,7 +775,7 @@ namespace Mecaota.Gunner
                 return;
             }
             if (!ValidEmitter(emitter)) return;
-            if (fireAnimator != null)
+            if (fireAnimator != null && muzzles[emitter].preFireClip != null)
             {
                 // 撃つ前のアニメを流し、その合図(_AnimFire)で撃つ。待つのは1度に1つ。
                 if (preEmitter >= 0 || !TakeOwnership()) return;

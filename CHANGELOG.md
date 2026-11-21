@@ -30,6 +30,15 @@ Breaking: `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`. The valu
 - 削除: `GunnerStream.JoinParticles`、`GunnerStream.JoinLine`、`GunnerRig._StreamJoin`、`GunnerStream._PreSimulate`。`_StepMasked` の戻り値は void になりました。
 - `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`.
 - `GunnerAutoAim` の `emitterMask` を `emitterSwitches` に置き換えました。
+- With `fireAnimator` set, an emitter without `preFireClip` now shoots at once instead of waiting for `_AnimFire`. If you built the pre-fire layers by hand, set the clips on the emitters and press **Sync Animator**. Once generated, delete your hand-made layers that use the same parameters, or they run twice.
+- `fireAnimator` を入れていても、`preFireClip` が空の射出口は `_AnimFire` を待たずにすぐ撃つようになりました。撃つ前のレイヤーを手で作っていた場合は、射出口にクリップを入れて「Animator にそろえる」を押してください。ボタンで生成したら、同じパラメーターを使う手作りのレイヤーは消してください(二重に動くため)。
+
+### Added / 追加
+
+- `GunnerEmitter.preFireClip` / `postFireClip`, and **Sync Animator** on the rig's inspector. It rebuilds the layers named `Gunner_*` and the parameters `GunnerPre*` in the `fireAnimator`'s Animator Controller from these clips (one layer per pre-fire clip). Each layer gets an Avatar Mask of the objects its clips animate, stored inside the controller. Other layers and parameters are left alone. The `Gunner_` layers go back where the first one was, so keep them together to keep their place among your layers. One Undo reverts a press for one rig.
+- `GunnerEmitter.preFireClip` / `postFireClip` と、rig のインスペクターの「Animator にそろえる」。`fireAnimator` の Animator Controller に、これらのクリップから `Gunner_*` のレイヤーと `GunnerPre*` のパラメーターを作り直します(撃つ前のクリップ1つにつきレイヤー1枚)。各レイヤーには、クリップが動かす物だけの Avatar Mask を付け、Controller の中に保存します。ほかのレイヤーとパラメーターには触りません。`Gunner_` のレイヤーは、最初の1枚があった所にまとめて戻るので、一続きに置いておけば、ほかのレイヤーとの上下は変わりません。1回の Undo で、rig 1つぶん押す前に戻ります。
+- Checks: the Animator does not match the emitters' clips (press Sync Animator again), and a pre-fire clip without the `_AnimFire` event.
+- 点検: Animator が射出口のクリップと合っていないとき(押し直しが要る)、撃つ前のクリップに `_AnimFire` の Event が無いとき。
 
 ### Changed / 変更
 

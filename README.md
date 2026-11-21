@@ -68,6 +68,7 @@ On each `GunnerEmitter`:
 | `shotSpeed` | 25 | Metres per second. |
 | `maxRange` | 30 | Metres. |
 | `castRadius` | 0.05 | Hit test thickness (metres). |
+| `preFireClip` / `postFireClip` | empty | Clips played before and after a single shot (see Pre-fire animation). Empty `preFireClip` = shoot at once. |
 | `aimMaxAngle` | 0 | Aim limit in degrees from the rest direction (0 = 60). |
 | `streamRate` | 12 | Particles per second. |
 | `streamHitMode` | Stop at first hit | Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
@@ -100,6 +101,17 @@ Emitters with the same tip bone turn that bone together, using the bone fields o
 - `TriggerDown()` and the hand controller's `emitter = -1` shoot from every emitter in the aim set at once, each in its own fire mode. `Fire()` shoots only the Single emitters. To shoot one kind only, use `_FireWith(emitter, payload)`, or narrow the aim set with `_SetAimEmitters(mask)` / `GunnerHandController.useEmitters`.
 - The hand-held ball aims at the point straight ahead of it, as far as the range (`maxRange`) of its `emitter`, at least 1 m. With `emitter = -1`, emitter 0's range is used. With an emitter number, only that emitter aims and shoots while the ball is held (`useEmitters` is ignored).
 - Udon cannot add `VRC_SpatialAudioSource` at runtime. Add it to the AudioSources in the editor.
+
+### Pre-fire animation
+
+Set `fireAnimator` on the rig, then `preFireClip` (and optionally `postFireClip`) on each emitter, and press **Sync Animator** on the rig. A single shot from `_FireWith(emitter, payload)` then plays the clip and shoots when its Animation Event calls `_AnimFire` (`SendCustomEvent`). Emitters without `preFireClip` shoot at once.
+
+- **Sync Animator** rebuilds, in the `fireAnimator`'s Animator Controller, every layer whose name starts with `Gunner_` and every parameter starting with `GunnerPre`: one bool `GunnerPre<n>` per emitter with a clip, and one layer per pre-fire clip. Each layer gets an Avatar Mask of the objects its clips animate, stored inside the controller. Other layers and parameters are left alone. The `Gunner_` layers go back where the first one was, so keep them together to keep their place among your layers. Edits to the generated layers are lost on the next press; adjust the clips instead.
+- Press it again after adding, removing or reordering emitters, or changing their clips. The rig's checks warn until you do.
+- Give emitters that move the same body part the same `preFireClip`; they then share one layer. With different clips, the upper layer wins.
+- Override Controllers are not supported.
+- Put the rig on the same GameObject as `fireAnimator`: Animation Events reach only that GameObject. If it is elsewhere, `_AnimFire` never arrives and the shot is dropped after `PreFireTimeout` (3 s) without firing.
+- Emitters that share a clip should have the same `postFireClip`; if they differ, the one on the lowest-numbered emitter is used.
 
 ## Auto aim (`GunnerAutoAim`)
 

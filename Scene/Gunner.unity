@@ -1434,6 +1434,10 @@ PrefabInstance:
       value: 0.08
       objectReference: {fileID: 0}
     - target: {fileID: 5022160871835713446, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: TrailModule.mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5022160871835713446, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
       propertyPath: CollisionModule.collidesWith.m_Bits
       value: 4294957563
       objectReference: {fileID: 0}
@@ -1457,6 +1461,10 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[1]
       value: 
       objectReference: {fileID: 2100000, guid: ce49e1ff27d29e24f80ccf7e641f5166, type: 2}
+    - target: {fileID: 5860482508801892746, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
+      propertyPath: m_RenderMode
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 7083353351388670408, guid: 06e6e4e46c3a27b4f877b5c6ad3ccb6c, type: 3}
       propertyPath: fireModes.Array.size
       value: 1

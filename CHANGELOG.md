@@ -4,6 +4,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 このファイルの形式は Keep a Changelog に従います。版は Semantic Versioning です。0.x の間は、マイナー版でも API が変わることがあります。
 
+## [Unreleased]
+
+Breaking: a stream set to Joined line (the old `streamJoin` default) is no longer joined after the update if **Trails > Mode** is set to Particles, the default. To join it, set **Trails > Mode** to Ribbon.
+
+互換性のない変更です。「線につなぐ」(旧 `streamJoin` の既定)だった連射は、**Trails > Mode** が既定の Particles のままだと、更新後はつながらなくなります。つなぐには **Trails > Mode** を Ribbon にしてください。
+
+### Breaking changes / 互換性のない変更
+
+- `GunnerEmitter.streamJoin` is removed. The stream is joined only when the emitter's particle system has Trails on and **Mode** set to Ribbon.
+- `GunnerEmitter.streamJoin` を削除しました。連射がつながるのは、射出口のパーティクルの Trails が ON で **Mode** が Ribbon のときだけです。
+- `GunnerStream.span` is removed.
+- `GunnerStream.span` を削除しました。
+- Removed: `GunnerStream.JoinParticles`, `GunnerStream.JoinLine`, `GunnerRig._StreamJoin` and `GunnerStream._PreSimulate`. `_StepMasked` now returns void.
+- 削除: `GunnerStream.JoinParticles`、`GunnerStream.JoinLine`、`GunnerRig._StreamJoin`、`GunnerStream._PreSimulate`。`_StepMasked` の戻り値は void になりました。
+
+### Changed / 変更
+
+- Width over Trail applies to the whole line. A stream started again soon after it stopped joins the previous line.
+- Width over Trail は線全体に掛かります。止めてすぐ撃ち直すと、前の線とつながります。
+
 ## [0.15.1] - 2026-11-20
 
 ### Fixed / 修正

@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-22
+
+This version includes the breaking changes below (#30, including the removal of `streamJoin`) and raises the required Unity to 6000.0.67f1.
+
+この版には、下の互換性のない変更(#30。`streamJoin` の削除を含む)が入っています。また、必要な Unity を 6000.0.67f1 に上げました。
+
 Breaking: the value in `GunnerAutoAim.recheckInterval` is lost on update, and nothing replaces it. Only the players' feet are checked now, so make sure each box contains the feet and extends below the floor.
 
 互換性のない変更です。`GunnerAutoAim` の `recheckInterval` の値は、更新すると失われます。代わりの欄はありません。足元だけを調べるようになったので、箱が足元を含み、底が床より下まであるかを確かめてください。
@@ -42,6 +48,8 @@ Breaking: `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`. The valu
 
 ### Changed / 変更
 
+- Required Unity is now 6000.0.67f1 (`package.json`: `unity` 6000.0, `unityRelease` 67f1), matching the VRChat Open Beta.
+- 必要な Unity を 6000.0.67f1 にしました(`package.json` の `unity` は 6000.0、`unityRelease` は 67f1)。VRChat の Open Beta に合わせています。
 - Width over Trail applies to the whole line. A stream started again soon after it stopped joins the previous line.
 - Width over Trail は線全体に掛かります。止めてすぐ撃ち直すと、前の線とつながります。
 - `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. Only the BoxCollider's Center and Size are read, so it can be disabled. Disable it: an enabled BoxCollider that is not a trigger stops players.

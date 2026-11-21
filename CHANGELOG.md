@@ -24,8 +24,6 @@ Breaking: a stream set to Joined line (the old `streamJoin` default) is no longe
 - Width over Trail applies to the whole line. A stream started again soon after it stopped joins the previous line.
 - Width over Trail は線全体に掛かります。止めてすぐ撃ち直すと、前の線とつながります。
 
-## [0.15.1] - 2026-11-20
-
 ### Fixed / 修正
 
 - Check Window no longer warns "The player can walk while shooting" when `GunnerMoveHold` is not set. Walking while shooting is the normal case, and `GunnerMoveHold` stays optional.

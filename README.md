@@ -129,7 +129,7 @@ How it works:
 - When this device becomes the rig's owner, it waits `fireInterval` before its first shot, and carries on. A device that is not the owner never shoots or takes the rig; when it stops being the owner it only resets its own local aim (`ResetAim()`, `_SetAimEmitters(-1)`, which neither take the rig nor sync), so the new owner's synced aim shows.
 - Teleported, respawned and seated players count by where their feet are now.
 - The rig's owner (the local player on the owner's device) can be chosen as a target and hit too.
-- To switch emitters with a switch, put empty GameObjects in `emitterSwitches` and let the switch turn them on and off (for example LuraSwitch2's ModeSwitch with the marks in its `targets`). Use one switch per group of emitters (mouth, spinnerets) and keep one `GunnerAutoAim` per rig.
+- To switch emitters with a switch, put empty GameObjects in `emitterSwitches` and let the switch turn them on and off (for example LuraSwitch2's ModeSwitch with the marks in its `targets`). Use one switch per group of emitters (mouth, spinnerets) and keep one `GunnerAutoAim` per rig. Put the marks where the parent stays active: under a UI panel, for example, closing the panel would turn those emitters off and the auto-aim would stop shooting.
 - The aim is synced only while the rig syncs it (bone follow on with linked bones, or a stream started on this device). With bone follow off, other devices see the emitters stay at rest; the shots still fly to the recorded points.
 
 ## Quick start

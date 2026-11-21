@@ -243,21 +243,6 @@ namespace Mecaota.Gunner.EditorTools
             EditorUtility.SetDirty(ps);
         }
 
-        public static void EnableTrails(ParticleSystem ps)
-        {
-            if (ps == null) return;
-            Undo.RecordObject(ps, "Gunner: trails");
-            var trails = ps.trails;
-            trails.enabled = true;
-            var renderer = ps.GetComponent<ParticleSystemRenderer>();
-            if (renderer != null && renderer.trailMaterial == null)
-            {
-                Undo.RecordObject(renderer, "Gunner: trails");
-                renderer.trailMaterial = renderer.sharedMaterial != null ? renderer.sharedMaterial : DefaultParticleMaterial();
-            }
-            EditorUtility.SetDirty(ps);
-        }
-
         // ---------------- シーン ----------------
 
         public static List<T> FindInScenes<T>() where T : Component

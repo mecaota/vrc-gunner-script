@@ -6,16 +6,44 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-Breaking: `GunnerAutoAim.recheckInterval` is removed, and `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`. The values in them are lost on update.
+Breaking: the value in `GunnerAutoAim.recheckInterval` is lost on update, and nothing replaces it. Only the players' feet are checked now, so make sure each box contains the feet and extends below the floor.
 
-互換性のない変更です。`GunnerAutoAim` の `recheckInterval` を削除し、`emitterMask` を `emitterSwitches` に置き換えました。これらの欄の値は、更新すると失われます。
+互換性のない変更です。`GunnerAutoAim` の `recheckInterval` の値は、更新すると失われます。代わりの欄はありません。足元だけを調べるようになったので、箱が足元を含み、底が床より下まであるかを確かめてください。
+
+Breaking: a stream set to Joined line (the old `streamJoin` default) is no longer joined after the update if **Trails > Mode** is set to Particles, the default. To join it, set **Trails > Mode** to Ribbon.
+
+互換性のない変更です。「線につなぐ」(旧 `streamJoin` の既定)だった連射は、**Trails > Mode** が既定の Particles のままだと、更新後はつながらなくなります。つなぐには **Trails > Mode** を Ribbon にしてください。
+
+Breaking: `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`. The value in it is lost on update.
+
+互換性のない変更です。`GunnerAutoAim` の `emitterMask` を `emitterSwitches` に置き換えました。この欄の値は、更新すると失われます。
+
+### Breaking changes / 互換性のない変更
+
+- `GunnerAutoAim.recheckInterval` is removed.
+- `GunnerAutoAim` の `recheckInterval` を削除しました。
+- `GunnerEmitter.streamJoin` is removed. The stream is joined only when the emitter's particle system has Trails on and **Mode** set to Ribbon.
+- `GunnerEmitter.streamJoin` を削除しました。連射がつながるのは、射出口のパーティクルの Trails が ON で **Mode** が Ribbon のときだけです。
+- `GunnerStream.span` is removed.
+- `GunnerStream.span` を削除しました。
+- Removed: `GunnerStream.JoinParticles`, `GunnerStream.JoinLine`, `GunnerRig._StreamJoin` and `GunnerStream._PreSimulate`. `_StepMasked` now returns void.
+- 削除: `GunnerStream.JoinParticles`、`GunnerStream.JoinLine`、`GunnerRig._StreamJoin`、`GunnerStream._PreSimulate`。`_StepMasked` の戻り値は void になりました。
+- `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`.
+- `GunnerAutoAim` の `emitterMask` を `emitterSwitches` に置き換えました。
 
 ### Changed / 変更
 
-- `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. `recheckInterval` is removed.
-- `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。`recheckInterval` は削除しました。
+- Width over Trail applies to the whole line. A stream started again soon after it stopped joins the previous line.
+- Width over Trail は線全体に掛かります。止めてすぐ撃ち直すと、前の線とつながります。
+- `GunnerAutoAim` no longer keeps a list of players from trigger events. On each aim it checks every player and targets those whose feet are inside the box. A player whose body touches the box edge but whose feet are outside is no longer targeted. Only the BoxCollider's Center and Size are read, so it can be disabled. Disable it: an enabled BoxCollider that is not a trigger stops players.
+- `GunnerAutoAim` は、トリガーの知らせから範囲内の一覧を持つのをやめました。狙うたびに全員を調べ、足元が箱の中にいる人を狙います。体が箱の縁に触れていても足元が外なら、狙わなくなります。BoxCollider からは Center と Size だけを読むので、無効にしてかまいません。有効で Is Trigger でない BoxCollider はプレイヤーを止めるので、無効にしてください。
 - `GunnerAutoAim.emitterMask` is replaced by `emitterSwitches`, one mark GameObject per emitter. An emitter whose mark is inactive is not used, so a switch can choose the emitters by turning marks on and off. Empty slots are always used. Leave it empty to use all emitters, as -1 did.
 - `GunnerAutoAim` の `emitterMask` を、射出口ごとの印の GameObject の配列 `emitterSwitches` に置き換えました。印が無効な射出口は使いません。スイッチで印を切り替えると、使う射出口を選べます。空の所は常に使います。配列が空なら、全部使います(旧 -1 と同じ)。
+
+### Fixed / 修正
+
+- Check Window no longer warns "The player can walk while shooting" when `GunnerMoveHold` is not set. Walking while shooting is the normal case, and `GunnerMoveHold` stays optional.
+- `GunnerMoveHold` が未設定でも、Check Window は「撃つ間も歩けます」と警告しません。撃ちながら歩けるのが普通の使い方で、`GunnerMoveHold` は任意の部品のままです。
 
 ## [0.15.0] - 2026-11-20
 

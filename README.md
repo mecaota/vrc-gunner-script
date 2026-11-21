@@ -70,7 +70,6 @@ On each `GunnerEmitter`:
 | `castRadius` | 0.05 | Hit test thickness (metres). |
 | `aimMaxAngle` | 0 | Aim limit in degrees from the rest direction (0 = 60). |
 | `streamRate` | 12 | Particles per second. |
-| `streamJoin` | Joined line | Particles, or particles joined into a line by their trails. |
 | `streamHitMode` | Stop at first hit | Stop at first hit (the first hit also clears the emitter's flying particles), or Keep hitting. |
 | `streamHitInterval` | 0.25 | Keep hitting: seconds between records. |
 | `streamCollide` | On | Whether the stream records hits. `_SetCollision(false)` switches it off for all emitters at runtime. |
@@ -79,7 +78,7 @@ On each `GunnerEmitter`:
 | `boneYawMax` / `bonePitchUpMax` / `bonePitchDownMax` | 30 / 30 / 15 | Per-bone limits in degrees. |
 | `boneSmooth` / `boneMinSpeed` / `boneMaxSpeed` | 10 / 30 / 0 | Follow speed. `boneMaxSpeed` 0 = no limit. |
 
-Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). The rig copies the emitters' values when it starts. In Play mode in the editor, a change on a `GunnerEmitter` takes effect at once for single shots, sounds, `castRadius` and the like. The values the stream (`GunnerStream`) reads (`shotSpeed`, `maxRange`, `streamRate`, `streamJoin`, `streamHitMode`, `streamHitInterval`), the fire mode, `streamCollide`, `linkBones` and the rest pose apply from the next Play. `pivot` and `shotParticle` change for single shots at once, but the stream and the rest pose use the old ones until the next Play. To be sure, Play again; to switch stream collision at runtime, use `_SetCollision(on)`. The joined line's width is each particle system's own **Trails > Width over Trail**; the rig does not change it.
+Shots hit the layers in the emitter's particle system's **Collision > Collides With**, even when the Collision module is off; player layers are ignored there. Shots always hit players, including the rig's owner. An emitter without a particle system hits no layers (it can still hit players). The rig copies the emitters' values when it starts. In Play mode in the editor, a change on a `GunnerEmitter` takes effect at once for single shots, sounds, `castRadius` and the like. The values the stream (`GunnerStream`) reads (`shotSpeed`, `maxRange`, `streamRate`, `streamHitMode`, `streamHitInterval`), the fire mode, `streamCollide`, `linkBones` and the rest pose apply from the next Play. `pivot` and `shotParticle` change for single shots at once, but the stream and the rest pose use the old ones until the next Play. To be sure, Play again; to switch stream collision at runtime, use `_SetCollision(on)`. To join the stream into one line, turn on Trails on the emitter's particle system and set **Trails > Mode** to Ribbon. With Trails off, or Mode at Particles, the stream is not joined. The line's width is the particle system's own **Trails > Width over Trail**, over the whole line. A stream started again soon after it stopped joins the last particles of the previous one. If single shots share the particle system, they leave no trail while Mode is Ribbon; do not share it, or set Mode to Particles. Do not share one particle system between emitters that stream, or the Ribbon joins them across the emitters; use one per emitter.
 
 Emitters with the same tip bone turn that bone together, using the bone fields of the lowest-numbered one; the others do not show them. When that emitter changes (it is removed from the list, or its tip bone is changed), the new lowest-numbered emitter's values are used.
 
@@ -109,7 +108,7 @@ Emitters with the same tip bone turn that bone together, using the bone fields o
 Setup:
 
 1. Make an empty GameObject (for example `SenseZone`, a child of the rig is fine). Do not use the rig's own GameObject.
-2. Add a `BoxCollider` with **Is Trigger** on (so it does not block players) and `GunnerAutoAim`. Set the size with the BoxCollider's Size rather than the Transform scale.
+2. Add a `BoxCollider` and `GunnerAutoAim`. Disable the BoxCollider: a newly added one is enabled and not a trigger, so it stops players like a wall. Only its Center and Size are read, so disabling it is fine.
 3. **Place the box so it contains the players' feet, and extend its bottom below the floor.** Only each player's feet (`GetPosition()`) are checked; a box that floats above the floor, or whose bottom is exactly at floor level, can count a standing player as outside.
 4. Set `rig`. Leave `zone` empty to use the BoxCollider on the same GameObject.
 5. **Use a rig that only `GunnerAutoAim` drives.** If something else (a hand-held controller, another script) takes ownership of the rig, `GunnerAutoAim` on that device starts aiming and shooting automatically.

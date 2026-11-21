@@ -62,7 +62,7 @@ namespace Mecaota.Gunner.EditorTools
 
             Receivers(rig, into);
             SharedBones(rig, into);
-            PreFireParams(rig, muzzles, into);
+            PreFireSynced(rig, muzzles, into);
 
             if (rig.movers != null)
                 foreach (var m in rig.movers)
@@ -91,18 +91,28 @@ namespace Mecaota.Gunner.EditorTools
             }
         }
 
-        // パラメーターが無いと撃つ前のアニメが流れず、合図を待ったまま撃てない。
-        static void PreFireParams(GunnerRig rig, GunnerEmitter[] muzzles, List<GunnerCheck> into)
+        // 押した後に射出口やクリップを変えると、撃つ前のアニメが流れないか、別の射出口のアニメが流れる。
+        static void PreFireSynced(GunnerRig rig, GunnerEmitter[] muzzles, List<GunnerCheck> into)
         {
             var controller = GunnerAnimatorSync.ControllerOf(rig);
             if (controller == null) return;
+            var want = new HashSet<(string, Motion, Motion)>(GunnerAnimatorSync.Groups(muzzles).SelectMany(g =>
+                g.Select(i => (GunnerAnimatorSync.ParamPrefix + i, (Motion)muzzles[i].preFireClip, (Motion)muzzles[g[0]].postFireClip))));
             var names = new HashSet<string>(controller.parameters.Select(p => p.name));
-            for (int i = 0; i < muzzles.Length; i++)
-                if (muzzles[i] != null && muzzles[i].preFireClip != null && !names.Contains(GunnerAnimatorSync.ParamPrefix + i))
+            var have = new HashSet<(string, Motion, Motion)>();
+            foreach (var layer in controller.layers)
+            {
+                if (!layer.name.StartsWith(GunnerAnimatorSync.LayerPrefix) || layer.stateMachine == null || layer.stateMachine.defaultState == null) continue;
+                foreach (var t in layer.stateMachine.defaultState.transitions)
                 {
-                    into.Add(new GunnerCheck(E.Warning, "check.rig.animator_unsynced", rig, () => GunnerAnimatorSync.Sync(rig)));
-                    return;
+                    var pre = t.destinationState;
+                    if (pre == null || t.conditions.Length == 0 || !names.Contains(t.conditions[0].parameter)) continue;
+                    var after = pre.transitions.Length > 0 ? pre.transitions[0].destinationState : null;
+                    have.Add((t.conditions[0].parameter, pre.motion, after != null ? after.motion : null));
                 }
+            }
+            if (!want.SetEquals(have))
+                into.Add(new GunnerCheck(E.Warning, "check.rig.animator_unsynced", rig, () => GunnerAnimatorSync.Sync(rig)));
         }
 
         const int LongChain = 6;
@@ -143,7 +153,8 @@ namespace Mecaota.Gunner.EditorTools
 
         static void Emitter(GunnerEmitter m, List<GunnerCheck> into)
         {
-            if (GunnerEmitterEditor.RigOf(m, out _) == null)
+            var rig = GunnerEmitterEditor.RigOf(m, out _);
+            if (rig == null)
             {
                 var parent = GunnerSetup.RigFor(m.gameObject);
                 System.Action fix = null;
@@ -191,7 +202,7 @@ namespace Mecaota.Gunner.EditorTools
                     () => GunnerEditorUtil.Edit(m, so => so.FindProperty("aimMaxAngle").floatValue = LinkMax), angle.ToString("0.#")));
 
             var clip = m.preFireClip;
-            if (clip != null && !AnimationUtility.GetAnimationEvents(clip).Any(e => e.functionName == "SendCustomEvent" && e.stringParameter == nameof(GunnerRig._AnimFire)))
+            if (clip != null && rig != null && rig.fireAnimator != null && !AnimationUtility.GetAnimationEvents(clip).Any(e => e.functionName == "SendCustomEvent" && e.stringParameter == nameof(GunnerRig._AnimFire)))
                 into.Add(new GunnerCheck(E.Warning, "check.emitter.no_anim_fire", m, null, clip.name));
 
             LinkBones(m, into);

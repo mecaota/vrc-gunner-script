@@ -107,8 +107,8 @@ Emitters with the same tip bone turn that bone together, using the bone fields o
 
 Set `fireAnimator` on the rig, then `preFireClip` (and optionally `postFireClip`) on each emitter, and press **Sync Animator** on the rig. A single shot from `_FireWith(emitter, payload)` then plays the clip and shoots when its Animation Event calls `_AnimFire` (`SendCustomEvent`). Emitters without `preFireClip` shoot at once.
 
-- **Sync Animator** rebuilds, in the `fireAnimator`'s Animator Controller, every layer whose name starts with `Gunner_` and every parameter starting with `GunnerPre`: one bool `GunnerPre<n>` per emitter with a clip, and one layer per pre-fire clip. Other layers and parameters are left alone. Edits to the generated layers are lost on the next press; adjust the clips instead.
-- Press it again after adding, removing or reordering emitters, or changing their clips.
+- **Sync Animator** rebuilds, in the `fireAnimator`'s Animator Controller, every layer whose name starts with `Gunner_` and every parameter starting with `GunnerPre`: one bool `GunnerPre<n>` per emitter with a clip, and one layer per pre-fire clip. Each layer gets an Avatar Mask of the objects its clips animate, stored inside the controller. Other layers and parameters are left alone, and keep their order. Edits to the generated layers are lost on the next press; adjust the clips instead.
+- Press it again after adding, removing or reordering emitters, or changing their clips. The rig's checks warn until you do.
 - Give emitters that move the same body part the same `preFireClip`; they then share one layer. With different clips, the upper layer wins.
 - Override Controllers are not supported.
 - Put the rig on the same GameObject as `fireAnimator`: Animation Events reach only that GameObject. If it is elsewhere, `_AnimFire` never arrives and the shot is dropped after `PreFireTimeout` (3 s) without firing.

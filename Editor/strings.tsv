@@ -32,7 +32,7 @@ check.emitter.unlisted	どの GunnerRig の射出口の一覧にも入ってい�
 check.emitter.no_constraint	向ける部分(pivot)が先端のボーン {0} の下になく、VRC Parent Constraint もないため、ボーンに追従しません	The pivot is not under the tip bone {0} and there is no VRC Parent Constraint, so it does not follow the bone
 check.emitter.constraint_no_source	VRC Parent Constraint の Source が空です	The VRC Parent Constraint has an empty source
 check.emitter.no_anim_fire	撃つ前のクリップ {0} に Animation Event(SendCustomEvent、_AnimFire)がないため、撃てません	Pre-fire clip {0} has no Animation Event (SendCustomEvent, _AnimFire), so it never shoots
-check.rig.animator_unsynced	Animator のパラメーター GunnerPre が足りません。「Animator にそろえる」を押してください	The Animator is missing GunnerPre parameters. Press Sync Animator
+check.rig.animator_unsynced	Animator のレイヤーやパラメーターが、射出口のクリップと合っていません。「Animator にそろえる」を押してください	The Animator's layers or parameters do not match the emitters' clips. Press Sync Animator
 check.particle.not_world	パーティクル {0} が World simulation space ではありません	Particles {0} are not in World simulation space
 check.particle.autoplay	パーティクル {0} が自動で再生されます(Play On Awake / Looping)	Particles {0} play by themselves (Play On Awake / Looping)
 check.hand.no_rig	GunnerRig が未設定です	No GunnerRig set
@@ -92,7 +92,7 @@ GunnerRig.syncAnimator	Animator にそろえる	Sync Animator
 GunnerRig.syncAnimator.noController	「Animator にそろえる」: 撃つ前のアニメ(fireAnimator)に Animator Controller が入っていません(Override Controller は使えません)	Sync Animator: the pre-fire animator (fireAnimator) has no Animator Controller (Override Controllers are not supported)
 GunnerEmitter.preFireClip	撃つ前のクリップ	Pre-fire clip
 GunnerEmitter.preFireClip.tip	撃つ前に流すクリップ。撃つ瞬間に Animation Event(SendCustomEvent、_AnimFire)を置く。空ならすぐ撃つ。入れたら rig の「Animator にそろえる」を押す。同じ部位を動かす射出口には同じクリップを入れる	Clip played before shooting. Put an Animation Event (SendCustomEvent, _AnimFire) at the moment to shoot. Empty: shoot at once. After setting it, press Sync Animator on the rig. Use the same clip on emitters that move the same body part
-GunnerEmitter.postFireClip	撃った後のアニメ	Post-fire clip
+GunnerEmitter.postFireClip	撃った後のクリップ	Post-fire clip
 GunnerEmitter.postFireClip.tip	撃った後に流すクリップ。空なら休みに戻る	Clip played after shooting. Empty: return to rest
 GunnerRig.maxHits.tip	この端末で記録する着弾の数(1〜16)。Android で減らしても PC とずれない	Hits recorded on this device (1-16). Lowering it on Android stays in step with PC
 GunnerEmitter.shotSpeed	弾の速さ(m/秒)	Shot speed (m/s)

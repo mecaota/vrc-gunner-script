@@ -18,7 +18,7 @@ namespace Mecaota.Gunner
         public float shotSpeed = 25f;
         public float maxRange = 30f;
         public float castRadius = 0.05f;
-        public AnimationClip preFireClip;         // 空 = 待たずにすぐ撃つ
+        public AnimationClip preFireClip;
         public AnimationClip postFireClip;
 
         public AudioSource impactSource;
